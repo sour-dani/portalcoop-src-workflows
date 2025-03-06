@@ -2,7 +2,6 @@
 #include "prop_box.h"
 #include "prop_combine_ball.h"
 #include "trigger_portal_cleanser.h"
-#include "saverestore_utlvector.h"
 
 #define BALL_DESTROYER_DAMAGE 50
 #define BALL_DESTROYER_DAMAGETYPE DMG_SHOCK

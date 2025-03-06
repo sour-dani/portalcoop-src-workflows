@@ -1178,6 +1178,11 @@ public:
 	void			SetCollisionGroup( int collisionGroup );
 	void			CollisionRulesChanged();
 	
+	//Grab Controller
+	CGrabController *m_pGrabController;
+	CGrabController *GetGrabController() { return m_pGrabController; }
+	void SetGrabController(CGrabController *pGrabController) { m_pGrabController = pGrabController; }
+	
 	//Physgun
 	CWeaponPhysCannon *m_pPhysgun;
 	CWeaponPhysCannon *GetPhysgun() { return m_pPhysgun; }

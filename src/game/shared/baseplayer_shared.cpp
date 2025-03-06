@@ -1293,15 +1293,15 @@ bool CBasePlayer::PlayerUse ( void )
 	if ( ! ((m_nButtons | m_afButtonPressed | m_afButtonReleased) & IN_USE) )
 		return false;
 
-#ifdef GAME_DLL
 	if ( IsObserver() )
 	{
+#ifdef GAME_DLL
 		// do special use operation in oberserver mode
 		if ( m_afButtonPressed & IN_USE )
 			ObserverUse( true );
 		else if ( m_afButtonReleased & IN_USE )
 			ObserverUse( false );
-		
+#endif
 		return true;
 	}
 
@@ -1343,7 +1343,6 @@ bool CBasePlayer::PlayerUse ( void )
 		}
 	}
 #endif
-#endif
 
 	if ( m_afButtonPressed & IN_USE )
 	{
@@ -1359,7 +1358,7 @@ bool CBasePlayer::PlayerUse ( void )
 			{
 				m_afPhysicsFlags &= ~PFLAG_DIROVERRIDE;
 				m_iTrain = TRAIN_NEW|TRAIN_OFF;
-				return true;
+				return false;
 			}
 			else
 			{	// Start controlling the train!
@@ -1384,38 +1383,38 @@ bool CBasePlayer::PlayerUse ( void )
 	{
 
 		//!!!UNDONE: traceline here to prevent +USEing buttons through walls			
-
+#ifdef GAME_DLL
 		int caps = pUseEntity->ObjectCaps();
+		variant_t emptyVariant;
 		if ( ( (m_nButtons & IN_USE) && (caps & FCAP_CONTINUOUS_USE) ) || ( (m_afButtonPressed & IN_USE) && (caps & (FCAP_IMPULSE_USE|FCAP_ONOFF_USE)) ) )
 		{
-#ifdef GAME_DLL
 			if ( caps & FCAP_CONTINUOUS_USE )
 			{
 				m_afPhysicsFlags |= PFLAG_USING;
 			}
-#endif
+
 			if ( pUseEntity->ObjectCaps() & FCAP_ONOFF_USE )
 			{
-				pUseEntity->Use( this, this, USE_ON, 0 );
+				pUseEntity->AcceptInput( "Use", this, this, emptyVariant, USE_ON );
 			}
 			else
 			{
-				pUseEntity->Use( this, this, USE_TOGGLE, 0 );
+				pUseEntity->AcceptInput( "Use", this, this, emptyVariant, USE_TOGGLE );
 			}
 		}
+
 		// UNDONE: Send different USE codes for ON/OFF.  Cache last ONOFF_USE object to send 'off' if you turn away
 		else if ( (m_afButtonReleased & IN_USE) && (pUseEntity->ObjectCaps() & FCAP_ONOFF_USE) )	// BUGBUG This is an "off" use
 		{
-			pUseEntity->Use( this, this, USE_OFF, 0 );
+			pUseEntity->AcceptInput( "Use", this, this, emptyVariant, USE_OFF );
 		}
+#endif
 	}
-#ifdef GAME_DLL
 	else if ( m_afButtonPressed & IN_USE )
 	{
 		PlayUseDenySound();
 		return false;
 	}
-#endif
 
 	return pUseEntity != NULL;
 }

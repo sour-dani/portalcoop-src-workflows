@@ -39,7 +39,6 @@
 #include "hierarchy.h"
 #include "dt_utlvector_send.h"
 #include "physicsshadowclone.h"
-#include "te_effect_dispatch.h"
 
 extern CBaseEntity* g_pLastSpawn;
 

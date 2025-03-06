@@ -8,13 +8,6 @@
 #include "cbase.h"
 #include "player_pickup.h"
 #include "weapon_physcannon.h"
-#ifdef PORTAL
-#ifdef GAME_DLL
-#include "portal_player.h"
-#else
-#include "c_portal_player.h"
-#endif
-#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

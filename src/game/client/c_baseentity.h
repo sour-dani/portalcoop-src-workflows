@@ -60,7 +60,7 @@ class CEntityMapData;
 class ConVar;
 class CDmgAccumulator;
 class IHasAttributes;
-class CGrabController;
+class C_GrabController;
 class C_WeaponPhysCannon;
 class C_PhysicsShadowClone;
 
@@ -1246,8 +1246,6 @@ public:
 
 	bool							IsWorld() { return entindex() == 0; }
 	/////////////////
-	
-	virtual bool					OnControls( C_BaseEntity *pControls ) { return false; }
 
 	virtual bool					IsPlayer( void ) const { return false; };
 	virtual bool					IsBaseCombatCharacter( void ) { return false; };
@@ -1486,6 +1484,11 @@ public:
 	int GetCollisionGroup() const;
 	void SetCollisionGroup( int collisionGroup );
 	void							CollisionRulesChanged();
+
+	//Grab Controller
+	C_GrabController *m_pGrabController;
+	C_GrabController *GetGrabController() { return m_pGrabController; }
+	void SetGrabController(C_GrabController *pGrabController) { m_pGrabController = pGrabController; }
 	
 	//Physgun
 	C_WeaponPhysCannon *m_pPhysgun;

@@ -18,8 +18,6 @@
 #include "tier1/callqueue.h"
 #include "portal/weapon_physcannon.h"
 #include "physicsshadowclone.h"
-#include "player_pickup.h"
-#include "debugoverlay_shared.h"
 
 #ifndef CLIENT_DLL
 

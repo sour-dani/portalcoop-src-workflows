@@ -7,8 +7,6 @@
 //=============================================================================//
 #include "cbase.h"
 #include "portal\weapon_physcannon.h"
-#include "player_pickup.h"
-#include "portal_gamerules.h"
 
 #ifdef CLIENT_DLL
 #include "c_portal_player.h"

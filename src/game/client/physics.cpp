@@ -955,19 +955,6 @@ void CCollisionEvent::FluidEndTouch( IPhysicsObject *pObject, IPhysicsFluidContr
 	//FIXME: Do nothing for now
 }
 
-float PhysGetEntityMass( CBaseEntity *pEntity )
-{
-	IPhysicsObject *pList[VPHYSICS_MAX_OBJECT_LIST_COUNT];
-	int physCount = pEntity->VPhysicsGetObjectList( pList, ARRAYSIZE(pList) );
-	float otherMass = 0;
-	for ( int i = 0; i < physCount; i++ )
-	{
-		otherMass += pList[i]->GetMass();
-	}
-
-	return otherMass;
-}
-
 IPhysicsObject *GetWorldPhysObject ( void )
 {
 	return g_PhysWorldObject;

@@ -27,7 +27,6 @@
 #include "portal_player.h"
 #include "portal_gamestats.h"
 #include "env_debughistory.h"
-#include "portal_gamerules.h"
 
 extern CUtlVector<CProp_Portal *> s_PortalLinkageGroups[256];
 #endif

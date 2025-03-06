@@ -69,7 +69,6 @@
 #include "dt_utlvector_send.h"
 #include "vote_controller.h"
 #include "ai_speech.h"
-#include "portal_gamerules.h"
 
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"

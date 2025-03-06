@@ -139,10 +139,6 @@ public:
 	virtual bool	IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps );
 	bool					ClearUseEntity();
 	CBaseEntity				*DoubleCheckUseNPC( CBaseEntity *pNPC, const Vector &vecSrc, const Vector &vecDir );
-	
-	// physics interactions
-	// mass/size limit set to zero for none
-	virtual void			ForceDropOfCarriedPhysObjects( C_BaseEntity *pOnlyIfHoldindThis = NULL ) {}
 
 	// physics interactions
 	// mass/size limit set to zero for none
