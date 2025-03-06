@@ -216,15 +216,21 @@ CPortalSimulator::CPortalSimulator( void )
 #else
 	PS_SD_Static_World_StaticProps_ClippedProp_t::pTraceEntity = GetClientWorldEntity();
 #endif
-#ifndef CLIENT_DLL
+
 	m_InternalData.Simulation.hCollisionEntity = (CPSCollisionEntity *)CreateEntityByName( "portalsimulator_collisionentity" );
+#ifndef CLIENT_DLL
 	Assert( m_InternalData.Simulation.hCollisionEntity != NULL );
 	if( m_InternalData.Simulation.hCollisionEntity )
 	{
 		m_InternalData.Simulation.hCollisionEntity->m_pOwningSimulator = this;
 		MarkAsOwned( m_InternalData.Simulation.hCollisionEntity );
 		m_InternalData.Simulation.Dynamic.EntFlags[m_InternalData.Simulation.hCollisionEntity->entindex()] |= PSEF_OWNS_PHYSICS;
+#ifdef GAME_DLL
 		DispatchSpawn( m_InternalData.Simulation.hCollisionEntity );
+#else
+		cl_entitylist->AddNonNetworkableEntity( m_InternalData.Simulation.hCollisionEntity );
+		m_InternalData.Simulation.hCollisionEntity.Get()->Spawn();
+#endif
 	}
 #endif
 }
@@ -2713,16 +2719,9 @@ void CPortalSimulator::DetachFromLinked( void )
 void CPortalSimulator::SetPortalSimulatorCallbacks( CPortalSimulatorEventCallbacks *pCallbacks )
 {
 	if( pCallbacks )
-	{
 		m_pCallbacks = pCallbacks;
-#ifdef GAME_DLL
-		m_InternalData.Simulation.hCollisionEntity->m_hOwningPortal = assert_cast<CProp_Portal*>( pCallbacks );
-#endif
-	}
 	else
-	{
 		m_pCallbacks = &s_DummyPortalSimulatorCallback; //always keep the pointer valid
-	}
 }
 
 
@@ -3295,8 +3294,6 @@ CPSCollisionEntity::~CPSCollisionEntity( void )
 		m_pOwningSimulator = NULL;
 	}
 
-	m_hOwningPortal = NULL;
-
 	s_PortalSimulatorCollisionEntities[entindex()] = false;
 }
 
@@ -3310,8 +3307,6 @@ void CPSCollisionEntity::UpdateOnRemove( void )
 		m_pOwningSimulator->m_InternalData.Simulation.hCollisionEntity = NULL;
 		m_pOwningSimulator = NULL;
 	}
-
-	m_hOwningPortal = NULL;
 
 	s_PortalSimulatorCollisionEntities[entindex()] = false;
 
@@ -3427,17 +3422,6 @@ bool CPSCollisionEntity::IsPortalSimulatorCollisionEntity( const CBaseEntity *pE
 }
 
 #ifdef CLIENT_DLL
-void CPSCollisionEntity::OnDataChanged( DataUpdateType_t updatetype )
-{
-	C_Prop_Portal *pPortal = m_hOwningPortal;
-	if ( pPortal )
-	{
-		m_pOwningSimulator = &m_hOwningPortal->m_PortalSimulator;
-	}
-
-	BaseClass::OnDataChanged( updatetype );
-}
-
 void CPSCollisionEntity::UpdatePartitionListEntry() //make this trigger touchable on the client
 {
 	partition->RemoveAndInsert(

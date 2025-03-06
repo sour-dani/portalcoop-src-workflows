@@ -866,9 +866,6 @@ public:
 	static bool m_bAllowPrecache;
 
 	static bool IsSimulatingOnAlternateTicks();
-	
-public:
-	static bool	sm_bAccurateTriggerBboxChecks;	// SOLID_BBOX entities do a fully accurate trigger vs bbox check when this is set
 
 // C_BaseEntity local functions
 public:
@@ -2482,10 +2479,5 @@ inline bool C_BaseEntity::HasSpawnFlags( int nFlags ) const
 }
 
 C_BaseEntity *CreateEntityByName( const char *className );
-
-
-// Engine workarounds
-void SolidMoved( CBaseEntity *pTriggerEnt, ICollideable *pSolidCollide, const Vector* pPrevAbsOrigin );
-void TriggerMoved( CBaseEntity *pTriggerEnt );
 
 #endif // C_BASEENTITY_H

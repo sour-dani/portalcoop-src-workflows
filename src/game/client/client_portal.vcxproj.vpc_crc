@@ -1,8 +1,8 @@
 [vpc crc file version 2]
 b9c20ec3 E:\Program Files (x86)\Steam\steamapps\git\portalcoop-src\src\devtools\bin\vpc.exe
 _Nc_VS2013/vpcgame:portal_
-dbd8d85a client_portal.vpc
-11c27efe ..\..\game\client\client_base.vpc
+d8838cd2 client_portal.vpc
+786c7b8b ..\..\game\client\client_base.vpc
 4832e67a ..\..\vpc_scripts\source_dll_base.vpc
 d752cf80 ..\..\vpc_scripts\platform_dirs.vpc
 6c4a5ff1 ..\..\vpc_scripts\source_base.vpc

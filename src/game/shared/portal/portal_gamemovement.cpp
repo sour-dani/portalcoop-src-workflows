@@ -97,7 +97,7 @@ public:
 
 	virtual bool ShouldHitEntity( IHandleEntity *pHandleEntity, int contentsMask )
 	{
-#if defined ( CLIENT_DLL ) && 1
+#if defined ( CLIENT_DLL ) && 0
 		CBaseEntity *pEntity = EntityFromEntityHandle( pHandleEntity );
 		if ( pEntity )
 		{

@@ -66,8 +66,7 @@ ConVar hl2_episodic( "hl2_episodic", "0", FCVAR_REPLICATED );
 	extern bool ExtractKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, char *szValue, int iMaxLen );
 #endif
 
-	bool CBaseEntity::m_bAllowPrecache = false;
-	bool CBaseEntity::sm_bAccurateTriggerBboxChecks = true;	// set to false for legacy behavior in ep1
+bool CBaseEntity::m_bAllowPrecache = false;
 
 // Set default max values for entities based on the existing constants from elsewhere
 float k_flMaxEntityPosCoord = MAX_COORD_FLOAT;
@@ -1163,7 +1162,9 @@ void CBaseEntity::VPhysicsUpdate( IPhysicsObject *pPhysics )
 				}
 				angles = vec3_angle;
 			}
+#ifndef CLIENT_DLL 
 			Vector prevOrigin = GetAbsOrigin();
+#endif
 
 			if ( IsEntityPositionReasonable( origin ) )
 			{
@@ -1188,11 +1189,10 @@ void CBaseEntity::VPhysicsUpdate( IPhysicsObject *pPhysics )
 			{
 				SetCollisionGroup( COLLISION_GROUP_DEBRIS );
 			}
+
 #ifndef CLIENT_DLL 
 			PhysicsTouchTriggers( &prevOrigin );
 			PhysicsRelinkChildren(gpGlobals->frametime);
-#else
-			PhysicsTouchTriggers( &prevOrigin );
 #endif
 		}
 	break;
@@ -2589,13 +2589,22 @@ bool CBaseEntity::IsToolRecording() const
 
 void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 {
-#ifdef CLIENT_DLL
-	// This did work at one point, but something broke it
-	// Disabling it for now to ensure nothing breaks
-	return;
-#endif
+#if defined( CLIENT_DLL )
+#if defined( FAST_TRIGGER_TOUCH )
+	{
+		Assert( !pPrevAbsOrigin );
+		TouchTriggerPlayerMovement( this );
+		return;
+	}
+#endif // FAST_TRIGGER_TOUCH
+#endif // CLIENT_DLL
+#ifdef GAME_DLL
+	edict_t *pEdict = edict();
 
+	if ( pEdict && !IsWorld() )
+#else
 	if ( !IsWorld() )
+#endif
 	{
 		Assert(CollisionProp());
 		bool isTriggerCheckSolids = IsSolidFlagSet( FSOLID_TRIGGER );
@@ -2612,15 +2621,19 @@ void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 				return;
 			}
 		}
-		
+
 		SetCheckUntouch( true );
+
+		// Damn it, we're locked by engine code...
+#ifdef GAME_DLL
 		if ( isSolidCheckTriggers )
 		{
-			SolidMoved( this, CollisionProp(), pPrevAbsOrigin );
+			engine->SolidMoved( pEdict, CollisionProp(), pPrevAbsOrigin, sm_bAccurateTriggerBboxChecks );
 		}
 		if ( isTriggerCheckSolids )
 		{
-			TriggerMoved( this );
+			engine->TriggerMoved( pEdict, sm_bAccurateTriggerBboxChecks );
 		}
+#endif
 	}
 }

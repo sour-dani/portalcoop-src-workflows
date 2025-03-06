@@ -1787,9 +1787,6 @@
     <ClInclude Include="portal\func_portal_orientation.h">
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
-    <ClInclude Include="portal\info_placement_helper.h">
-      <Filter>Source Files\Portal</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\game\shared\Multiplayer\multiplayer_animstate.h">
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
@@ -1806,9 +1803,6 @@
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\game\shared\portal\point_ping_linker.h">
-      <Filter>Source Files\Portal</Filter>
-    </ClInclude>
-    <ClInclude Include="portal\portal_bot_temp.h">
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\game\shared\portal\portal_collideable_enumerator.h">
@@ -1845,9 +1839,6 @@
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\game\shared\portal\PortalSimulation.h">
-      <Filter>Source Files\Portal</Filter>
-    </ClInclude>
-    <ClInclude Include="portal\prop_box.h">
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
     <ClInclude Include="portal\prop_portal.h">
@@ -3430,9 +3421,6 @@
     <ClCompile Include="portal\func_portal_orientation.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
-    <ClCompile Include="portal\info_placement_helper.cpp">
-      <Filter>Source Files\Portal</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\game\shared\Multiplayer\multiplayer_animstate.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
@@ -3464,9 +3452,6 @@
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
     <ClCompile Include="..\..\game\shared\portal\point_ping_linker.cpp">
-      <Filter>Source Files\Portal</Filter>
-    </ClCompile>
-    <ClCompile Include="portal\portal_bot_temp.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
     <ClCompile Include="portal\portal_client.cpp">
@@ -3520,9 +3505,6 @@
     <ClCompile Include="..\..\game\shared\portal\PortalSimulation.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
-    <ClCompile Include="portal\prop_box.cpp">
-      <Filter>Source Files\Portal</Filter>
-    </ClCompile>
     <ClCompile Include="portal\prop_energy_ball.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
@@ -3542,12 +3524,6 @@
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
     <ClCompile Include="..\..\game\shared\portal\StaticCollisionPolyhedronCache.cpp">
-      <Filter>Source Files\Portal</Filter>
-    </ClCompile>
-    <ClCompile Include="portal\trigger_ball_destroyer.cpp">
-      <Filter>Source Files\Portal</Filter>
-    </ClCompile>
-    <ClCompile Include="portal\trigger_box_reflector.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
     <ClCompile Include="portal\trigger_portal_cleanser.cpp">

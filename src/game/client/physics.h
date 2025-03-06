@@ -119,8 +119,6 @@ extern void PhysicsSimulate();
 extern void PortalPhysicsSimulate();
 extern float PhysGetSyncCreateTime();
 
-extern bool PhysIsInCallback();
-
 extern float PhysGetEntityMass( CBaseEntity *pEntity );
 
 #endif // PHYSICS_H

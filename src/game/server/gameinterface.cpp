@@ -2414,18 +2414,6 @@ void CServerGameEnts::SetDebugEdictBase(edict_t *base)
 	g_pDebugEdictBase = base;
 }
 
-void MarkEntitiesAsTouching( CBaseEntity *entity, CBaseEntity *entityTouched )
-{
-	if ( entity && entityTouched )
-	{
-		// HACKHACK: UNDONE: Pass in the trace here??!?!?
-		trace_t tr;
-		UTIL_ClearTrace( tr );
-		tr.endpos = (entity->GetAbsOrigin() + entityTouched->GetAbsOrigin()) * 0.5;
-		entity->PhysicsMarkEntitiesAsTouching( entityTouched, tr );
-	}
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: Marks entities as touching
 // Input  : *e1 - 
