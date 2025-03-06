@@ -1731,7 +1731,12 @@ void CHalfLife2::LevelInitPreEntity()
 	// Remove this if you fix the bug in ep1 where the striders need to touch
 	// triggers using their absbox instead of their bbox
 #ifdef HL2_EPISODIC
-	if ( !Q_strnicmp( gpGlobals->mapname.ToCStr(), "ep1_", 4 ) )
+#ifdef CLIENT_DLL
+	const char *pszMapName = engine->GetLevelName();
+#else
+	const char *pszMapName = gpGlobals->mapname.ToCStr();
+#endif
+	if ( !Q_strnicmp( pszMapName, "ep1_", 4 ) )
 	{
 		// episode 1 maps use the surrounding box trigger behavior
 		CBaseEntity::sm_bAccurateTriggerBboxChecks = false;

@@ -177,4 +177,6 @@ extern CSteamID GetSteamIDForPlayerIndex( int iPlayerIndex );
 
 #endif
 
+extern void MarkEntitiesAsTouching( C_BaseEntity *entity, C_BaseEntity *entityTouched );
+
 #endif // CDLL_CLIENT_INT_H

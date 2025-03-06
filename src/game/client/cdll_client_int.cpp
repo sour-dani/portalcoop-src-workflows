@@ -1259,6 +1259,8 @@ void CHLClient::PostInit()
 		}
 	}
 #endif
+
+	C_BaseEntity::sm_bAccurateTriggerBboxChecks = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -2635,6 +2637,17 @@ void CHLClient::RenderView( const CViewSetup &setup, int nClearFlags, int whatTo
 {
 	VPROF("RenderView");
 	view->RenderView( setup, nClearFlags, whatToDraw );
+}
+
+void MarkEntitiesAsTouching( C_BaseEntity *entity, C_BaseEntity *entityTouched )
+{
+	if ( entity && entityTouched )
+	{
+		trace_t tr;
+		UTIL_ClearTrace( tr );
+		tr.endpos = (entity->GetAbsOrigin() + entityTouched->GetAbsOrigin()) * 0.5;
+		entity->PhysicsMarkEntitiesAsTouching( entityTouched, tr );
+	}
 }
 
 void ReloadSoundEntriesInList( IFileList *pFilesToReload );

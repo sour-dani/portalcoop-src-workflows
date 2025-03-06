@@ -1940,9 +1940,6 @@
     <ClInclude Include="clientsteamcontext.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="clienttouch.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="commentary_modelviewer.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -2036,6 +2033,9 @@
     <ClInclude Include="portal\c_func_portal_orientation.h">
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
+    <ClInclude Include="portal\c_info_placement_helper.h">
+      <Filter>Source Files\Portal</Filter>
+    </ClInclude>
     <ClInclude Include="portal\c_neurotoxin_countdown.h">
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
@@ -2049,6 +2049,9 @@
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
     <ClInclude Include="portal\C_PortalGhostRenderable.h">
+      <Filter>Source Files\Portal</Filter>
+    </ClInclude>
+    <ClInclude Include="portal\c_prop_box.h">
       <Filter>Source Files\Portal</Filter>
     </ClInclude>
     <ClInclude Include="portal\c_prop_glados_core.h">
@@ -2672,9 +2675,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="clientsteamcontext.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="clienttouch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\game\shared\collisionproperty.cpp">
@@ -3601,6 +3601,9 @@
     <ClCompile Include="portal\c_func_portal_orientation.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
+    <ClCompile Include="portal\c_info_placement_helper.cpp">
+      <Filter>Source Files\Portal</Filter>
+    </ClCompile>
     <ClCompile Include="portal\c_neurotoxin_countdown.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
@@ -3623,6 +3626,9 @@
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
     <ClCompile Include="portal\C_PortalGhostRenderable.cpp">
+      <Filter>Source Files\Portal</Filter>
+    </ClCompile>
+    <ClCompile Include="portal\c_prop_box.cpp">
       <Filter>Source Files\Portal</Filter>
     </ClCompile>
     <ClCompile Include="portal\c_prop_energy_ball.cpp">

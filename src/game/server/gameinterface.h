@@ -224,5 +224,7 @@ public:
 };
 EXPOSE_SINGLE_INTERFACE( CServerGameTags, IServerGameTags, INTERFACEVERSION_SERVERGAMETAGS );
 
+extern void MarkEntitiesAsTouching( CBaseEntity *entity, CBaseEntity *entityTouched );
+
 #endif // GAMEINTERFACE_H
 

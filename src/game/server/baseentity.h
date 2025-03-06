@@ -2701,5 +2701,8 @@ void SendProxy_Origin( const SendProp *pProp, const void *pStruct, const void *p
 void SendProxy_OriginXY( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
 void SendProxy_OriginZ( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
 
+// Engine workarounds
+void SolidMoved( CBaseEntity *pTriggerEnt, ICollideable *pSolidCollide, const Vector* pPrevAbsOrigin );
+void TriggerMoved( CBaseEntity *pTriggerEnt );
 
 #endif // BASEENTITY_H

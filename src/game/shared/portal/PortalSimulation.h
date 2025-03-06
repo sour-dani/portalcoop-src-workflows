@@ -279,6 +279,7 @@ class CPSCollisionEntity : public CBaseEntity
 
 private:
 	CPortalSimulator *m_pOwningSimulator;
+	CHandle<CProp_Portal> m_hOwningPortal; // For networking
 
 public:
 	
@@ -298,6 +299,7 @@ public:
 	virtual void	VPhysicsCollision( int index, gamevcollisionevent_t *pEvent ) {}
 	virtual void	VPhysicsFriction( IPhysicsObject *pObject, float energy, int surfaceProps, int surfacePropsHit ) {}
 #else
+	virtual void	OnDataChanged( DataUpdateType_t updatetype ) OVERRIDE;
 	virtual void	UpdatePartitionListEntry(); //make this trigger touchable on the client
 #endif
 	static bool		IsPortalSimulatorCollisionEntity( const CBaseEntity *pEntity );
@@ -472,9 +474,6 @@ protected:
 	void				ClearLinkedPhysics( void );
 
 	void				ClearLinkedEntities( void ); //gets rid of transformed shadow clones
-
-#ifndef CLIENT_DLL //physics handled purely by server side
-#endif
 
 	void				CreateAllCollision( void );
 	void				CreateLocalCollision( void );
