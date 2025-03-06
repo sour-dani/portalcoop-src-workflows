@@ -341,14 +341,16 @@ BEGIN_PREDICTION_DATA( C_Portal_Player )
 	
 	DEFINE_PRED_FIELD( m_bPitchReorientation, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	
+	DEFINE_PRED_FIELD( m_bSilentDropAndPickup, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+
 	//DEFINE_FIELD( m_matLastPortalled, FIELD_VMATRIX_WORLDSPACE ), //Garbage data :(
 
 //	DEFINE_PRED_FIELD( m_iOldModelType, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 
 	//DEFINE_SOUNDPATCH( m_pWooshSound ),
 	
-	DEFINE_FIELD(m_bHeldObjectOnOppositeSideOfPortal, FIELD_BOOLEAN),
-	DEFINE_FIELD(m_hHeldObjectPortal, FIELD_EHANDLE),
+	DEFINE_PRED_FIELD( m_bHeldObjectOnOppositeSideOfPortal, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_hHeldObjectPortal, FIELD_EHANDLE, FTYPEDESC_INSENDTABLE ),
 	
 	DEFINE_FIELD( m_fLatestServerTeleport, FIELD_FLOAT ),
 	DEFINE_FIELD( m_matLatestServerTeleportationInverseMatrix, FIELD_VMATRIX ),
@@ -920,7 +922,6 @@ void C_Portal_Player::ClientThink( void )
 						continue;
 
 					pWeapon->SetClientSideGlowEnabled( false );
-
 				}
 			}
 		}
