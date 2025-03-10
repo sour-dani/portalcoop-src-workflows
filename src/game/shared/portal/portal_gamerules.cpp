@@ -487,6 +487,14 @@ const char *CPortalGameRules::GetGameDescription( void )
 		if (sv_portalgun_spawn.GetBool())
 		{
 			CWeaponPortalgun *pPortalgun = (CWeaponPortalgun*)pPlayer->GiveNamedItem("weapon_portalgun");
+
+			((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = true;
+			if ( pPlayer->BumpWeapon( pPortalgun ) )
+			{
+				pPortalgun->OnPickedUp( pPlayer );
+			}
+			((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = false;
+
 			if (sv_portalgun_color.GetInt() == 0)
 			{
 				pPortalgun->SetCanFirePortal1(true);
@@ -510,6 +518,13 @@ const char *CPortalGameRules::GetGameDescription( void )
 				CWeaponPortalgun *pPortalgun = (CWeaponPortalgun *)pPlayer->GiveNamedItem( "weapon_portalgun" );
 				if ( pPortalgun )
 				{
+					((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = true;
+					if ( pPlayer->BumpWeapon( pPortalgun ) )
+					{
+						pPortalgun->OnPickedUp( pPlayer );
+					}
+					((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = false;
+
 					pPortalgun->m_bCanFirePortal1 = ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bCanFirePortal1;
 					pPortalgun->m_bCanFirePortal2 = ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bCanFirePortal2;
 				}

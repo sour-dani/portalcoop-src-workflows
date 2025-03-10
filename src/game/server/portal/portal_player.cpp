@@ -57,6 +57,8 @@ DEFINE_KEYFIELD( m_bSpawnWithPortalgun, FIELD_BOOLEAN, "SpawnWithPortalgun" ),
 DEFINE_KEYFIELD( m_iPortalgunType, FIELD_INTEGER, "PortalgunType" ),
 DEFINE_KEYFIELD( m_iValidPlayerIndex, FIELD_INTEGER, "ValidPlayerIndex" ),
 
+DEFINE_FUNCTION( VisualizeThink )
+
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( info_player_portalcoop, CInfoPlayerPortalCoop )
@@ -106,6 +108,45 @@ bool CInfoPlayerPortalCoop::CanSpawnOnMe( CBasePlayer *pPlayer )
 	}
 
 	return false;
+}
+
+void CInfoPlayerPortalCoop::VisualizeThink( void )
+{
+	if ( sv_cheats->GetBool() == false )
+		return;
+
+	if ( m_iValidPlayerIndex != 99 )
+		NDebugOverlay::Box( GetAbsOrigin(), VEC_HULL_MIN, VEC_HULL_MAX, 255, 0, 0, 100, 0.03 );
+	SetNextThink( gpGlobals->curtime );
+}
+
+bool g_bVisualizePCoopSpawns = false;
+CON_COMMAND( pcoop_visualize_spawns_toggle, "" )
+{
+	if ( sv_cheats->GetBool() == false )
+		return;
+
+	g_bVisualizePCoopSpawns = !g_bVisualizePCoopSpawns;
+	
+	CBaseEntity *pEnt = NULL;
+	if ( g_bVisualizePCoopSpawns )
+	{
+		while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_player_portalcoop" ) ) != NULL )
+		{
+			CInfoPlayerPortalCoop *pSpawn = (CInfoPlayerPortalCoop*)pEnt;
+			pSpawn->SetThink( &CInfoPlayerPortalCoop::VisualizeThink );
+			pSpawn->SetNextThink( gpGlobals->curtime );
+		}
+	}
+	else
+	{
+		while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_player_portalcoop" ) ) != NULL )
+		{
+			CInfoPlayerPortalCoop *pSpawn = (CInfoPlayerPortalCoop*)pEnt;
+			pSpawn->SetThink( NULL );
+			pSpawn->SetNextThink( 0 );
+		}
+	}
 }
 
 // -------------------------------------------------------------------------------- //
@@ -446,6 +487,11 @@ CPortal_Player::CPortal_Player()
 	m_hExpressionSceneEnt = NULL;
 	m_flExpressionLoopTime = 0.0f;
 
+	m_bLookingForUseEntity = false;
+	m_bLookForUseEntity = false;
+	m_flLookForUseEntityTime = 0;
+
+	m_bForceBumpWeapon = false;
 }
 
 CPortal_Player::~CPortal_Player(void)
@@ -1717,10 +1763,13 @@ bool CPortal_Player::BumpWeapon(CBaseCombatWeapon* pWeapon)
 		return false;
 	}
 
-	// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
-	if (!pWeapon->FVisible(this, MASK_SOLID) && !(GetFlags() & FL_NOTARGET))
+	if ( !m_bForceBumpWeapon )
 	{
-		return false;
+		// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
+		if (!pWeapon->FVisible(this, MASK_SOLID) && !(GetFlags() & FL_NOTARGET))
+		{
+			return false;
+		}
 	}
 
 	CWeaponPortalgun* pPickupPortalgun = dynamic_cast<CWeaponPortalgun*>(pWeapon);

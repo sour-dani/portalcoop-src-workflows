@@ -62,6 +62,8 @@ public:
 
 	bool CanSpawnOnMe( CBasePlayer *pPlayer );
 
+	void VisualizeThink( void );
+	
 	bool m_bSpawnWithPortalgun;
 	int m_iPortalgunType;
 	int m_iValidPlayerIndex;
@@ -257,12 +259,14 @@ public:
 	CNetworkHandle( CProp_Portal, m_hHeldObjectPortal );	// networked entity handle
 
 	bool m_bPortalFunnel;
+	bool m_bForceBumpWeapon;
 
 private:
 	
 	bool m_bLookingForUseEntity;
 	bool m_bLookForUseEntity;
 	float m_flLookForUseEntityTime;
+
 	
 	virtual CAI_Expresser* CreateExpresser( void );
 
