@@ -1073,8 +1073,8 @@ bool CPortal_Player::PingChildrenOfChildParent( CBaseAnimating *pAnimating, Vect
 
 	CBaseEntity *pParent = pAnimating->GetParent();
 
-	CBaseDoor *pDoor = dynamic_cast<CBaseDoor *>(pAnimating->GetParent());
-	CFuncTrackTrain *pTrain = dynamic_cast<CFuncTrackTrain*>(pAnimating->GetParent());
+	CBaseDoor *pDoor = dynamic_cast<CBaseDoor *>( pParent );
+	CFuncTrackTrain *pTrain = dynamic_cast<CFuncTrackTrain*>( pParent );
 	if ( !pDoor && !pTrain )
 		return false;
 	
@@ -1106,7 +1106,7 @@ bool CPortal_Player::PingChildrenOfChildParent( CBaseAnimating *pAnimating, Vect
 
 	if (bResult)
 	{
-		ShowAnnotation( pParent->GetAbsOrigin(), -1, entindex() );
+		ShowAnnotation( pParent->GetAbsOrigin(), pParent->entindex(), entindex() );
 	}
 
 	return bResult;
@@ -1117,77 +1117,76 @@ bool CPortal_Player::PingChildrenOfEntity( trace_t &tr, Vector vColor, bool bSho
 	bool bTempShouldCreateCrosshair = bShouldCreateCrosshair;
 
 	CBaseEntity *pEntity = tr.m_pEnt;
+	if ( !pEntity )
+		return bShouldCreateCrosshair;
 	CBaseDoor *pDoor = dynamic_cast<CBaseDoor*>( pEntity );
 	CFuncTrackTrain *pTrain = dynamic_cast<CFuncTrackTrain*>( pEntity );
 	if ( !pDoor && !pTrain )
 		return bShouldCreateCrosshair;
 		
-	if (pDoor)
-	{
-		CBaseAnimating *pChild = NULL;
-		CBaseAnimating *pChildForLinker = NULL;
-		CPointPingLinker *pPingLinker = NULL;
+	CBaseAnimating *pChild = NULL;
+	CBaseAnimating *pChildForLinker = NULL;
+	CPointPingLinker *pPingLinker = NULL;
 
-		bool bShouldGetChild = true;
+	bool bShouldGetChild = true;
 		
-		CUtlVector<CBaseEntity *> children;
-		GetAllChildren( pEntity, children );
-		for (int i = 0; i < children.Count(); i++ )
-		{
-			CBaseEntity *pEnt = children.Element( i );
+	CUtlVector<CBaseEntity *> children;
+	GetAllChildren( pEntity, children );
+	for (int i = 0; i < children.Count(); i++ )
+	{
+		CBaseEntity *pEnt = children.Element( i );
 
-			if (!pEnt)
-				continue;
+		if (!pEnt)
+			continue;
 
-			pChild = pEnt->GetBaseAnimating();
+		pChild = pEnt->GetBaseAnimating();
 			
-			if ( pChild )
-			{						
-				if (pChild->m_bGlowEnabled)
-				{
-					pChild->RemoveGlowEffect();
-				}
-
-				if (bShouldGetChild)
-				{
-					pChildForLinker = pChild;
-					bShouldGetChild = false;
-				}
-
-				pChild->SetGlowEffectColor(vColor.x, vColor.y, vColor.z);
-				pChild->AddGlowTime(gpGlobals->curtime);
-				pChild->RemoveGlowTime(PINGTIME);
-				bTempShouldCreateCrosshair = false;
+		if ( pChild )
+		{						
+			if (pChild->m_bGlowEnabled)
+			{
+				pChild->RemoveGlowEffect();
 			}
-		}
 
-		//Find a ping linker to use
-		CBaseEntity *pEntityTemp = NULL;
-		while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
-		{
-			pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
-			if ( !pPingLinker )
-				continue;
+			if (bShouldGetChild)
+			{
+				pChildForLinker = pChild;
+				bShouldGetChild = false;
+			}
+
+			pChild->SetGlowEffectColor(vColor.x, vColor.y, vColor.z);
+			pChild->AddGlowTime(gpGlobals->curtime);
+			pChild->RemoveGlowTime(PINGTIME);
+			bTempShouldCreateCrosshair = false;
+		}
+	}
+
+	//Find a ping linker to use
+	CBaseEntity *pEntityTemp = NULL;
+	while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
+	{
+		pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
+		if ( !pPingLinker )
+			continue;
 			
-			if ( pPingLinker->HasThisEntity( pChildForLinker ) )
-			{
-				break;
-			}
-			else
-			{
-				pPingLinker = NULL;
-			}
-		}
-
-		if (pPingLinker)
+		if ( pPingLinker->HasThisEntity( pChildForLinker ) )
 		{
-			pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+			break;
 		}
-
-		if (!pPingLinker) // Ping Linkers fire their own events
+		else
 		{
-			ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
+			pPingLinker = NULL;
 		}
+	}
+
+	if (pPingLinker)
+	{
+		pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+	}
+
+	if (!pPingLinker) // Ping Linkers fire their own events
+	{
+		ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
 	}
 
 	return bTempShouldCreateCrosshair;
