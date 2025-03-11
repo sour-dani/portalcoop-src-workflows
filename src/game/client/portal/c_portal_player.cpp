@@ -2506,6 +2506,9 @@ extern CBonusMapsDialog *g_pBonusMapsDialog;
 
 void C_Portal_Player::FireGameEvent( IGameEvent *event )
 {
+	// TODO: Put this event elsewhere
+	if ( !IsLocalPlayer() )
+		return;
 
 	// GameUI Interface
 	IGameUI *pGameUI = NULL;
@@ -2559,6 +2562,8 @@ void C_Portal_Player::FireGameEvent( IGameEvent *event )
 			}
 			else
 				g_pBonusMapsDialog->RefreshData();	// Update the open dialog
+
+			BonusMapsDatabase()->WriteSaveData();
 		}
 #endif
 	}

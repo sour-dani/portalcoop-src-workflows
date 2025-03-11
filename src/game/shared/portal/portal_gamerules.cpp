@@ -1666,16 +1666,16 @@ ConVar sv_require_game_install_necessary_for_map( "sv_require_game_install_neces
 //=========================================================
 bool CPortalGameRules::ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen )
 {
-	bool bIsHost = false;
-	int index = ENTINDEX( pEntity );
-	if ( !engine->IsDedicatedServer() )
-	{
-		bIsHost = index == 1;
-	}
-	if ( sv_require_game_install_necessary_for_map.GetBool() &&
-		!bIsHost // Don't kick the listen server host!
+	//bool bIsHost = false;
+	//if ( !engine->IsDedicatedServer() )
+	//{
+	//	bIsHost = index == 1;
+	//}
+	if ( sv_require_game_install_necessary_for_map.GetBool()
+		//&& !bIsHost // Don't kick the listen server host!
 		) 
 	{
+		int index = ENTINDEX( pEntity );
 		int nInstallBits = atoi( engine->GetClientConVarValue( index, "cl_game_install_bits" ) );
 
 		// Check to see if Portal is mounted, this may be unnecessary since there's already an engine crash if Portal isn't installed

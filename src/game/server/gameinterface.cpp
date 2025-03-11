@@ -746,9 +746,39 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 
 	return true;
 }
+#ifdef PORTAL
+unsigned int g_fInstalledGames = 0;
+void SetupGameInstallBits()
+{
+	int nInstallBits = 0;
+		
+	// Check to see if Portal is mounted, this may be unnecessary since there's already an engine crash if Portal isn't installed
+	int index = CBaseEntity::PrecacheScriptSound( "Portal.room1_radio" );
+	if ( index != -1 )
+	{
+		nInstallBits |= INSTALL_BITS_PORTAL;
+	}
 
+	// Check to see if Rexaura is mounted
+	index = CBaseEntity::PrecacheScriptSound( "ball_mod_ai.destroyer_01" );
+	if ( index != -1 )
+	{
+		nInstallBits |= INSTALL_BITS_REXAURA;
+	}
+	
+	g_fInstalledGames = nInstallBits;
+}
+
+CON_COMMAND_F( pcoop_server_install_bits, "", FCVAR_HIDDEN )
+{
+	Msg( "Install Bits: %i", g_fInstalledGames );
+}
+#endif
 void CServerGameDLL::PostInit()
 {
+#ifdef PORTAL
+	SetupGameInstallBits();
+#endif
 	IGameSystem::PostInitAllSystems();
 }
 
@@ -951,6 +981,7 @@ bool CServerGameDLL::IsRestoring()
 }
 
 #ifdef PORTAL
+ConVar pcoop_ignore_installed_games_check( "pcoop_ignore_installed_games_check", "0", FCVAR_NONE, "Ignores the game install check for maps that depend on another mod being mounted" );
 void UpdatePortalGameType( const char *pMapName )
 {
 	/*if ( V_stristr( pMapName, "p2coop_" ) || V_stristr( pMapName, "p3coop_" ) )
@@ -959,6 +990,14 @@ void UpdatePortalGameType( const char *pMapName )
 	}
 	else*/ if ( V_stristr( pMapName, "rex2c_" ) || V_stristr( pMapName, "rex3c_" ) || V_stristr( pMapName, "rex_" ) )
 	{
+		if ( !pcoop_ignore_installed_games_check.GetBool() && (g_fInstalledGames & INSTALL_BITS_REXAURA) == 0 )
+		{
+			if ( engine->IsDedicatedServer() )
+			{
+				Error( "Rexaura must be mounted to open this map" );
+				return;
+			}
+		}
 		sv_portal_game.SetValue( PORTAL_GAME_REXAURA );
 	}
 	else // Use Portal by default
@@ -1045,6 +1084,9 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	}
 	else
 	{
+#ifdef PORTAL
+		UpdatePortalGameType( pMapName );
+#endif
 		if ( background )
 		{
 			gpGlobals->eLoadType = MapLoad_Background;
@@ -1053,9 +1095,6 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 		{
 			gpGlobals->eLoadType = MapLoad_NewGame;
 		}
-#ifdef PORTAL
-		UpdatePortalGameType( pMapName );
-#endif
 
 		// Clear out entity references, and parse the entities into it.
 		g_MapEntityRefs.Purge();
