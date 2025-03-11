@@ -995,7 +995,6 @@ void UpdatePortalGameType( const char *pMapName )
 			if ( engine->IsDedicatedServer() )
 			{
 				Error( "Rexaura must be mounted to open this map" );
-				return;
 			}
 		}
 		sv_portal_game.SetValue( PORTAL_GAME_REXAURA );
