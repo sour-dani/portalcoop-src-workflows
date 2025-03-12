@@ -753,7 +753,7 @@ void SetupGameInstallBits()
 	int nInstallBits = 0;
 		
 	// Check to see if Portal is mounted, this may be unnecessary since there's already an engine crash if Portal isn't installed
-	int index = CBaseEntity::PrecacheScriptSound( "Portal.room1_radio" );
+	int index = CBaseEntity::PrecacheScriptSound( "UpdateItem.Dinosaur01" );
 	if ( index != -1 )
 	{
 		nInstallBits |= INSTALL_BITS_PORTAL;
@@ -776,9 +776,6 @@ CON_COMMAND_F( pcoop_server_install_bits, "", FCVAR_HIDDEN )
 #endif
 void CServerGameDLL::PostInit()
 {
-#ifdef PORTAL
-	SetupGameInstallBits();
-#endif
 	IGameSystem::PostInitAllSystems();
 }
 
@@ -1011,6 +1008,13 @@ void UpdatePortalGameType( const char *pMapName )
 bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, char const *pOldLevel, char const *pLandmarkName, bool loadGame, bool background )
 {
 	VPROF("CServerGameDLL::LevelInit");
+	
+#ifdef PORTAL
+	if ( g_fInstalledGames == 0 )
+	{
+		SetupGameInstallBits();
+	}
+#endif
 
 #ifdef USES_ECON_ITEMS
 	GameItemSchema_t *pItemSchema = ItemSystem()->GetItemSchema();
