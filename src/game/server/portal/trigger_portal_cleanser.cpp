@@ -176,7 +176,6 @@ void CTriggerPortalCleanser::Touch( CBaseEntity *pOther )
 
 void CTriggerPortalCleanser::FizzleBaseAnimating( CBaseEntity *pOther, CTriggerPortalCleanser *pTrigger )
 {
-
 	CBaseAnimating *pBaseAnimating = pOther->GetBaseAnimating();
 
 	if ( pBaseAnimating && !pBaseAnimating->IsDissolving() )
@@ -198,10 +197,11 @@ void CTriggerPortalCleanser::FizzleBaseAnimating( CBaseEntity *pOther, CTriggerP
 		CPropVehicleDriveable *pVehicle = dynamic_cast<CPropVehicleDriveable*>( pBaseAnimating );
 		if (pVehicle)
 		{
-			CPortal_Player *pPlayer = (CPortal_Player*)pVehicle->GetDriver();
-
-			if (pPlayer)
-			pPlayer->LeaveVehicle();
+			CPortal_Player *pPlayer = ToPortalPlayer( pVehicle->GetDriver() );
+			if ( pPlayer )
+			{
+				pPlayer->LeaveVehicle();
+			}
 		}
 
 

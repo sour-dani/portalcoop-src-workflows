@@ -142,6 +142,9 @@ private:
 	virtual void			PlayerSpawn( CBasePlayer *pPlayer );
 	virtual CBaseEntity *GetPlayerSpawnSpot( CBasePlayer *pPlayer );// Place this player on their spawnspot and face them the proper direction.
 	virtual bool			IsSpawnPointValid( CBaseEntity *pSpot, CBasePlayer *pPlayer );
+	
+// Weapon spawn/respawn control
+	virtual int WeaponShouldRespawn( CBaseCombatWeapon *pWeapon );
 
 	virtual void			InitDefaultAIRelationships( void );
 	virtual const char*		AIClassText(int classType);

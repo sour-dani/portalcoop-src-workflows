@@ -589,6 +589,15 @@ const char *CPortalGameRules::GetGameDescription( void )
 
 		return BaseClass::IsSpawnPointValid( pSpot, pPlayer );
 	}
+
+	//=========================================================
+	// WeaponShouldRespawn - any conditions inhibiting the
+	// respawning of this weapon?
+	//=========================================================
+	int CPortalGameRules::WeaponShouldRespawn( CBaseCombatWeapon *pWeapon )
+	{
+		return GR_WEAPON_RESPAWN_NO;
+	}
 	
 	//------------------------------------------------------------------------------
 	// Purpose : Initialize all default class relationships
