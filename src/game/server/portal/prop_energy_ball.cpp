@@ -11,6 +11,8 @@
 #include "prop_portal.h"			// Special case code for passing through portals. We need the class definition.
 #include "soundenvelope.h"
 #include "physicsshadowclone.h"
+#include "prop_box.h"
+#include "trigger_box_reflector.h"
 
 // resource file names
 #define IMPACT_DECAL_NAME	"decals/smscorch1model"
@@ -18,6 +20,7 @@
 // context think
 #define UPDATE_THINK_CONTEXT	"UpdateThinkContext"
 
+class CEnergyBallLauncher;
 class CPropEnergyBall : public CPropCombineBall
 {
 public:
@@ -35,11 +38,14 @@ public:
 	virtual void VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
 	// Overload for less sound, no shake.
 	virtual void ExplodeThink( void );
+	virtual void DoExplodeThink( void );
 	// Update in a time till death update
 	virtual void Think ( void );
 	virtual void EndTouch( CBaseEntity *pOther );
 	virtual void StartTouch( CBaseEntity *pOther );
 	virtual void NotifySystemEvent( CBaseEntity *pNotify, notify_system_event_t eventType, const notify_system_event_params_t &params );
+
+	bool HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything );
 
 	CHandle<CProp_Portal>		m_hTouchedPortal;	// Pointer to the portal we are touched most recently
 	bool						m_bTouchingPortal1;	// Are we touching portal 1
@@ -53,6 +59,8 @@ public:
 
 	CNetworkVar( bool, m_bIsInfiniteLife );
 	CNetworkVar( float, m_fTimeTillDeath );
+
+	CHandle<CEnergyBallLauncher> m_hLauncher;
 
 	CSoundPatch		*m_pAmbientSound;
 
@@ -74,6 +82,7 @@ BEGIN_DATADESC( CPropEnergyBall )
 	DEFINE_SOUNDPATCH( m_pAmbientSound ),
 
 	DEFINE_THINKFUNC( Think ),
+	DEFINE_THINKFUNC( ExplodeThink ),
 
 END_DATADESC()
 
@@ -219,29 +228,46 @@ void CPropEnergyBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEven
 	if ( !bIsEnteringPortalAndLockingAxisForward )
 	{
 		trace_t		tr;
-		UTIL_TraceLine ( GetAbsOrigin(), GetAbsOrigin() + 60*preVelocity, MASK_SHOT, 
+		UTIL_TraceLine ( GetAbsOrigin(), GetAbsOrigin() + (0.1 * m_flRadius)*preVelocity, MASK_SHOT, 
 			this, COLLISION_GROUP_NONE, &tr);
+		
+		CBaseEntity *pEntity = tr.m_pEnt;
+		
+		// Now get the real entity
+		if (  pEvent->pEntities[0] != this )
+		{
+			Assert( pEvent->pEntities[0] );
+			pEntity = pEvent->pEntities[0];
+		}
+		else if ( pEvent->pEntities[1] != this )
+		{
+			Assert( pEvent->pEntities[1] );
+			pEntity = pEvent->pEntities[1];
+		}
+
+		bool bDoEffects = true;
 
 		// Only place decals and draw effects if we hit something valid
-		if ( tr.m_pEnt )
+		if ( pEntity )
 		{
+			bDoEffects = HandleSpecialEntityImpact( pEntity, true );
 
-			// Cball impact effect (using same trace as the decal placement above)
-			CEffectData data;
-			data.m_flRadius = 16;
-			data.m_vNormal	= tr.plane.normal;
-			data.m_vOrigin	= tr.endpos + tr.plane.normal * 1.0f;
-
-
-			DispatchEffect( "cball_bounce", data );
-
-			if ( tr.m_pEnt )
+			if ( bDoEffects )
 			{
+				// Cball impact effect (using same trace as the decal placement above)
+				CEffectData data;
+				data.m_flRadius = 16;
+				data.m_vNormal	= tr.plane.normal;
+				data.m_vOrigin	= tr.endpos + tr.plane.normal * 1.0f;
+				DispatchEffect( "cball_bounce", data );
 				UTIL_DecalTrace( &tr, "EnergyBall.Impact" );
 			}
 		}
 
-		EmitSound( "EnergyBall.Impact" );
+		if ( bDoEffects )
+		{
+			EmitSound( "EnergyBall.Impact" );
+		}
 	}
 	
 	// Record our direction so our fixed direction hacks know we have changed direction immediately
@@ -294,6 +320,44 @@ void CPropEnergyBall::NotifySystemEvent(CBaseEntity *pNotify, notify_system_even
 	}
 
 	//BaseClass::NotifySystemEvent( pNotify, eventType, params );
+}
+
+bool CPropEnergyBall::HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything )
+{
+	CPropBox *pBox = dynamic_cast<CPropBox*>( pOther );
+	if ( pBox )
+	{
+		bool bRet = true;
+		if ( pBox->m_hAttached )
+		{
+			if ( bDoAnything )
+			{
+				SetContextThink( &CPropEnergyBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
+			}
+
+			bRet = false;
+		}
+		
+		if ( bDoAnything )
+		{
+			pBox->EnergyBallHit( this );
+		}
+
+		return bRet;
+	}
+	else
+	{
+		if ( bDoAnything )
+		{
+			CFuncBoxReflectorShield *pShield = dynamic_cast<CFuncBoxReflectorShield*>( pOther );
+			if ( pShield )
+			{
+				pShield->EnergyBallHit( this );
+			}
+		}
+	}
+
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -359,6 +423,18 @@ void CPropEnergyBall::ExplodeThink( )
 
 	SetContextThink( &CPropCombineBall::SUB_Remove, gpGlobals->curtime + 0.5f, "RemoveContext" );
 	StopLoopingSounds();
+
+	CEnergyBallLauncher *pLauncher = m_hLauncher;
+	if ( pLauncher )
+	{
+		extern void Launcher_RemoveBall( CEnergyBallLauncher *pLauncher, CPropEnergyBall *pBall );
+		Launcher_RemoveBall( pLauncher, this );
+	}
+}
+
+void CPropEnergyBall::DoExplodeThink( void )
+{
+	SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
 }
 
 void CPropEnergyBall::StartTouch( CBaseEntity *pOther )
@@ -379,8 +455,20 @@ void CPropEnergyBall::StartTouch( CBaseEntity *pOther )
 	 	pOther->OnTakeDamage( info );
 		
 		// Destruct when we hit the player
-		SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
+		SetContextThink( &CPropEnergyBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
 	}
+	
+	//HandleSpecialEntityImpact( pOther, true );
+
+	/*CPropBox *pBox = dynamic_cast<CPropBox*>( pOther );
+	if ( pBox )
+	{
+		if ( pBox->m_hAttached )
+		{
+			SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
+		}
+		pBox->EnergyBallHit( this );
+	}*/
 
 	CProp_Portal* pPortal = dynamic_cast<CProp_Portal*>(pOther);
 	// If toucher is a prop portal
@@ -435,11 +523,16 @@ public:
 	virtual void Precache();
 	virtual void Spawn();
 
+	CUtlVector<CHandle<CPropEnergyBall>> m_AllBalls;
+
 private:
+
 	float	m_fBallLifetime;
 	float	m_fMinBallLifeAfterPortal;
 
 	COutputEvent		m_OnPostSpawnBall;
+	
+	void InputExplodeAllBalls( inputdata_t &inputdata );
 
 
 };
@@ -452,6 +545,8 @@ BEGIN_DATADESC( CEnergyBallLauncher )
 	DEFINE_KEYFIELD( m_fMinBallLifeAfterPortal, FIELD_FLOAT, "MinLifeAfterPortal" ),
 
 	DEFINE_OUTPUT ( m_OnPostSpawnBall, "OnPostSpawnBall" ),
+	
+	DEFINE_INPUTFUNC( FIELD_VOID, "ExplodeAllBalls", InputExplodeAllBalls ),
 
 END_DATADESC()
 
@@ -538,11 +633,29 @@ void CEnergyBallLauncher::SpawnBall()
 	EmitSound( "EnergyBall.Launch" );
 
 	m_OnPostSpawnBall.FireOutput( this, this );
+
+	CHandle<CPropEnergyBall> hBall = pBall;
+	m_AllBalls.AddToTail( hBall );
 }
 
+void CEnergyBallLauncher::InputExplodeAllBalls( inputdata_t &inputdata )
+{
+	for ( int i = 0; i < m_AllBalls.Count(); ++i )
+	{
+		CPropCombineBall *pBall = m_AllBalls[i];
+		if ( pBall )
+		{
+			pBall->SetContextThink( &CPropEnergyBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );;
+		}
+	}
 
+	m_AllBalls.Purge();
+}
 
-
+void Launcher_RemoveBall( CEnergyBallLauncher *pLauncher, CPropEnergyBall *pBall )
+{
+	pLauncher->m_AllBalls.FindAndRemove( pBall );
+}
 
 
 

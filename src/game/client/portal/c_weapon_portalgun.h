@@ -101,6 +101,7 @@ private:
 	float	m_fBrightness;
 };
 
+class C_InfoPlacementHelper;
 
 class C_WeaponPortalgun : public CBasePortalCombatWeapon
 {
@@ -176,13 +177,16 @@ public:
 
 	void SetLinkageGroupID( int iPortalLinkageGroupID) { iPortalLinkageGroupID = m_iPortalLinkageGroupID; }
 	
-	float TraceFirePortal( bool bPortal2, const Vector &vTraceStart, const Vector &vDirection, trace_t &tr, Vector &vFinalPosition, QAngle &qFinalAngles, int iPlacedBy, bool bTest = false );
+	float TraceFirePortal( bool bPortal2, const Vector &vTraceStart, const Vector &vDirection, trace_t &tr, Vector &vFinalPosition, QAngle &qFinalAngles, int iPlacedBy, C_InfoPlacementHelper **pPlacementHelper, bool bTest = false );
 	float FirePortal( bool bPortal2, Vector *pVector = 0, bool bTest = false );
+	C_InfoPlacementHelper *AttemptSnapToPlacementHelper( bool bPortal2, const Vector &vTraceStart, const Vector &vDirection, trace_t &tr, Vector &vFinalPosition, QAngle &qFinalAngles, int iPlacedBy, bool bTest );
 	bool PortalTraceClippedByBlockers( bool bPortal2, const Vector &vTraceStart, const Vector &vDirection, trace_t &tr, Vector &vFinalPosition, QAngle &qFinalAngles, int iPlacedBy, bool bTest );
 	bool ShouldStealCoopPortal(CProp_Portal *pHitPortal, float fPlacementSuccess);
 
 	unsigned char m_iOldPortalLinkageGroupID; 
 	unsigned char m_iPortalLinkageGroupID; //which portal linkage group this gun is tied to, usually set by mapper, or inherited from owning player's index
+
+	Vector m_vFirstPredictedShotPos;
 
 	int m_iCustomPortalColorSet;
 	int	m_iOldPortalColorSet;

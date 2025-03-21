@@ -517,7 +517,17 @@ BEGIN_SIMPLE_DATADESC(CGrabController)
 	DEFINE_FIELD(m_attachedAnglesPlayerSpace, FIELD_VECTOR),
 	DEFINE_FIELD(m_attachedPositionObjectSpace, FIELD_VECTOR),
 	DEFINE_FIELD(m_bAllowObjectOverhead, FIELD_BOOLEAN),
-
+	DEFINE_FIELD(m_hHoldingPlayer, FIELD_EHANDLE),
+#ifdef USE_VM_GRAB
+	DEFINE_FIELD( m_preVMModeCollisionGroup, FIELD_INTEGER ),
+	DEFINE_FIELD( m_prePickupCollisionGroup, FIELD_INTEGER ),
+	DEFINE_FIELD( m_oldTransmitState, FIELD_INTEGER ),
+	DEFINE_FIELD( m_bOldShadowState, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_hOldLightingOrigin, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_flAngleOffset, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flLengthOffset, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flTimeOffset, FIELD_FLOAT ),
+#endif
 	// Physptrs can't be inside embedded classes
 	// DEFINE_PHYSPTR( m_controller ),
 
@@ -561,25 +571,39 @@ void CGrabController::OnRestore()
 	}
 }
 
-void CGrabController::SetTargetPosition( const Vector &target, const QAngle &targetOrientation )
+void CGrabController::SetTargetPosition( const Vector &target, const QAngle &targetOrientation, bool bIsTeleport /*= false*/ )
 {
 	m_shadow.targetPosition = target;
 	m_shadow.targetRotation = targetOrientation;
 
+#ifdef USE_VM_GRAB
+#if defined ( CLIENT_DLL )
 	m_timeToArrive = gpGlobals->frametime;
-
-	CBaseEntity *pAttached = GetAttached();
-	if ( pAttached )
+#else
+	if( bIsTeleport && PhysIsFinalTick() == false )
+		m_timeToArrive = gpGlobals->interval_per_tick;
+	else
+		m_timeToArrive = UTIL_GetSimulationInterval();
+#endif
+	if ( !IsUsingVMGrab() )
+#else
+	m_timeToArrive = gpGlobals->frametime;
+#endif
 	{
-		IPhysicsObject *pObj = pAttached->VPhysicsGetObject();
-		Assert(pObj);
-		if ( pObj != NULL )
+		CBaseEntity *pAttached = GetAttached();
+		if ( pAttached )
 		{
-			pObj->Wake();
-		}
-		else
-		{
-			DetachEntity( false );
+			//((CPortal_Player *)m_hHoldingPlayer.Get())->m_GrabControllerPersistentVars.m_vLastTargetPosition = target;
+			IPhysicsObject *pObj = pAttached->VPhysicsGetObject();
+			Assert(pObj);
+			if ( pObj != NULL )
+			{
+				pObj->Wake();
+			}
+			else
+			{
+				DetachEntity( false );
+			}
 		}
 	}
 }
@@ -750,6 +774,7 @@ void CGrabController::AttachEntity( CPortal_Player *pPlayer, CBaseEntity *pEntit
 #endif
 		
 	Assert(pPlayer);
+	m_hHoldingPlayer = pPlayer;
 	// play the impact sound of the object hitting the player
 	// used as feedback to let the player know he picked up the object
 #ifdef GAME_DLL
@@ -977,6 +1002,8 @@ void CGrabController::DetachEntity( bool bClearVelocity )
 	if (physenv)
 		physenv->DestroyMotionController( m_controller );
 	m_controller = NULL;
+
+	m_hHoldingPlayer = NULL;
 #else
 	if (m_attachedEntity && cl_predict->GetInt() && cl_predicted_grabbing.GetBool() )
 	{
@@ -1016,7 +1043,6 @@ static bool InContactWithHeavyObject( IPhysicsObject *pObject, float heavyMass )
 
 IMotionEvent::simresult_e CGrabController::Simulate( IPhysicsMotionController *pController, IPhysicsObject *pObject, float deltaTime, Vector &linear, AngularImpulse &angular )
 {
-
 	Assert(pController);
 	Assert(pObject);
 	game_shadowcontrol_params_t shadowParams = m_shadow;
@@ -1044,7 +1070,125 @@ IMotionEvent::simresult_e CGrabController::Simulate( IPhysicsMotionController *p
 
 	return SIM_LOCAL_ACCELERATION;
 }
+#ifdef USE_VM_GRAB
+#if defined( CLIENT_DLL )
+//Goals of this algorithm
+//1. For a player carrying an object, keep up with their input to keep the grab controller feeling smooth
+//2. For an object that collides with a complex spatial interaction on the server, settle in the same position on the server in a smooth (even if wrong) way.
+void CGrabController::ClientApproachTarget( CBasePlayer *pOwnerPlayer )
+{
+	CBaseEntity *pAttached = GetAttached();
+	C_PlayerHeldObjectClone *pClone = NULL;
 
+	if ( IsUsingVMGrab() )
+	{
+		if( pAttached == ((CPortal_Player *)pOwnerPlayer)->m_pHeldEntityClone )
+		{
+			//update clone as well as base object, clone first with this code, then swap out pAttached for base
+			pClone = ((C_PlayerHeldObjectClone *)pAttached);
+			pAttached = ((C_PlayerHeldObjectClone *)pAttached)->m_hOriginal;
+			
+			Vector vPlayerEye, vPlayerForward, vPlayerRight, vPlayerUp;
+			pOwnerPlayer->EyePositionAndVectors( &vPlayerEye, &vPlayerForward, &vPlayerRight, &vPlayerUp );
+			Vector vEyeRelative = m_shadow.targetPosition - vPlayerEye;
+			pClone->m_vPlayerRelativeOrigin.x = vPlayerForward.Dot( vEyeRelative );
+			pClone->m_vPlayerRelativeOrigin.y = vPlayerRight.Dot( vEyeRelative );
+			pClone->m_vPlayerRelativeOrigin.z = vPlayerUp.Dot( vEyeRelative );
+			
+			pClone->SetNetworkOrigin( m_shadow.targetPosition );
+			pClone->SetNetworkAngles( m_shadow.targetRotation );
+			pClone->SetAbsOrigin( m_shadow.targetPosition );
+			pClone->SetAbsAngles( m_shadow.targetRotation );
+		}
+	}
+
+	if( prediction->InPrediction() && pAttached && pAttached->GetPredictable() )
+	{
+		//Not accounting for visual stuttering, this is the ideal position based on the most recent data from the server
+		//Vector vServerTarget = m_shadow.targetPosition - TransformVectorFromPlayerSpace( ((CPortal_Player *)pOwnerPlayer)->m_vecCarriedObject_CurPosToTargetPos, pOwnerPlayer );
+
+		//The same idea as above, but trying to eliminate visual stuttering by ramping into changes coming down from the server, and producing consistent results on repredictions even if the networked offset changes under our feet
+		Vector vForwardServerTarget = m_shadow.targetPosition - TransformVectorFromPlayerSpace( ((CPortal_Player *)pOwnerPlayer)->m_vecCarriedObject_CurPosToTargetPos_Interpolated, pOwnerPlayer );
+		
+		//filter out the player and every version of the held object
+		CTraceFilterSimpleList traceFilter( pAttached->GetCollisionGroup() );
+		traceFilter.AddEntityToIgnore( pOwnerPlayer );
+		traceFilter.AddEntityToIgnore( pAttached );
+		if( ((CPortal_Player *)pOwnerPlayer)->m_pHeldEntityClone )
+		{
+			traceFilter.AddEntityToIgnore( ((CPortal_Player *)pOwnerPlayer)->m_pHeldEntityClone );
+		}
+		if( ((CPortal_Player *)pOwnerPlayer)->m_pHeldEntityThirdpersonClone )
+		{
+			traceFilter.AddEntityToIgnore( ((CPortal_Player *)pOwnerPlayer)->m_pHeldEntityThirdpersonClone );
+		}
+
+		//For fluidity, there are 2 distinct cases for where to put the object.
+		//Case 1: If we think the swept space is collision-free, just put the object at the m_shadow targets. This is the most fluid movement
+		//Case 2: If we think there's something for physics on the server to interact with, incorporate vForwardServerTarget somehow. This can move back and forth between start and end position as network data catches up with prediction
+		
+		Vector vFinalPos;
+
+		ICollideable *pCollideable = pAttached->GetCollideable();
+		if( pCollideable )
+		{
+			trace_t tr;
+			enginetrace->SweepCollideable( pCollideable, pAttached->GetNetworkOrigin(), vForwardServerTarget, vec3_angle, MASK_SOLID, &traceFilter, &tr );
+			
+			if( tr.DidHit() )
+			{
+				vFinalPos = tr.endpos;				
+			}
+			else
+			{
+				enginetrace->SweepCollideable( pCollideable, pAttached->GetNetworkOrigin(), m_shadow.targetPosition, vec3_angle, MASK_SOLID, &traceFilter, &tr );
+				vFinalPos = tr.endpos;
+			}
+		}
+		else
+		{
+			vFinalPos = m_shadow.targetPosition - ((CPortal_Player *)pOwnerPlayer)->m_vecCarriedObject_CurPosToTargetPos_Interpolated;
+		}
+
+
+		if( prediction->IsFirstTimePredicted() )
+		{
+			if( bLastUpdateWasOnOppositeSideOfPortal != ((CPortal_Player *)pOwnerPlayer)->IsHeldObjectOnOppositeSideOfPortal() )
+			{
+				m_iv_predictedRenderOrigin.ClearHistory();
+				bLastUpdateWasOnOppositeSideOfPortal = ((CPortal_Player *)pOwnerPlayer)->IsHeldObjectOnOppositeSideOfPortal();
+			}
+			m_iv_predictedRenderOrigin.AddToHead( gpGlobals->curtime, &vFinalPos, false );
+		}
+		
+		pAttached->SetNetworkOrigin( vFinalPos );
+		pAttached->SetAbsOrigin( vFinalPos );
+		m_vHeldObjectRenderOrigin = vFinalPos;
+
+		pAttached->SetAbsAngles( m_shadow.targetRotation - ((CPortal_Player *)pOwnerPlayer)->m_vecCarriedObject_CurAngToTargetAng_Interpolated );
+	}
+}
+
+const Vector &CGrabController::GetHeldObjectRenderOrigin( void )
+{
+	float currentTime;
+	C_BasePlayer *pHoldingPlayer = (C_BasePlayer *)m_hHoldingPlayer.Get();
+	if( pHoldingPlayer )
+	{
+		currentTime = pHoldingPlayer->GetFinalPredictedTime();
+		currentTime -= TICK_INTERVAL;
+		currentTime += ( gpGlobals->interpolation_amount * TICK_INTERVAL );
+	}
+	else
+	{
+		currentTime = gpGlobals->curtime;
+	}
+
+	m_iv_predictedRenderOrigin.Interpolate( currentTime );
+	return m_vHeldObjectRenderOrigin;
+}
+#endif
+#endif
 float CGrabController::GetSavedMass( IPhysicsObject *pObject )
 {
 	CBaseEntity *pHeld = m_attachedEntity;
@@ -1135,7 +1279,6 @@ public:
 	bool OnControls( CBaseEntity *pControls ) { return true; }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 #ifdef CLIENT_DLL
-	virtual	void	Simulate();
 	virtual void	OnDataChanged( DataUpdateType_t type );
 	virtual void	OnPreDataChanged( DataUpdateType_t type );
 	virtual void	PreDataUpdate( DataUpdateType_t type );
@@ -1219,7 +1362,7 @@ CPlayerPickupController::CPlayerPickupController()
 	SetTransmitState( FL_EDICT_ALWAYS );
 #else
 	m_bShouldInit = true;
-	SetNextClientThink(CLIENT_THINK_ALWAYS);
+	//SetNextClientThink(CLIENT_THINK_ALWAYS);
 #endif
 }
 
@@ -1408,25 +1551,6 @@ void CPlayerPickupController::Shutdown( bool bThrown )
 	Remove();
 #endif
 }
-
-#ifdef CLIENT_DLL
-
-void CPlayerPickupController::Simulate( void )
-{
-	BaseClass::Simulate();
-
-#ifdef CLIENT_DLL	
-	CPortal_Player *localplayer = CPortal_Player::GetLocalPlayer();
-
-	if ( localplayer && !localplayer->IsObserver() && m_hPlayer->IsLocalPlayer() )
-		ManagePredictedObject();
-
-	m_grabController.UpdateObject( m_hPlayer, 12 );
-#endif
-
-	//SetNextClientThink( CLIENT_THINK_ALWAYS );
-}
-#endif
 
 
 void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -5429,7 +5553,11 @@ CBaseEntity *GetPlayerHeldEntity( CBasePlayer *pPlayer )
 
 	if ( pPlayerPickupController )
 	{
+#ifdef GAME_DLL
 		pObject = pPlayerPickupController->GetGrabController().GetAttached();
+#else
+		pObject = pPlayerPickupController->m_hAttachedObject;
+#endif
 	}
 
 	return pObject;
@@ -5527,3 +5655,628 @@ void GrabController_SetPortalPenetratingEntity( CGrabController *pController, CB
 	Assert(pPenetrated);
 	pController->SetPortalPenetratingEntity( pPenetrated );
 }
+#ifdef USE_VM_GRAB
+void CGrabController::AttachEntityVM( CBasePlayer *pPlayer, CBaseEntity *pEntity, IPhysicsObject *pPhys, bool bIsMegaPhysCannon, const Vector &vGrabPosition, bool bUseGrabPosition )
+{
+	if ( !WantsVMGrab( pPlayer ) )
+	{
+		return;
+	}
+
+	CPortal_Player *pPortalPlayer = (CPortal_Player*)pPlayer;
+	pPortalPlayer->SetUsingVMGrabState( true );
+
+	Assert( pEntity && pPhys );
+	if ( !pEntity || !pPhys )
+		return;
+
+	//NOTE: This is really here just for picking up objects across portals...
+	// this will prevent them from teleporting across the world. Could handle this
+	// as a special case if for some reason we want to 'lerp' into the player's hands.
+	UpdateObject( pPortalPlayer, 12.0f );
+#if defined( CLIENT_DLL )
+	if( pEntity->GetPredictable() )
+#endif
+	{
+		pEntity->Teleport( &m_shadow.targetPosition, &m_shadow.targetRotation, NULL );
+	}
+
+#if !defined ( CLIENT_DLL )
+	m_preVMModeCollisionGroup = pEntity->GetCollisionGroup();
+	pEntity->SetCollisionGroup( COLLISION_GROUP_DEBRIS_TRIGGER );
+	m_oldTransmitState = pEntity->GetTransmitState();
+	pEntity->VPhysicsGetObject()->EnableCollisions( false );
+	pEntity->SetTransmitState( FL_EDICT_ALWAYS );
+	m_bOldShadowState = ( pEntity->GetEffects() & EF_NOSHADOW ) == false;
+	pEntity->AddEffects( EF_NOSHADOW );
+	if ( GameRules()->IsMultiplayer() )
+	{
+		pEntity->AddEffects( EF_NODRAW );
+	}
+	CBaseAnimating* pAnim = pEntity->GetBaseAnimating();
+	Assert ( pAnim );
+	if ( pAnim )
+	{
+		m_hOldLightingOrigin = pAnim->GetLightingOrigin();
+		pAnim->SetLightingOrigin( pPlayer );
+	}
+#endif
+}
+
+bool CGrabController::DetachEntityVM( bool bClearVelocity )
+{
+#if defined ( CLIENT_DLL )
+	// Server is in charge of detaching... when it does it will network down
+	// the change in held object and the client will react then.
+	return false;
+#else
+	CBaseEntity *pEntity = GetAttached();
+	Assert ( pEntity );
+	if ( !pEntity )
+	{
+		if( m_controller )
+		{
+			if ( physenv != NULL )
+			{
+				physenv->DestroyMotionController( m_controller );
+			}
+			else
+			{
+				Warning( "%s(%d): Trying to dereference NULL physenv.\n", __FILE__, __LINE__ );
+			}
+			m_controller = NULL;
+		}
+		return true;
+	}
+
+	CPortal_Player *pPlayer = (CPortal_Player*)GetPlayerHoldingEntity( pEntity );
+	if ( !pPlayer )
+	{
+		Assert( 0 );
+		return false;
+	}
+
+	Vector vecDropPosition = pEntity->GetAbsOrigin();
+
+	bool bFoundSafePlacementLocation = FindSafePlacementLocation( &vecDropPosition );
+
+	if ( !bFoundSafePlacementLocation )
+	{
+		// Scoot it up and try again
+		Vector vScootFromOriginal = pEntity->GetAbsOrigin() + Vector( 0.0f, 0.0f, ( pEntity->CollisionProp()->OBBMaxs().z - pEntity->CollisionProp()->OBBMins().z ) * 0.5f );
+		bFoundSafePlacementLocation = FindSafePlacementLocation( &vScootFromOriginal );
+
+		if ( bFoundSafePlacementLocation )
+		{
+			vecDropPosition = vScootFromOriginal;
+		}
+		else
+		{
+			// One more try... scoot up more
+			vecDropPosition = pEntity->GetAbsOrigin() + Vector( 0.0f, 0.0f, pEntity->CollisionProp()->OBBMaxs().z - pEntity->CollisionProp()->OBBMins().z );
+			bFoundSafePlacementLocation = FindSafePlacementLocation( &vecDropPosition, true );
+		}
+	}
+
+	if ( !bFoundSafePlacementLocation )
+	{
+		if ( !pPlayer->IsForcingDrop()  )
+		{
+			ShowDenyPlacement();
+			return false;
+		}
+#if !defined ( CLIENT_DLL )
+		else if ( GameRules()->IsMultiplayer() && V_strcmp( "mp_coop_rat_maze", STRING( gpGlobals->mapname ) ) == 0 )
+		{
+			// 83939: We need to drop this (probably due to player death) but it's in solid.
+			CBaseEntity* pEntInSafePlace = gEntList.FindEntityByName( NULL, "target_spawn_ratmaze_box" );
+			if ( pEntInSafePlace )
+			{
+				vecDropPosition = pEntInSafePlace->GetAbsOrigin();
+			}
+		}
+		else if ( GameRules()->IsMultiplayer() && V_strcmp( "mp_coop_tbeam_maze", STRING( gpGlobals->mapname ) ) == 0 )
+		{
+			// 85025: ..aaaand another one.
+			CBaseEntity* pEntInSafePlace = gEntList.FindEntityByName( NULL, "dropper-proxy" );
+			if ( pEntInSafePlace )
+			{
+				vecDropPosition = pEntInSafePlace->GetAbsOrigin();
+			}
+		}
+#endif
+	}
+
+	pPlayer->SetUsingVMGrabState( false );
+
+	pEntity->SetCollisionGroup( m_preVMModeCollisionGroup );
+	pEntity->VPhysicsGetObject()->EnableCollisions( true );
+	pEntity->SetTransmitState( m_oldTransmitState );
+	if ( m_bOldShadowState )
+	{
+		pEntity->RemoveEffects( EF_NOSHADOW );
+	}
+	if ( GameRules()->IsMultiplayer() )
+	{
+		pEntity->RemoveEffects( EF_NODRAW );
+	}
+	CBaseAnimating* pAnim = pEntity->GetBaseAnimating();
+	Assert ( pAnim );
+	if ( pAnim )
+	{
+		pAnim->SetLightingOrigin( m_hOldLightingOrigin );
+	}
+
+	IPhysicsObject *pPhys = pEntity->VPhysicsGetObject();
+	if ( !pPhys )
+	{
+		Assert( 0 );
+		return false;
+	}
+
+	Vector vVelocity; 
+	pPhys->GetVelocity( &vVelocity, NULL );
+	pEntity->Teleport( &vecDropPosition, NULL, &vVelocity );
+	pEntity->SetLocalVelocity( vec3_origin );
+	return true;
+#endif
+}
+
+bool CGrabController::UpdateObjectVM( CBasePlayer *pPlayer, float flError )
+{
+	CBaseEntity *pEnt = GetAttached();
+	CPortal_Player *pPortalPlayer = (CPortal_Player*)pPlayer;
+	m_hHoldingPlayer = pPortalPlayer;
+
+#if defined( GAME_DLL )
+	if( pPortalPlayer )
+	{
+		pPortalPlayer->m_GrabControllerPersistentVars.ResetOscillationWatch();
+	}
+#endif
+
+	Assert ( pEnt );
+	if ( !pEnt )
+	{
+		return false;
+	}
+#if !defined ( CLIENT_DLL )
+	CBaseAnimating *pAnimating = (CBaseAnimating*)pEnt;
+	if ( pAnimating->IsDissolving() )
+	{
+		return false;
+	}
+#endif 
+
+	QAngle playerAngles = pPlayer->EyeAngles();
+	Vector forward, right, up;
+	AngleVectors( playerAngles, &forward, &right, &up );
+	Vector start = pPlayer->Weapon_ShootPosition();
+
+	float pitch = AngleDistance(playerAngles.x,0);
+	// As we look down, hold the box more forward so it doesn't go under our 'feet'
+	// Also doing this for 'up' so we can see the ceiling
+	float scale = RemapValClamped( fabs(pitch), 0.0f, 75.0f, 0.0f, 1.0f );
+	float flHoldDistAdjust = 1;//player_held_object_look_down_adjustment.GetFloat() * scale;
+	
+	Vector player2d = pPlayer->CollisionProp()->OBBMaxs();
+	float playerRadius = player2d.Length2D();
+	float radius = playerRadius + pEnt->BoundingRadius();
+
+	float distance = 24 + (radius * 2.0f);
+	float flUpOffset = RemapValClamped( fabs(pitch), 0.0f, 75.0f, 1.0f, 0.0f ) * distance;
+
+	Vector vHoldOffset = forward * distance + // Move a bit out of our face
+						forward * flHoldDistAdjust + // As we look down move forward so it doesnt appear 'under' us
+						up * flUpOffset; // move down out of our face
+
+	// Run some traces to have a faux reaction to physical objects in the world
+	Ray_t ray;
+	ray.Init( start, start + vHoldOffset );
+	trace_t	tr;
+#if defined ( CLIENT_DLL )
+
+	//filter out the player and every version of this object
+	CTraceFilterSimpleList traceFilter( COLLISION_GROUP_DEBRIS );
+	{
+		traceFilter.AddEntityToIgnore( pPlayer );
+		traceFilter.AddEntityToIgnore( pEnt );
+		if( ((CPortal_Player *)pPlayer)->m_pHeldEntityClone )
+		{
+			if( (((CPortal_Player *)pPlayer)->m_pHeldEntityClone == pEnt) && //this ent is the held clone
+				((C_PlayerHeldObjectClone *)pEnt)->m_hOriginal ) //clone has original
+			{
+				traceFilter.AddEntityToIgnore( ((C_PlayerHeldObjectClone *)pEnt)->m_hOriginal );
+			}
+			else
+			{
+				traceFilter.AddEntityToIgnore( ((CPortal_Player *)pPlayer)->m_pHeldEntityClone );
+			}			
+		}
+		if( ((CPortal_Player *)pPlayer)->m_pHeldEntityThirdpersonClone )
+		{
+			traceFilter.AddEntityToIgnore( ((CPortal_Player *)pPlayer)->m_pHeldEntityThirdpersonClone );
+		}
+	}
+#else
+	CTraceFilterSkipTwoEntities traceFilter( pPlayer, pEnt, COLLISION_GROUP_DEBRIS );
+#endif
+	UTIL_Portal_TraceRay( ray, MASK_SOLID, &traceFilter, &tr );
+
+	// reduce some of the forward held distance
+	float offsetscale = tr.fraction;
+	Vector vOffsetDir = vHoldOffset.Normalized();
+	float flOffsetDist = vHoldOffset.Length();
+	float scaledLength = flOffsetDist * offsetscale;
+	//if ( scaledLength < player_held_object_min_distance.GetFloat() )
+	//{
+	//	scaledLength = player_held_object_min_distance.GetFloat();
+	//}
+
+	vHoldOffset = vOffsetDir * scaledLength;
+
+	Vector end = start + vHoldOffset;
+
+#if !defined ( CLIENT_DLL )
+	// Send these down to the client
+	pPortalPlayer->m_vecCarriedObjectAngles = m_attachedAnglesPlayerSpace;
+#endif
+
+	QAngle angles = TransformAnglesFromPlayerSpace( m_attachedAnglesPlayerSpace, pPortalPlayer );
+
+	matrix3x4_t eyeMatrix;
+	AngleMatrix( pPlayer->EyeAngles(), eyeMatrix );
+	
+	// If it has a preferred orientation, update to ensure we're still oriented correctly.
+	Pickup_GetPreferredCarryAngles( pEnt, pPlayer, eyeMatrix, angles ); 
+
+	// We may be holding a prop that has preferred carry angles
+	if ( m_bHasPreferredCarryAngles )
+	{
+		matrix3x4_t tmp;
+		ComputePlayerMatrix( pPlayer, tmp );
+		angles = TransformAnglesToWorldSpace( m_vecPreferredCarryAngles, tmp );
+	}
+
+
+#if !defined ( CLIENT_DLL )
+	AngularImpulse angImpulse;
+	Vector vel;
+	IPhysicsObject *pPhys = pEnt->VPhysicsGetObject();
+	if ( !pPhys )
+	{
+		return false;
+	}
+	pPhys->GetVelocity( &vel, &angImpulse );
+	pEnt->SetLocalVelocity( vel );
+	
+	// Don't let anything change the transmit state back to PVS_CHECK or we'll
+	// start disappearing when going through portals or standing near walls.
+	// HACK: This isn't ideal... maybe add a test in baseentity::UpdateTransmitState? Hard to do this for any
+	// possible held object and guarentee it'll get called because they dont all chain to base
+	pEnt->SetTransmitState( FL_EDICT_ALWAYS );
+#endif 
+
+	// If we use-denied, wiggle a bit to give feedback
+	if ( m_flAngleOffset > 0 || m_flLengthOffset > 0 )
+	{
+		float flOutput = sin( 20 * ( gpGlobals->curtime + m_flTimeOffset ) );
+		float flCurAngleOffset = m_flAngleOffset * flOutput;
+		float flCurLengthOffset = m_flLengthOffset * flOutput;
+		angles.y += flCurAngleOffset;
+		Vector vHoldDir = vHoldOffset.Normalized();
+		end += vHoldDir * flCurLengthOffset;
+
+		float flDecay = ExponentialDecay( 0.5, 0.1, gpGlobals->frametime );
+		m_flAngleOffset *= flDecay;
+		m_flLengthOffset *= flDecay;
+
+		if ( m_flAngleOffset < 0.1f )
+			m_flAngleOffset = 0;
+
+		if ( m_flLengthOffset < 0.1f )
+			m_flLengthOffset = 0;
+	}
+
+
+	SetTargetPosition( end, angles );
+
+	// Keep the object with this player even if they're moving too fast
+	//m_fPlayerSpeed = pPlayer->GetAbsVelocity().Length();
+
+	PushNearbyTurrets();
+
+	return true;
+}
+
+void CGrabController::ShowDenyPlacement( void )
+{
+	m_flAngleOffset = 10.0f;
+	m_flLengthOffset = 5.0f;
+	// Always start at (well, close to) sin( x*pi ) so we don't pop positions/angles
+	m_flTimeOffset = -fmod( gpGlobals->curtime, 180.0f );
+}
+#endif // #ifdef USE_VM_GRAB
+
+//////////////////////////////////////////////////////////////////////////
+// C_PlayerHeldObjectClone
+//////////////////////////////////////////////////////////////////////////
+#if defined ( CLIENT_DLL )
+LINK_ENTITY_TO_CLASS_CLIENTONLY( player_held_object_clone, C_PlayerHeldObjectClone );
+
+C_PlayerHeldObjectClone::~C_PlayerHeldObjectClone()
+{
+	DestroyShadow();
+	DestroyModelInstance();
+	VPhysicsDestroyObject();
+	Term();
+}
+
+bool C_PlayerHeldObjectClone::InitClone( C_BaseEntity *pObject, C_BasePlayer *pPlayer, bool bIsViewModel, C_PlayerHeldObjectClone *pVMToFollow )
+{
+	if ( !pObject )
+		return false;
+
+	m_hPlayer = pPlayer;
+	m_hOriginal = pObject;
+	m_pVMToFollow = pVMToFollow;
+
+	const char *pModelName = modelinfo->GetModelName( pObject->GetModel() );
+
+	Assert ( pModelName );
+
+	if ( !pModelName )	
+		return false;
+
+	if ( InitializeAsClientEntity( pModelName, RENDER_GROUP_VIEW_MODEL_TRANSLUCENT ) == false )
+	{
+		return false;
+	}
+
+	//m_bCanUseFastPath = false;
+
+	SetAbsOrigin( pObject->GetAbsOrigin() );
+
+	// This isn't needed... The old grab code assumes a physics object so
+	// while we want to have the option of both types we need a 'dummy' object.
+	solid_t tmpSolid;
+	PhysModelParseSolid( tmpSolid, this, GetModelIndex() );
+	SetSolid( SOLID_VPHYSICS );
+	m_pPhysicsObject = VPhysicsInitShadow( false, false, &tmpSolid );
+
+	if ( m_pPhysicsObject )
+	{
+		PhysSetGameFlags( m_pPhysicsObject, FVPHYSICS_PLAYER_HELD );
+		m_pPhysicsObject->EnableCollisions( !bIsViewModel );
+		SetCollisionGroup( COLLISION_GROUP_DEBRIS_TRIGGER );
+	}
+	
+	if ( !bIsViewModel )
+	{
+		// make ghost renderables
+		SetMoveType( MOVETYPE_CUSTOM );
+	}
+	else
+	{
+		// Let the non view model cast the shadow
+		AddEffects( EF_NOSHADOW );
+	}
+
+	const model_t *mod = GetModel();
+	if ( mod )
+	{
+		Vector mins, maxs;
+		modelinfo->GetModelBounds( mod, mins, maxs );
+		SetCollisionBounds( mins, maxs );
+	}
+
+	OnDataChanged( DATA_UPDATE_CREATED );
+	CollisionProp()->UpdatePartition();
+	CreateShadow();
+
+	CreateModelInstance();
+	pObject->SnatchModelInstance( this );
+
+	m_nOldSkin = pObject->GetSkin();
+	m_nSkin = m_nOldSkin;
+
+	m_bOnOppositeSideOfPortal = false;
+	
+	SetNextClientThink( CLIENT_THINK_ALWAYS );
+
+	return true;
+}
+
+void C_PlayerHeldObjectClone::ClientThink()
+{
+	if ( m_hOriginal.Get() )
+	{
+		if ( m_nOldSkin != m_hOriginal->GetSkin() )
+		{
+			m_nOldSkin = m_hOriginal->GetSkin();
+			m_nSkin = m_nOldSkin;
+		}
+	}
+
+	if ( m_pVMToFollow )
+	{
+		SetAbsOrigin( m_pVMToFollow->GetAbsOrigin() );
+		SetAbsAngles( m_pVMToFollow->GetAbsAngles() );
+
+		m_bOnOppositeSideOfPortal = false;
+
+		CPortal_Player *pPlayer = (CPortal_Player *)m_hPlayer.Get();
+
+		if ( pPlayer )
+		{
+			Vector vForward;
+			pPlayer->EyeVectors( &vForward, NULL, NULL );
+			vForward.z = 0.0f;
+			VectorNormalize( vForward );
+
+			Vector vEyePos = pPlayer->EyePosition();
+			Vector vStart( vEyePos.x, vEyePos.y, GetAbsOrigin().z );
+
+			Ray_t ray;
+			ray.Init( vStart, GetAbsOrigin() );
+			float fCloser = 2.0f;
+			CProp_Portal *pPortal = UTIL_Portal_FirstAlongRay( ray, fCloser );
+			if( pPortal == NULL )
+			{
+				pPortal = pPlayer->m_hPortalEnvironment;
+			}
+			ray.Init( vStart + vForward * 20.f, GetAbsOrigin(), GetCollideable()->OBBMins(), GetCollideable()->OBBMaxs() );
+
+			CTraceFilterSkipTwoEntities filter( pPlayer, m_hOriginal, 0 );
+			//filter.SetPassEntity( pPlayer );
+			//filter.SetPassEntity2( m_hOriginal );
+
+			trace_t tr;
+			UTIL_Portal_TraceRay_With( pPortal, ray, MASK_SOLID, &filter, &tr );
+
+			if ( tr.startsolid )
+			{
+				tr.endpos = m_hPlayer->EyePosition();
+			}
+
+			Vector vNewPos = tr.endpos;
+			float fZDiff = GetAbsOrigin().z - vNewPos.z;
+
+			if ( fZDiff > 0.0f && tr.plane.normal.z > -0.5f || fZDiff < 0.0f && tr.plane.normal.z < 0.5f )
+			{
+				vNewPos.z += fZDiff * 0.5f; // Move us halfway to the intended z pos
+			}
+
+			if ( pPortal )
+			{
+				Vector vTracePos = vNewPos;
+
+				// Make sure the center has passed through portal
+				ray.Init( m_hPlayer->EyePosition(), vTracePos );
+				pPortal = UTIL_Portal_TraceRay( ray, MASK_SOLID, &filter, &tr );
+				if ( pPortal )
+				{
+					m_bOnOppositeSideOfPortal = true;
+
+					QAngle angTransformed;
+					UTIL_Portal_AngleTransform( pPortal->m_matrixThisToLinked, GetAbsAngles(), angTransformed );
+					SetAbsAngles( angTransformed );
+
+					UTIL_Portal_PointTransform( pPortal->m_matrixThisToLinked, vTracePos, vNewPos );
+				}
+			}
+
+			SetAbsOrigin( vNewPos );
+		}
+	}
+	else //!m_pVMToFollow
+	{
+		C_BasePlayer *pOwner = m_hPlayer;
+		if( pOwner )
+		{
+			Vector vInterpolatedOrigin, vForward, vUp, vRight;
+			pOwner->EyePositionAndVectors( &vInterpolatedOrigin, &vForward, &vRight, &vUp );
+			vInterpolatedOrigin += vForward * m_vPlayerRelativeOrigin.x;
+			vInterpolatedOrigin += vRight * m_vPlayerRelativeOrigin.y;
+			vInterpolatedOrigin += vUp * m_vPlayerRelativeOrigin.z;
+			SetAbsOrigin( vInterpolatedOrigin );
+		}
+	}
+}
+
+
+bool C_PlayerHeldObjectClone::OnInternalDrawModel( ClientModelRenderInfo_t *pInfo )
+{
+	Assert ( m_hPlayer.Get() );
+	if ( m_hPlayer.Get() )
+	{
+		pInfo->pLightingOrigin = &(m_hPlayer->GetAbsOrigin());
+	}
+	return true;
+}
+
+int C_PlayerHeldObjectClone::DrawModel( int flags )
+{
+	if ( GetRenderGroup() == RENDER_GROUP_VIEW_MODEL_TRANSLUCENT )
+	{
+		if ( m_hPlayer.Get() && m_hPlayer.Get() == C_BasePlayer::GetLocalPlayer() )
+		{
+			if ( g_pPortalRender->GetViewRecursionLevel() > 0 )
+				return 0;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		if ( m_hPlayer.Get() && (m_hPlayer.Get() == C_BasePlayer::GetLocalPlayer()) && !m_hPlayer->ShouldDrawLocalPlayer() )
+		{
+			if ( g_pPortalRender->GetViewRecursionLevel() < 1 )
+			{
+				if ( !m_bOnOppositeSideOfPortal )
+					return 0;
+			}
+			else if ( g_pPortalRender->GetViewRecursionLevel() < 2 )
+			{
+				if ( m_bOnOppositeSideOfPortal )
+					return 0;
+			}
+		}
+	}
+
+	return BaseClass::DrawModel( flags );
+}
+
+#if 0
+void C_PlayerHeldObjectClone::GetColorModulation( float* color )
+{
+	if( m_pVMToFollow )
+	{
+		color[0] = 0.0f;
+		color[1] = 0.0f;
+		color[2] = 1.0f;
+	}
+	else
+	{
+		color[0] = 0.0f;
+		color[1] = 1.0f;
+		color[2] = 0.0f;
+		return;
+	}
+}
+#endif
+
+
+bool C_PlayerHeldObjectClone::HasPreferredCarryAnglesForPlayer( CBasePlayer *pPlayer )
+{
+	if ( m_hOriginal.Get() )
+	{
+		IPlayerPickupVPhysics *pPickupPhys = dynamic_cast<IPlayerPickupVPhysics *>(m_hOriginal.Get());
+		if ( pPickupPhys )
+		{
+			return pPickupPhys->HasPreferredCarryAnglesForPlayer( pPlayer );
+		}
+	}
+
+	return CDefaultPlayerPickupVPhysics::HasPreferredCarryAnglesForPlayer( pPlayer );
+}
+
+QAngle C_PlayerHeldObjectClone::PreferredCarryAngles( void )
+{
+	if ( m_hOriginal.Get() )
+	{
+		IPlayerPickupVPhysics *pPickupPhys = dynamic_cast<IPlayerPickupVPhysics *>(m_hOriginal.Get());
+		if ( pPickupPhys )
+		{
+			return pPickupPhys->PreferredCarryAngles();
+		}
+	}
+
+	return CDefaultPlayerPickupVPhysics::PreferredCarryAngles();
+}
+
+#endif
+
+

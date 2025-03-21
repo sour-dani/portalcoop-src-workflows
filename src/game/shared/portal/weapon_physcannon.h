@@ -106,26 +106,28 @@ struct game_shadowcontrol_params_t : public hlshadowcontrol_params_t
 #define	NUM_BEAMS	4
 #define	NUM_SPRITES	6
 
-#ifdef CLIENT_DLL
-#define CGrabController C_GrabController
-#endif
+//#define USE_VM_GRAB
 
 class CGrabController : public IMotionEvent
 {
 public:
 	DECLARE_CLASS_NOBASE( CGrabController );
-	DECLARE_NETWORKCLASS_NOBASE();
 	DECLARE_SIMPLE_DATADESC();
 
 	CGrabController( void );
 	~CGrabController( void );
 	void AttachEntity( CPortal_Player *pPlayer, CBaseEntity *pEntity, IPhysicsObject *pPhys, bool bIsMegaPhysCannon, const Vector &vGrabPosition, bool bUseGrabPosition );
+
 	void DetachEntity( bool bClearVelocity );
 	void OnRestore();
 
 	bool UpdateObject( CPortal_Player *pPlayer, float flError );
-
-	void SetTargetPosition( const Vector &target, const QAngle &targetOrientation );
+#ifdef USE_VM_GRAB
+	virtual void AttachEntityVM( CBasePlayer *pPlayer, CBaseEntity *pEntity, IPhysicsObject *pPhys, bool bIsMegaPhysCannon, const Vector &vGrabPosition, bool bUseGrabPosition );
+	virtual bool DetachEntityVM( bool bClearVelocity );
+	virtual bool UpdateObjectVM( CBasePlayer *pPlayer, float flError );
+#endif	
+	void SetTargetPosition( const Vector &target, const QAngle &targetOrientation, bool bIsTeleport = false );
 	void GetTargetPosition( Vector *target, QAngle *targetOrientation );
 	float ComputeError();
 	float GetLoadWeight( void ) const { return m_flLoadWeight; }
@@ -137,6 +139,12 @@ public:
 	CBaseEntity *GetAttached() { return m_attachedEntity.Get(); }
 
 	IMotionEvent::simresult_e Simulate( IPhysicsMotionController *pController, IPhysicsObject *pObject, float deltaTime, Vector &linear, AngularImpulse &angular );
+#ifdef USE_VM_GRAB
+#if defined( CLIENT_DLL )
+	virtual void ClientApproachTarget( CBasePlayer *pOwnerPlayer ); //client-only version of Simulate() to use in prediction without any hope of having a physics object or valid physics environment
+	const Vector &GetHeldObjectRenderOrigin( void );
+#endif
+#endif
 	float GetSavedMass( IPhysicsObject *pObject );
 
 	bool IsObjectAllowedOverhead( CBaseEntity *pEntity );
@@ -188,12 +196,62 @@ private:
 	//set when a held entity is penetrating another through a portal. Needed for special fixes
 	EHANDLE			m_PenetratedEntity;
 
+	EHANDLE			m_hHoldingPlayer;
+
 	friend class CWeaponPhysCannon;
 	friend void GetSavedParamsForCarriedPhysObject( CGrabController *pGrabController, IPhysicsObject *pObject, float *pSavedMassOut, float *pSavedRotationalDampingOut );
+#ifdef USE_VM_GRAB
+private:
+	
+	void ShowDenyPlacement( void );
+	float m_flAngleOffset;
+	float m_flLengthOffset;
+	float m_flTimeOffset;
+
+	// Grr... We're juggling 3 different types of 
+	// pickup logic, and two of them require swapping collision groups.
+	// so we need two temps. One for VM mode changing to interactive debris
+	int m_preVMModeCollisionGroup;
+	int m_prePickupCollisionGroup;
+	int m_oldTransmitState;
+	bool m_bOldShadowState;
+	EHANDLE m_hOldLightingOrigin;
+
+	bool m_bOldUsingVMGrabState;
+#endif
 };
 
+#if defined ( CLIENT_DLL )
+class C_PlayerHeldObjectClone : public C_BaseAnimating, public CDefaultPlayerPickupVPhysics
+{
+public:
+	DECLARE_CLASS( C_PlayerHeldObjectClone, C_BaseAnimating );
 
+	~C_PlayerHeldObjectClone();
 
+	bool InitClone( C_BaseEntity *pObject, C_BasePlayer *pPlayer, bool bIsViewModel = true, C_PlayerHeldObjectClone *pVMToFollow = NULL );
+	void ClientThink( void );
+	
+	virtual bool OnInternalDrawModel( ClientModelRenderInfo_t *pInfo );
+	virtual int DrawModel( int flags );
+
+#if 0
+	virtual void GetColorModulation( float* color );
+#endif
+
+	//IPlayerPickupVPhysics
+	virtual bool HasPreferredCarryAnglesForPlayer( CBasePlayer *pPlayer );
+	virtual QAngle PreferredCarryAngles( void );
+
+	CHandle< C_BasePlayer > m_hPlayer;
+	EHANDLE m_hOriginal;
+	int m_nOldSkin;
+	bool m_bOnOppositeSideOfPortal;
+
+	C_PlayerHeldObjectClone *m_pVMToFollow;
+	Vector m_vPlayerRelativeOrigin; //Interpolators causing too much grief, just store render origin relative to the player's eye origin/angles and reconstruct world position when asked
+};
+#endif
 
 struct thrown_objects_t
 {

@@ -19,7 +19,6 @@
 #include "view.h"
 #include "ivieweffects.h"
 #include "viewrender.h"
-#include "econ/econ_controls.h"
 #include "ienginevgui.h"
 #include "c_weapon_portalgun.h"
 #include "c_npc_portal_turret_floor.h"

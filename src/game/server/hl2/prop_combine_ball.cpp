@@ -632,6 +632,11 @@ void CPropCombineBall::ExplodeThink( void )
 	DoExplosion();	
 }
 
+void CPropCombineBall::DoExplodeThink( void )
+{
+	SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, s_pExplodeTimerContext );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Tell the respawner to make a new one
 //-----------------------------------------------------------------------------

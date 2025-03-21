@@ -499,17 +499,6 @@ void IN_CoopPingDown( const CCommand &args) { KeyDown( &in_coop_ping, args[1] );
 static ConCommand presscoopping( "+coop_ping", IN_CoopPingDown );
 static ConCommand unpresscoopping( "-coop_ping", IN_CoopPingUp );
 
-
-kbutton_t	in_glow_players;
-
-void IN_GlowPlayersUp( const CCommand &args) { KeyUp( &in_glow_players, args[1] ); }
-void IN_GlowPlayersDown(const CCommand &args) { KeyDown(&in_glow_players, args[1]); }
-
-static ConCommand pressglowplayers( "+glow_players", IN_GlowPlayersDown );
-static ConCommand unpressglowplayers( "-glow_players", IN_GlowPlayersUp );
-
-
-
 void IN_DuckToggle( const CCommand &args ) 
 { 
 	if ( ::input->KeyState(&in_ducktoggle) )
@@ -1489,7 +1478,6 @@ int CInput::GetButtonBits( int bResetState )
 	CalcButtonBits( bits, IN_GRENADE2, s_ClearInputState, &in_grenade2, bResetState );
 	CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );	
 	CalcButtonBits( bits, IN_COOP_PING, s_ClearInputState, &in_coop_ping, bResetState );
-	CalcButtonBits( bits, IN_GLOW_PLAYERS, s_ClearInputState, &in_glow_players, bResetState );
 
 	if ( KeyState(&in_ducktoggle) )
 	{

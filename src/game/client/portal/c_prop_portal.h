@@ -19,7 +19,8 @@
 #include "PortalSimulation.h"
 #include "C_PortalGhostRenderable.h" 
 #include "PhysicsCloneArea.h"
-#include "clienttouch.h"
+
+#define DISABLE_CLONE_AREA
 
 // FIX ME
 #include "portal_shareddefs.h"
@@ -32,13 +33,12 @@ struct dlight_t;
 class C_DynamicLight;
 class CPhysicsCloneArea;
 
-class C_Prop_Portal : public CPortalRenderable_FlatBasic, public CPortalSimulatorEventCallbacks, public CClientTouchable
+class C_Prop_Portal : public CPortalRenderable_FlatBasic, public CPortalSimulatorEventCallbacks
 {
 public:
 	DECLARE_CLASS( C_Prop_Portal, CPortalRenderable_FlatBasic );
 	DECLARE_CLIENTCLASS();
 	DECLARE_PREDICTABLE();
-	DECLARE_TOUCHABLE();
 							C_Prop_Portal( void );
 	virtual					~C_Prop_Portal( void );
 
@@ -46,16 +46,17 @@ public:
 	virtual void GetToolRecordingState( KeyValues *msg );
 	
 	virtual bool ShouldPredict( void );
-	virtual C_BasePlayer *GetPredictionOwner( void );
-	
-	C_BasePlayer *m_pPredictionOwner;
+	virtual C_BasePlayer *GetPredictionOwner( void );	
+
+	// A workaround for prediction
+	bool					LocalPlayerCanPlace( void );
 
 	CHandle<C_Prop_Portal>	m_hLinkedPortal; //the portal this portal is linked to
 	CHandle<C_Prop_Portal>	GetLinkedPortal() { return m_hLinkedPortal; } //the portal this portal is linked to
 
 	bool					m_bSharedEnvironmentConfiguration; //this will be set by an instance of CPortal_Environment when two environments are in close proximity
-	
-	cplane_t				m_plane_Origin;	// The plane on which this portal is placed, normal facing outward (matching model forward vec)
+
+	Vector4D				m_plane_Origin;	// The plane on which this portal is placed, normal facing outward (matching model forward vec)
 
 	virtual void			Spawn( void );
 	virtual void			Precache( void );
@@ -112,7 +113,6 @@ public:
 	void					SetupPortalColorSet(void);
 
 
-
 	struct Portal_PreDataChanged
 	{
 		bool					m_bActivated;
@@ -137,13 +137,14 @@ public:
 	Vector		m_vDelayedPosition;
 	QAngle		m_qDelayedAngles;
 	int			m_iDelayedFailure;
-	EHANDLE		m_hPlacedBy;
+	CHandle<C_WeaponPortalgun> m_hPlacedBy;
 
 	virtual void			OnPreDataChanged( DataUpdateType_t updateType );
-	void					HandleNetworkChanges( bool bForceChanges = false );
+	void					HandleNetworkChanges( void );
 	virtual void			OnDataChanged( DataUpdateType_t updateType );
 	virtual int				DrawModel( int flags );
-	void					UpdateOriginPlane( void );
+	void					UpdatePortalLinkage( void );
+	void					UpdateTeleportMatrix( void );
 	void					UpdateGhostRenderables( void );
 	
 	void					SetIsPortal2( bool bValue );
@@ -192,32 +193,23 @@ public:
 	CUtlVector<EHANDLE>		m_hGhostingEntities;
 	CUtlVector<C_PortalGhostRenderable *>		m_GhostRenderables;
 	float					m_fGhostRenderablesClip[4];
-	float					m_fGhostRenderablesClipForPlayer[4];
 
 	virtual PINGICON GetPingIcon() { return PING_ICON_PORTAL; }
 	
 	//find a portal with the designated attributes, or creates one with them, favors active portals over inactive
 	static CProp_Portal		*FindPortal( unsigned char iLinkageGroupID, bool bPortal2, bool bCreateIfNothingFound = false );
 
-	bool m_bEyePositionIsInPortalEnvironment;
-	bool m_bPlayerOriginIsInPortalEnvironment;
-
-	bool m_bPlayerIsInPortalEnvironment;
-
 	virtual C_Prop_Portal *GetPropPortal() { return this; };
-
+#ifndef DISABLE_CLONE_AREA
 	CPhysicsCloneArea		*m_pAttachedCloningArea;
-
+#endif
 private:
-
-	void HandleClientSidedTouching();
 
 	bool m_bDoRenderThink;
 
 	friend class CPortalRenderable;
 
 
-	friend void __MsgFunc_EntityPortalled(bf_read &msg);
 protected:
 	bool					m_bActivated; //a portal can exist and not be active
 	bool					m_bOldActivatedState; //state the portal was in before it was created this instance

@@ -19,7 +19,10 @@
 	#include "physicsshadowclone.h"
 	#include "te_effect_dispatch.h"
 	#include "trigger_portal_cleanser.h"
+	#include "info_placement_helper.h"
 #else
+#define CInfoPlacementHelper C_InfoPlacementHelper
+	#include "c_info_placement_helper.h"
 	#include "c_te_effect_dispatch.h"
 	#include "c_triggers.h"
 	#include "c_trigger_portal_cleanser.h"
@@ -29,7 +32,6 @@
 
 ConVar use_server_portal_particles( "use_server_portal_particles", "0", FCVAR_REPLICATED );
 ConVar use_server_portal_crosshair_test("use_server_portal_crosshair_test", "0", FCVAR_REPLICATED, "Changes if the crosshair placement indicator should be predicted or use the server");
-ConVar sv_playtesting("sv_playtesting", "0", FCVAR_REPLICATED, "If the owner is hosting a server, is in the server as a player, and running a playtest with 2 other players, then enable this for proper portalgun linkages");
 extern ConVar sv_allow_customized_portal_colors;
 
 #ifdef CLIENT_DLL
@@ -78,7 +80,6 @@ CWeaponPortalgun::CWeaponPortalgun( void )
 #endif
 
 #ifdef CLIENT_DLL
-	//if (sv_playtesting.GetBool())
 	m_iOldPortalLinkageGroupID = 255; // This has to be done so that m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID for OnDataChanged
 	m_iOldPortalColorSet = 255; // This has to be done so that m_iOldPortalColorSet != m_iPortalColorSet for OnDataChanged
 #endif
@@ -296,8 +297,11 @@ void CWeaponPortalgun::PrimaryAttack( void )
 	
 	// player "shoot" animation
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+	
+	float punchPitch = SharedRandomFloat( "portalgun_punchpitch", -1, -0.5f );
+	float punchYaw = SharedRandomFloat( "portalgun_punchyaw", -1, 1 );
 
-	pPlayer->ViewPunch( QAngle( random->RandomFloat( -1, -0.5f ), random->RandomFloat( -1, 1 ), 0 ) );
+	pPlayer->ViewPunch( QAngle( punchPitch, punchYaw, 0 ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -337,8 +341,11 @@ void CWeaponPortalgun::SecondaryAttack( void )
 
 	// player "shoot" animation
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+	
+	float punchPitch = SharedRandomFloat( "portalgun_punchpitch", -1, -0.5f );
+	float punchYaw = SharedRandomFloat( "portalgun_punchyaw", -1, 1 );
 
-	pPlayer->ViewPunch( QAngle( random->RandomFloat( -1, -0.5f ), random->RandomFloat( -1, 1 ), 0 ) );
+	pPlayer->ViewPunch( QAngle( punchPitch, punchYaw, 0 ) );
 }
 
 void CWeaponPortalgun::DelayAttack( float fDelay )
@@ -415,9 +422,6 @@ bool CWeaponPortalgun::Deploy( void )
 			if( GameRules()->IsMultiplayer() || !GetOwner()->IsPlayer())
 			{
 				m_iPortalLinkageGroupID = pOwner->entindex();
-
-				if (sv_playtesting.GetBool())
-					m_iPortalLinkageGroupID = m_iPortalLinkageGroupID - 1;
 			
 				Assert( (m_iPortalLinkageGroupID >= 0) && (m_iPortalLinkageGroupID < 256) );
 			}
@@ -537,7 +541,10 @@ void CWeaponPortalgun::UpdateOnRemove(void)
 
 void CWeaponPortalgun::DoEffectBlast(CBaseEntity *pOwner, bool bPortal2, int iPlacedBy, const Vector &ptStart, const Vector &ptFinalPos, const QAngle &qStartAngles, float fDelay, int iPortalLinkageGroup)
 {
-
+#ifdef CLIENT_DLL
+	if ( !prediction->IsFirstTimePredicted() )
+		return;
+#endif
 	if (use_server_portal_particles.GetBool())
 	{
 		IPredictionSystem::SuppressHostEvents( this );
@@ -556,33 +563,18 @@ void CWeaponPortalgun::DoEffectBlast(CBaseEntity *pOwner, bool bPortal2, int iPl
 	fxData.m_nDamageType = iPlacedBy;
 	fxData.m_nHitBox = iPortalLinkageGroup; //Use m_nHitBox as a dummy var
 #ifdef CLIENT_DLL
-	fxData.m_hEntity = pOwner ? pOwner->GetRefEHandle() : GetRefEHandle();
+	AssertMsg( GetOwner() == C_BasePlayer::GetLocalPlayer(), "This should only run in prediction, and the owner should be the local player!" );
+	fxData.m_hEntity = GetOwner();
 #else
 	fxData.m_nEntIndex = pOwner ? pOwner->entindex() : entindex();
 #endif
-
-#if 0
+	
 #ifdef CLIENT_DLL
-	Msg("/======================================\n");
-	Msg("/ C_WeaponPortalgun::DoEffectBlast\n");
-	Msg("/======================================\n\n");
-
-	Msg("ptStart: %f %f %f\n", ptStart.x, ptStart.y, ptStart.z);
-	Msg("ptFinalPos: %f %f %f\n", ptFinalPos.x, ptFinalPos.y, ptFinalPos.z);
-	Msg("qStartAngles: %f %f %f\n", qStartAngles[0], qStartAngles[1], qStartAngles[2]);
+	extern void PortalBlastCallback( const CEffectData & data );
+	PortalBlastCallback( fxData );
 #else
-	Msg("/======================================\n");
-	Msg("/ CWeaponPortalgun::DoEffectBlast\n");
-	Msg("/======================================\n\n");
-
-	Msg("ptStart: %f %f %f\n", ptStart.x, ptStart.y, ptStart.z);
-	Msg("ptFinalPos: %f %f %f\n", ptFinalPos.x, ptFinalPos.y, ptFinalPos.z);
-	Msg("qStartAngles: %f %f %f\n", qStartAngles[0], qStartAngles[1], qStartAngles[2]);
-
-#endif
-#endif
-
 	DispatchEffect( "PortalBlast", fxData );
+#endif
 }
 
 #ifdef CLIENT_DLL
@@ -597,11 +589,16 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 	
 	CBaseEntity *pOwner = GetOwner();
 	CPortal_Player *pPlayer = ToPortalPlayer(pOwner);
+#ifdef CLIENT_DLL
+	bool bIsFirstTimePredicted = prediction->IsFirstTimePredicted();
+#endif
 
 	if( pPlayer )
 	{
-
-		if ( !bTest && pPlayer )
+#ifdef CLIENT_DLL
+		if ( bIsFirstTimePredicted )
+#endif
+		if ( !bTest )
 		{
 			pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY, 0 );
 		}
@@ -613,7 +610,21 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 
 
 		pPlayer->EyeVectors( &vDirection, NULL, NULL );
-		vEye = pPlayer->EyePosition();
+#ifdef CLIENT_DLL
+		if ( !bTest )
+		{
+			if ( bIsFirstTimePredicted )
+			{
+				m_vFirstPredictedShotPos = pPlayer->EyePosition();
+			}
+
+			vEye = m_vFirstPredictedShotPos;
+		}
+		else
+#endif
+		{
+			vEye = pPlayer->EyePosition();
+		}
 
 		// Check if the players eye is behind the portal they're in and translate it
 		VMatrix matThisToLinked;
@@ -696,8 +707,10 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 
 	PortalPlacedByType ePlacedBy = ( pPlayer ) ? ( PORTAL_PLACED_BY_PLAYER ) : ( PORTAL_PLACED_BY_PEDESTAL );
 
+	CInfoPlacementHelper *pPlacementHelper = NULL;
+
 	trace_t tr;
-	float fPlacementSuccess = TraceFirePortal( bPortal2, vTraceStart, vDirection, tr, vFinalPosition, qFinalAngles, ePlacedBy, bTest );
+	float fPlacementSuccess = TraceFirePortal( bPortal2, vTraceStart, vDirection, tr, vFinalPosition, qFinalAngles, ePlacedBy, &pPlacementHelper, bTest );
 		
 	if ( sv_portal_placement_never_fail.GetBool() )
 	{
@@ -744,16 +757,19 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 		if ( fPlacementSuccess < 0.5f ) //0.5f or greater is a success
 			vFinalPosition = tr.endpos;
 		
-#if 1
-		vFinalPosition.x = floor(vFinalPosition.x * 512.0f) / 512.0f;
-		vFinalPosition.y = floor(vFinalPosition.y * 512.0f) / 512.0f;
-		vFinalPosition.z = floor(vFinalPosition.z * 512.0f) / 512.0f;
-#endif
-		
 		QAngle qFireAngles;
 		VectorAngles( vDirection, qFireAngles );
-
-		float fDelay = vTracerOrigin.DistTo( tr.endpos ) / ( ( pPlayer ) ? ( BLAST_SPEED ) : ( BLAST_SPEED_NON_PLAYER ) );
+		
+		float fDelay;
+		bool bInstantPlacement = pPlayer != NULL;  // Do delayed placement for pedestal portalguns, but not the player
+		if ( !bInstantPlacement )
+		{
+			fDelay = vTracerOrigin.DistTo( tr.endpos ) / ( ( pPlayer ) ? ( BLAST_SPEED ) : ( BLAST_SPEED_NON_PLAYER ) );
+		}
+		else
+		{
+			fDelay = 0.1;
+		}
 
 		DoEffectBlast(pOwner, pPortal->m_bIsPortal2, ePlacedBy, vTracerOrigin, vFinalPosition, qFireAngles, fDelay, m_iPortalColorSet );
 		if (fPlacementSuccess == PORTAL_ANALOG_SUCCESS_NEAR && pHitPortal)
@@ -768,10 +784,20 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 		{
 			pPortal->PlacePortal(vFinalPosition, qFinalAngles, fPlacementSuccess, true);
 
-			pPortal->SetContextThink( &CProp_Portal::DelayedPlacementThink, gpGlobals->curtime + fDelay, s_pDelayedPlacementContext ); 
 			pPortal->m_vDelayedPosition = vFinalPosition;
 
 			pPortal->m_hPlacedBy = this;
+
+#ifdef GAME_DLL
+			if ( !bInstantPlacement )
+			{
+				pPortal->SetContextThink( &CProp_Portal::DelayedPlacementThink, gpGlobals->curtime + fDelay, s_pDelayedPlacementContext ); 
+			}
+			else
+#endif
+			{
+				pPortal->DelayedPlacementThink();
+			}
 		}
 	}
 
@@ -780,7 +806,7 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 
 extern int AllEdictsAlongRay( CBaseEntity **pList, int listMax, const Ray_t &ray, int flagMask );
 
-float CWeaponPortalgun::TraceFirePortal( bool bPortal2, const Vector &vTraceStart, const Vector &vDirection, trace_t &tr, Vector &vFinalPosition, QAngle &qFinalAngles, int iPlacedBy, bool bTest /*= false*/ )
+float CWeaponPortalgun::TraceFirePortal( bool bPortal2, const Vector &vTraceStart, const Vector &vDirection, trace_t &tr, Vector &vFinalPosition, QAngle &qFinalAngles, int iPlacedBy, CInfoPlacementHelper **pPlacementHelper, bool bTest /*= false*/ )
 {
 	
 #ifdef GAME_DLL
@@ -875,11 +901,116 @@ float CWeaponPortalgun::TraceFirePortal( bool bPortal2, const Vector &vTraceStar
 
 	// Check that the placement succeed
 	VectorAngles( tr.plane.normal, vUp, qFinalAngles );
+	
+	// Hit any placement helpers at this point
+	*pPlacementHelper = AttemptSnapToPlacementHelper( bPortal2, vTraceStart, vDirection, tr, vFinalPosition, qFinalAngles, iPlacedBy, bTest );
+	if ( *pPlacementHelper )
+		return PORTAL_ANALOG_SUCCESS_NO_BUMP;
 
 	vFinalPosition = tr.endpos;
 
 	return VerifyPortalPlacementAndFizzleBlockingPortals(bPortal2 ? m_hSecondaryPortal.Get() : m_hPrimaryPortal.Get() , vFinalPosition, qFinalAngles, iPlacedBy, bTest);
+}
 
+//-----------------------------------------------------------------------------
+// Purpose: Try to fit a portal using placement helpers
+//-----------------------------------------------------------------------------
+CInfoPlacementHelper *CWeaponPortalgun::AttemptSnapToPlacementHelper( bool bPortal2, const Vector &vTraceStart, const Vector &vDirection, trace_t &tr, Vector &vFinalPosition, QAngle &qFinalAngles, int iPlacedBy, bool bTest )
+{
+	CBaseEntity *pOwner = GetOwner();
+	// First, find a helper in the general area we hit
+	CInfoPlacementHelper *pHelper = UTIL_FindPlacementHelper( vFinalPosition, (pOwner && pOwner->IsPlayer()) ? (CBasePlayer *)pOwner : NULL );
+	if ( pHelper == NULL )
+		return NULL;
+
+#if defined( GAME_DLL )
+	if ( sv_portal_placement_debug.GetBool() )
+	{
+		Msg("PortalPlacement: Found placement helper centered at %f, %f, %f. Radius %f\n", XYZ(pHelper->GetAbsOrigin()), pHelper->GetTargetRadius() );
+	}
+#endif
+
+	Assert( !tr.plane.normal.IsZero() );
+
+	// Setup a trace filter that ignore / hits everything we care about
+#if defined( GAME_DLL )
+	CTraceFilterSimpleClassnameList baseFilter( this, COLLISION_GROUP_NONE );
+	UTIL_Portal_Trace_Filter( &baseFilter );
+	CTraceFilterTranslateClones traceFilterPortalShot( &baseFilter );
+#else
+	CTraceFilterSimpleClassnameList traceFilterPortalShot( this, COLLISION_GROUP_NONE );
+	UTIL_Portal_Trace_Filter( &traceFilterPortalShot );
+#endif
+
+	// re-hit the area near the center of the placement helper. Very small trace is fine
+	Vector vecStartPos = tr.plane.normal + pHelper->GetAbsOrigin();
+	Vector vecDir = -tr.plane.normal;
+	VectorNormalize( vecDir );
+	trace_t trHelper;
+	UTIL_TraceLine( vecStartPos, vecStartPos + vecDir*m_fMaxRange1, MASK_SHOT_PORTAL, &traceFilterPortalShot, &trHelper );
+	Assert ( trHelper.DidHit() );
+
+	// Use the helper angles, if specified
+	QAngle qHelperAngles = ( pHelper->ShouldUseHelperAngles() ) ? ( pHelper->GetTargetAngles() ) : qFinalAngles;
+
+	if ( sv_portal_placement_debug.GetBool() )
+	{
+		Msg("PortalPlacement: Using placement helper angles %f %f %f\n", XYZ(pHelper->GetTargetAngles()));
+	}
+
+	Vector vHelperFinalPos = trHelper.endpos;
+
+	bool bPlacementOnHelperValid = true;
+
+	// make sure the normals match
+	if ( VectorsAreEqual( trHelper.plane.normal, tr.plane.normal, FLT_EPSILON ) == false )
+	{
+		if ( sv_portal_placement_debug.GetBool() )
+		{
+			Msg("PortalPlacement: Not using placement helper because the surface normal of the portal's resting surface and the placement helper's intended surface do not match\n" );
+		}
+		bPlacementOnHelperValid = false;
+	}
+
+	//make sure distance is a sane amount
+	Vector vecHelperToHitPoint = tr.endpos - trHelper.endpos;
+	float flLenSq = vecHelperToHitPoint.LengthSqr();
+	if ( flLenSq > (pHelper->GetTargetRadius()*pHelper->GetTargetRadius()) )
+	{
+		if ( sv_portal_placement_debug.GetBool() )
+		{
+			Msg("PortalPlacement:Not using placement helper because the Portal's final position was outside the helper's radius!\n" );
+		}
+		bPlacementOnHelperValid = false;
+	}
+
+	if( bPlacementOnHelperValid )
+	{
+		// Find the portal we're moving
+		CProp_Portal *pPortal = bPortal2 ? m_hSecondaryPortal.Get() : m_hPrimaryPortal.Get(); //CProp_Portal::FindPortal( m_iPortalLinkageGroupID, bPortal2 );
+		float fPlacementSuccess = VerifyPortalPlacement( pPortal, vHelperFinalPos, qHelperAngles, iPlacedBy, bTest );
+		
+		// run normal placement validity checks
+		if ( fPlacementSuccess < 0.5f )
+		{
+			if ( sv_portal_placement_debug.GetBool() )
+			{
+				Msg("PortalPlacement: Not using placement helper because portal could not fit in a valid spot at it's origin and angles\n" );
+			}
+
+			bPlacementOnHelperValid = false;
+		}
+	}
+
+	if ( bPlacementOnHelperValid )
+	{
+		vFinalPosition = vHelperFinalPos;
+		qFinalAngles = qHelperAngles;
+
+		return pHelper;
+	}
+
+	return NULL;
 }
 
 //-----------------------------------------------------------------------------

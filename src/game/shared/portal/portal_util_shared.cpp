@@ -350,7 +350,8 @@ void UTIL_Portal_Trace_Filter( CTraceFilterSimpleClassnameList *traceFilterPorta
 	traceFilterPortalShot->AddClassnameToIgnore( "prop_glados_core" ); 
 	traceFilterPortalShot->AddClassnameToIgnore( "updateitem2" ); 
 	traceFilterPortalShot->AddClassnameToIgnore( "weapon_portalgun" ); 
-
+	traceFilterPortalShot->AddClassnameToIgnore( "prop_box" ); 
+	traceFilterPortalShot->AddClassnameToIgnore( "prop_radio" ); 
 }
 
 CProp_Portal* UTIL_Portal_FirstAlongRay( const Ray_t &ray, float &fMustBeCloserThan )
@@ -371,7 +372,7 @@ CProp_Portal* UTIL_Portal_FirstAlongRay( const Ray_t &ray, float &fMustBeCloserT
 				if( fIntersection >= 0.0f && fIntersection < fMustBeCloserThan )
 				{
 					//within range, now check directionality
-					if( pTempPortal->m_plane_Origin.normal.Dot( ray.m_Delta ) < 0.0f )
+					if( pTempPortal->m_plane_Origin.AsVector3D().Dot( ray.m_Delta ) < 0.0f )
 					{
 						//qualifies for consideration, now it just has to compete for closest
 						pIntersectedPortal = pTempPortal;
@@ -404,7 +405,7 @@ CProp_Portal* UTIL_Portal_FirstAlongRayAll(const Ray_t &ray, float &fMustBeClose
                 if (fIntersection >= 0.0f && fIntersection < fMustBeCloserThan)
                 {
                     //within range, now check directionality
-                    if (pTempPortal->m_plane_Origin.normal.Dot(ray.m_Delta) < 0.0f)
+                    if (pTempPortal->m_plane_Origin.AsVector3D().Dot(ray.m_Delta) < 0.0f)
                     {
                         //qualifies for consideration, now it just has to compete for closest
                         pIntersectedPortal = pTempPortal;
@@ -1053,7 +1054,6 @@ void UTIL_PortalLinked_TraceRay( const CProp_Portal *pPortal, const Ray_t &ray, 
 void UTIL_Portal_TraceEntity( CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, 
 							 unsigned int mask, ITraceFilter *pFilter, trace_t *pTrace )
 {
-	/*
 #ifdef CLIENT_DLL
 	Assert( (GameRules() == NULL) || GameRules()->IsMultiplayer() );
 	Assert( pEntity->IsPlayer() );
@@ -1065,12 +1065,13 @@ void UTIL_Portal_TraceEntity( CBaseEntity *pEntity, const Vector &vecAbsStart, c
 		if( pPortal )
 			pPortalSimulator = &pPortal->m_PortalSimulator;
 	}
+	else
+	{
+		pPortalSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity(pEntity);
+	}
 #else
 	CPortalSimulator *pPortalSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( pEntity );
 #endif
-	*/
-
-	CPortalSimulator *pPortalSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( pEntity );
 
 	memset( pTrace, 0, sizeof(trace_t));
 	pTrace->fraction = 1.0f;
@@ -1463,8 +1464,8 @@ float UTIL_Portal_ShortestDistanceSqr( const Vector &vPoint1, const Vector &vPoi
 				{
 					//worth investigating further
 					//find out if it's a straight line through the portal, or if we have to wrap around a corner
-					float fPoint1TransformedDist = pLinkedPortal->m_plane_Origin.normal.Dot( vPoint1Transformed ) - pLinkedPortal->m_plane_Origin.dist;
-					float fPoint2Dist = pLinkedPortal->m_plane_Origin.normal.Dot( vPoint2 ) - pLinkedPortal->m_plane_Origin.dist;
+					float fPoint1TransformedDist = pLinkedPortal->m_plane_Origin.AsVector3D().Dot( vPoint1Transformed ) - pLinkedPortal->m_plane_Origin.w;
+					float fPoint2Dist = pLinkedPortal->m_plane_Origin.AsVector3D().Dot( vPoint2 ) - pLinkedPortal->m_plane_Origin.w;
 
 					bool bStraightLine = true;
 					if( (fPoint1TransformedDist > 0.0f) || (fPoint2Dist < 0.0f) ) //straight line through portal impossible, part of the line has to backtrack to get to the portal surface
@@ -1897,7 +1898,7 @@ static void PortalTraceFunc_CenterMustStayInFront( const Ray_t &ray, trace_t *pR
 		if( !pResult->DidHit() )
 		{
 			pResult->m_pEnt = (CProp_Portal *)pCastedData->pPortal;
-			pResult->plane	= pCastedData->pPortal->m_plane_Origin;
+			pResult->plane.normal = pCastedData->pPortal->m_plane_Origin.AsVector3D();
 			pResult->plane.dist = pCastedData->shiftedPlane.m_Dist;
 		}
 		
@@ -1937,9 +1938,9 @@ bool UTIL_FindClosestPassableSpace_InPortal_CenterMustStayInFront( const CProp_P
 
 	adapter.pPortal = pPortal;
 
-	adapter.vExtentSigns.x = -Sign( pPortal->m_plane_Origin.normal.x );
-	adapter.vExtentSigns.y = -Sign( pPortal->m_plane_Origin.normal.y );
-	adapter.vExtentSigns.z = -Sign( pPortal->m_plane_Origin.normal.z );
+	adapter.vExtentSigns.x = -Sign( pPortal->m_plane_Origin.x );
+	adapter.vExtentSigns.y = -Sign( pPortal->m_plane_Origin.y );
+	adapter.vExtentSigns.z = -Sign( pPortal->m_plane_Origin.z );
 	
 	//when caclulating the shift plane, all we need to be sure of is that the most penetrating extent is coplanar with the shift plane when the center would be coplanar with the original plane
 	Vector vCoplanarExtent;
@@ -1947,8 +1948,8 @@ bool UTIL_FindClosestPassableSpace_InPortal_CenterMustStayInFront( const CProp_P
 	vCoplanarExtent.y = vExtents.y * adapter.vExtentSigns.y;
 	vCoplanarExtent.z = vExtents.z * adapter.vExtentSigns.z;
 
-	adapter.shiftedPlane.m_Normal = pPortal->m_plane_Origin.normal;
-	adapter.shiftedPlane.m_Dist = pPortal->m_plane_Origin.dist + (pPortal->m_plane_Origin.normal.Dot( vCoplanarExtent ) ); //the dot is known to be negative, shifting the plane back so the extent is coplanar with it.
+	adapter.shiftedPlane.m_Normal = pPortal->m_plane_Origin.AsVector3D();
+	adapter.shiftedPlane.m_Dist = pPortal->m_plane_Origin.w + (pPortal->m_plane_Origin.AsVector3D().Dot( vCoplanarExtent ) ); //the dot is known to be negative, shifting the plane back so the extent is coplanar with it.
 	
 	return UTIL_FindClosestPassableSpace( vCenter, vExtents, vIndecisivePush, iIterations, vCenterOut, FL_AXIS_DIRECTION_NONE, &adapter );
 }
@@ -2163,7 +2164,7 @@ CProp_Portal *UTIL_PointIsOnPortalQuad(const Vector vPoint, float fOnPlaneEpsilo
 	int iPlanarCandidateCount = 0;
 	for( int i = 0; i != iArraySize; ++i )
 	{
-		if( fabs( pPortalsToCheck[i]->m_plane_Origin.normal.Dot( vPoint ) - pPortalsToCheck[i]->m_plane_Origin.dist ) < fOnPlaneEpsilon )
+		if( fabs( pPortalsToCheck[i]->m_plane_Origin.AsVector3D().Dot( vPoint ) - pPortalsToCheck[i]->m_plane_Origin.w ) < fOnPlaneEpsilon )
 		{
 			pPlanarCandidates[iPlanarCandidateCount] = pPortalsToCheck[i];
 			++iPlanarCandidateCount;
@@ -2349,4 +2350,67 @@ bool UTIL_IsCollideableIntersectingPhysCollide( ICollideable *pCollideable, cons
 	}
 
 	return false;
+}
+
+//it turns out that using MatrixInverseTR() is theoretically correct. But we need to ensure that these matrices match exactly on the client/server. 
+//And computing inverses screws that up just enough (differences of ~0.00005 in the translation some times) to matter. So we compute each from scratch every time
+#if defined( CLIENT_DLL )
+void UTIL_Portal_ComputeMatrix_ForReal( CPortalRenderable_FlatBasic *pLocalPortal, CPortalRenderable_FlatBasic *pRemotePortal )
+#else
+void UTIL_Portal_ComputeMatrix_ForReal( CProp_Portal *pLocalPortal, CProp_Portal *pRemotePortal )
+#endif
+{
+	VMatrix worldToLocal_Rotated;
+	worldToLocal_Rotated.m[0][0] = -pLocalPortal->m_vForward.x;
+	worldToLocal_Rotated.m[0][1] = -pLocalPortal->m_vForward.y;
+	worldToLocal_Rotated.m[0][2] = -pLocalPortal->m_vForward.z;
+	worldToLocal_Rotated.m[0][3] = ((Vector)pLocalPortal->m_ptOrigin).Dot( pLocalPortal->m_vForward );
+
+	worldToLocal_Rotated.m[1][0] = pLocalPortal->m_vRight.x;
+	worldToLocal_Rotated.m[1][1] = pLocalPortal->m_vRight.y;
+	worldToLocal_Rotated.m[1][2] = pLocalPortal->m_vRight.z;
+	worldToLocal_Rotated.m[1][3] = -((Vector)pLocalPortal->m_ptOrigin).Dot( pLocalPortal->m_vRight );
+
+	worldToLocal_Rotated.m[2][0] = pLocalPortal->m_vUp.x;
+	worldToLocal_Rotated.m[2][1] = pLocalPortal->m_vUp.y;
+	worldToLocal_Rotated.m[2][2] = pLocalPortal->m_vUp.z;
+	worldToLocal_Rotated.m[2][3] = -((Vector)pLocalPortal->m_ptOrigin).Dot( pLocalPortal->m_vUp );		
+
+	worldToLocal_Rotated.m[3][0] = 0.0f;
+	worldToLocal_Rotated.m[3][1] = 0.0f;
+	worldToLocal_Rotated.m[3][2] = 0.0f;
+	worldToLocal_Rotated.m[3][3] = 1.0f;
+
+	VMatrix remoteToWorld( pRemotePortal->m_vForward, -pRemotePortal->m_vRight, pRemotePortal->m_vUp );
+	remoteToWorld.SetTranslation( pRemotePortal->m_ptOrigin );
+
+	//final
+	pLocalPortal->m_matrixThisToLinked = remoteToWorld * worldToLocal_Rotated;
+}
+
+//MUST be a shared function to prevent floating point precision weirdness in the 100,000th decimal place between client/server that we're attributing to differing register usage.
+#if defined( CLIENT_DLL )
+void UTIL_Portal_ComputeMatrix( CPortalRenderable_FlatBasic *pLocalPortal, CPortalRenderable_FlatBasic *pRemotePortal )
+#else
+void UTIL_Portal_ComputeMatrix( CProp_Portal *pLocalPortal, CProp_Portal *pRemotePortal )
+#endif
+{
+	if ( pRemotePortal != NULL )
+	{
+		UTIL_Portal_ComputeMatrix_ForReal( pLocalPortal, pRemotePortal );
+		UTIL_Portal_ComputeMatrix_ForReal( pRemotePortal, pLocalPortal );
+	}
+	else
+	{
+		pLocalPortal->m_matrixThisToLinked.Identity(); //don't accidentally teleport objects to zero space
+	}
+}
+
+float GetReliableCurrentTime()
+{
+#ifdef CLIENT_DLL
+	return Plat_FloatTime();
+#else
+	return gpGlobals->curtime;
+#endif
 }

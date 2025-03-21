@@ -76,10 +76,33 @@ enum PortalChallengeType
 	PORTAL_CHALLENGE_TOTAL
 };
 
-#define FIXANGLEMETHOD_CONVAR 1
-// This new version was supposed to be better :(
-#define FIXANGLEMETHOD_CONCOMMAND 0
+enum PortalEvent_t
+{
+	PORTALEVENT_LINKED,					// This portal has linked to another portal and opened
+	PORTALEVENT_FIZZLE,					// Portal has fizzled 
+	PORTALEVENT_MOVED,					// Portal has moved its position
+	PORTALEVENT_ENTITY_TELEPORTED_TO,	// Entity (player or not) has teleported to this portal
+	PORTALEVENT_ENTITY_TELEPORTED_FROM,	// Entity (player or not) has teleported away from this portal
+	PORTALEVENT_PLAYER_TELEPORTED_TO,	// Player has teleported to this portal
+	PORTALEVENT_PLAYER_TELEPORTED_FROM,	// Player has teleported away from this portal
+};
+
+// It's better to have a list of Portal mods instead of having a 
+// single cvar for Rexaura in case we want to add more mods (Portal: Prelude, Portal: Pro, Blue Portals, etc...)
+enum PortalGameType_t
+{
+	PORTAL_GAME_PORTAL,
+	PORTAL_GAME_REXAURA,
+};
+
+extern ConVar sv_portal_game;
 
 extern char *g_ppszPortalPassThroughMaterials[];
+
+#define RADIO_DATA_FILE "scripts/radios.txt"
+extern KeyValues *LoadRadioData();
+
+#define INSTALL_BITS_PORTAL		(1<<0)
+#define INSTALL_BITS_REXAURA	(1<<1)
 
 #endif // PORTAL_SHAREDDEFS_H

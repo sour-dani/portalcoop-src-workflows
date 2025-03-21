@@ -72,7 +72,7 @@ public:
 	Vector		m_vDelayedPosition;
 	QAngle		m_qDelayedAngles;
 	int			m_iDelayedFailure;
-	CNetworkHandle(CBaseEntity, m_hPlacedBy);
+	CNetworkHandle(CWeaponPortalgun, m_hPlacedBy);
 
 	COutputEvent m_OnPlacedSuccessfully;		// Output in hammer for when this portal was successfully placed (not attempted and fizzed).
 
@@ -84,7 +84,7 @@ public:
 	COutputEvent m_OnFizzled;
 	COutputEvent m_OnStolen;
 
-	cplane_t m_plane_Origin; //a portal plane on the entity origin
+	Vector4D m_plane_Origin; //a portal plane on the entity origin
 	
 	CNetworkVector( m_ptOrigin );
 	Vector m_vForward, m_vUp, m_vRight;
@@ -149,6 +149,7 @@ public:
 	void					InputFizzle( inputdata_t &inputdata );
 	void					InputNewLocation( inputdata_t &inputdata );
 
+	void					CreatePortalMicAndSpeakers( void );
 	void					UpdatePortalLinkage( void );
 	void					UpdatePortalTeleportMatrix( void ); //computes the transformation from this portal to the linked portal, and will update the remote matrix as well
 
@@ -176,6 +177,14 @@ public:
 
 	virtual void			PortalSimulator_TookOwnershipOfEntity( CBaseEntity *pEntity );
 	virtual void			PortalSimulator_ReleasedOwnershipOfEntity( CBaseEntity *pEntity );
+	
+	// Add or remove listeners
+	void					AddPortalEventListener( EHANDLE hListener );
+	void					RemovePortalEventListener( EHANDLE hListener );
+	
+	void					BroadcastPortalEvent( PortalEvent_t nEventType );
+	
+	CUtlVector<EHANDLE>		m_PortalEventListeners;			// Collection of entities (by handle) who wish to receive notification of portal events (fizzle, moved, etc)
 
 	CNetworkVar( unsigned char, m_iLinkageGroupID )
 			
@@ -255,5 +264,6 @@ inline const VMatrix& CProp_Portal::MatrixThisToLinked() const
 	return m_matrixThisToLinked;
 }
 
+extern void EntityPortalled( CProp_Portal *pPortal, CBaseEntity *pOther, const Vector &vNewOrigin, const QAngle &qNewAngles, bool bForcedDuck );
 
 #endif //#ifndef PROP_PORTAL_H

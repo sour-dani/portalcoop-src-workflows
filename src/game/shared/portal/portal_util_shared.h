@@ -12,8 +12,6 @@
 
 #include "engine/IEngineTrace.h"
 
-extern ConVar sv_portal_with_gamemovement;
-
 extern bool g_bBulletPortalTrace;
 
 
@@ -26,6 +24,7 @@ extern bool g_bBulletPortalTrace;
 	typedef C_Beam CBeam;
 	class C_Portal_Player;
 	class C_WeaponPortalgun;
+	class CPortalRenderable_FlatBasic;
 
 #define CPortal_Player C_Portal_Player
 #define CWeaponPortalgun C_WeaponPortalgun
@@ -136,6 +135,14 @@ bool UTIL_Portal_EntityIsInPortalHole( const CProp_Portal *pPortal, CBaseEntity 
 CProp_Portal *UTIL_Portal_GetPortalWhoOwnsPlane( CBaseEntity *pEntity );
 
 bool UTIL_IsCollideableIntersectingPhysCollide( ICollideable *pCollideable, const CPhysCollide *pCollide, const Vector &vPhysCollideOrigin, const QAngle &qPhysCollideAngles );
+
+#if defined( CLIENT_DLL )
+void UTIL_Portal_ComputeMatrix( CPortalRenderable_FlatBasic *pLocalPortal, CPortalRenderable_FlatBasic *pRemotePortal );
+#else
+void UTIL_Portal_ComputeMatrix( CProp_Portal *pLocalPortal, CProp_Portal *pRemotePortal );
+#endif
+
+float GetReliableCurrentTime();
 
 #endif //#ifndef PORTAL_UTIL_SHARED_H
 

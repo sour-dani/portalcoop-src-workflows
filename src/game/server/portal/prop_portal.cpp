@@ -45,7 +45,7 @@ ConVar sv_portal_placement_never_fail("sv_portal_placement_never_fail", "0", FCV
 ConVar sv_portal_new_velocity_check("sv_portal_new_velocity_check", "1", FCVAR_REPLICATED | FCVAR_CHEAT);
 extern ConVar use_server_portal_particles;
 
-static CUtlVector<CProp_Portal *> s_PortalLinkageGroups[256];
+CUtlVector<CProp_Portal *> s_PortalLinkageGroups[256];
 
 extern ConVar sv_allow_customized_portal_colors;
 
@@ -554,7 +554,7 @@ void CProp_Portal::DoFizzleEffect( int iEffect, int iLinkageGroupID, bool bDelay
 	ep.m_pOrigin = &m_vAudioOrigin;
 
 	// Rumble effects on the firing player (if one exists)
-	CWeaponPortalgun *pPortalGun = dynamic_cast<CWeaponPortalgun*>( m_hPlacedBy.Get() );
+	CWeaponPortalgun *pPortalGun = ( m_hPlacedBy.Get() );
 
 	if ( pPortalGun && (iEffect != PORTAL_FIZZLE_CLOSE ) 
 				    && (iEffect != PORTAL_FIZZLE_SUCCESS )
@@ -569,6 +569,8 @@ void CProp_Portal::DoFizzleEffect( int iEffect, int iLinkageGroupID, bool bDelay
 
 	// Just a little hack to always prevent particle inconsistencies.
 	SetupPortalColorSet();
+
+	bool bFilterUsePredictionRules = true;
 		
 	// Pick a fizzle effect
 	switch ( iEffect )
@@ -655,6 +657,8 @@ void CProp_Portal::DoFizzleEffect( int iEffect, int iLinkageGroupID, bool bDelay
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_close" ) : ( "portal_1_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			ep.m_pSoundName = "Portal.fizzle_moved";
+
+			bFilterUsePredictionRules = false;
 			break;
 		}
 		case PORTAL_FIZZLE_CLEANSER:
@@ -763,6 +767,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, int iLinkageGroupID, bool bDelay
 		case PORTAL_FIZZLE_NONE:
 			// Don't do anything!
 			return;
+	}
+
+	if ( bFilterUsePredictionRules )
+	{
+		filter.UsePredictionRules();
 	}
 
 	EmitSound( filter, SOUND_FROM_WORLD, ep );
@@ -920,6 +929,9 @@ void CProp_Portal::PunchAllPenetratingPlayers( void )
 
 void CProp_Portal::Activate( void )
 {
+	m_ptOrigin = GetAbsOrigin();
+	m_qAbsAngle = GetAbsAngles();
+
 	UpdateCollisionShape();
 
 	if( s_PortalLinkageGroups[m_iLinkageGroupID].Find( this ) == -1 )
@@ -957,8 +969,8 @@ void CProp_Portal::Activate( void )
 					Vector vWorldMins, vWorldMaxs;
 					pOtherCollision->WorldSpaceAABB( &vWorldMins, &vWorldMaxs );
 					Vector ptOtherCenter = (vWorldMins + vWorldMaxs) / 2.0f;
-
-					if( m_plane_Origin.normal.Dot( ptOtherCenter ) > m_plane_Origin.dist )
+					
+					if( m_plane_Origin.AsVector3D().Dot( ptOtherCenter ) > m_plane_Origin.w )
 					{
 						//we should be interacting with this object, add it to our environment
 						if( SharedEnvironmentCheck( pOther ) )
@@ -981,13 +993,13 @@ void CProp_Portal::Activate( void )
 
 void CProp_Portal::Touch( CBaseEntity *pOther )
 {
-	if ( sv_portal_with_gamemovement.GetBool() && pOther->IsPlayer() )
+	if ( pOther->IsPlayer() )
 		return;
 	BaseClass::Touch( pOther );
 	pOther->Touch( this );
 
 	// Don't do anything on touch if it's not active
-	if( !IsActive() || (m_hLinkedPortal.Get() == NULL) )
+	if( !m_bActivated || (m_hLinkedPortal.Get() == NULL) )
 	{
 		Assert( !m_PortalSimulator.OwnsEntity( pOther ) );
 		Assert( !pOther->IsPlayer() || (((CPortal_Player *)pOther)->m_hPortalEnvironment.Get() != this) );
@@ -1021,7 +1033,7 @@ void CProp_Portal::Touch( CBaseEntity *pOther )
 				{
 					DevMsg( "Moving brush intersected portal plane.\n" );
 
-					DoFizzleEffect( PORTAL_FIZZLE_KILLED, m_iPortalColorSet, false );
+					DoFizzleEffect( PORTAL_FIZZLE_KILLED, GetLinkageGroup(), false );
 					Fizzle();
 				}
 				else
@@ -1037,14 +1049,14 @@ void CProp_Portal::Touch( CBaseEntity *pOther )
 					{
 						DevMsg( "Surface removed from behind portal.\n" );
 
-						DoFizzleEffect( PORTAL_FIZZLE_KILLED, m_iPortalColorSet, false );
+						DoFizzleEffect( PORTAL_FIZZLE_KILLED, GetLinkageGroup(), false );
 						Fizzle();
 					}
 					else if ( tr.m_pEnt && tr.m_pEnt->IsMoving() )
 					{
 						DevMsg( "Surface behind portal is moving.\n" );
 
-						DoFizzleEffect( PORTAL_FIZZLE_KILLED, m_iPortalColorSet, false );
+						DoFizzleEffect( PORTAL_FIZZLE_KILLED, GetLinkageGroup(), false );
 						Fizzle();
 					}
 				}
@@ -1061,7 +1073,7 @@ void CProp_Portal::Touch( CBaseEntity *pOther )
 		//hmm, not in our environment, plane tests, sharing tests
 		if( SharedEnvironmentCheck( pOther ) )
 		{
-			bool bObjectCenterInFrontOfPortal	= (m_plane_Origin.normal.Dot( pOther->WorldSpaceCenter() ) > m_plane_Origin.dist);
+			bool bObjectCenterInFrontOfPortal	= (m_plane_Origin.AsVector3D().Dot( pOther->WorldSpaceCenter() ) > m_plane_Origin.w);
 			bool bIsStuckPlayer					= ( pOther->IsPlayer() )? ( !UTIL_IsSpaceEmpty( pOther, pOther->WorldAlignMins(), pOther->WorldAlignMaxs() ) ) : ( false );
 
 			if ( bIsStuckPlayer )
@@ -1103,7 +1115,7 @@ void CProp_Portal::Touch( CBaseEntity *pOther )
 
 void CProp_Portal::StartTouch( CBaseEntity *pOther )
 {
-	if ( sv_portal_with_gamemovement.GetBool() && pOther->IsPlayer() )
+	if ( pOther->IsPlayer() )
 		return;
 	BaseClass::StartTouch( pOther );
 
@@ -1121,7 +1133,7 @@ void CProp_Portal::StartTouch( CBaseEntity *pOther )
 	}
 #endif
 
-	if ((m_hLinkedPortal == NULL) || (IsActive() == false))
+	if( (m_hLinkedPortal == NULL) || (m_bActivated == false) )
 		return;
 
 	if( CProp_Portal_Shared::IsEntityTeleportable( pOther ) )
@@ -1131,7 +1143,7 @@ void CProp_Portal::StartTouch( CBaseEntity *pOther )
 		pOtherCollision->WorldSpaceAABB( &vWorldMins, &vWorldMaxs );
 		Vector ptOtherCenter = (vWorldMins + vWorldMaxs) / 2.0f;
 
-		if( m_plane_Origin.normal.Dot( ptOtherCenter ) > m_plane_Origin.dist )
+		if( m_plane_Origin.AsVector3D().Dot( ptOtherCenter ) > m_plane_Origin.w )
 		{
 			//we should be interacting with this object, add it to our environment
 			if( SharedEnvironmentCheck( pOther ) )
@@ -1151,7 +1163,7 @@ void CProp_Portal::StartTouch( CBaseEntity *pOther )
 
 void CProp_Portal::EndTouch( CBaseEntity *pOther )
 {
-	if ( sv_portal_with_gamemovement.GetBool() && pOther->IsPlayer() )
+	if ( pOther->IsPlayer() )
 		return;
 	BaseClass::EndTouch( pOther );
 
@@ -1159,7 +1171,7 @@ void CProp_Portal::EndTouch( CBaseEntity *pOther )
 	pOther->EndTouch( this );
 
 	// Don't do anything on end touch if it's not active
-	if( !IsActive() )
+	if( !m_bActivated )
 	{
 		return;
 	}
@@ -1460,55 +1472,49 @@ void CProp_Portal::ForceEntityToFitInPortalWall( CBaseEntity *pEntity )
 
 void CProp_Portal::UpdatePortalTeleportMatrix( void )
 {
+	//copied from client to ensure the numbers match as closely as possible.
+	{		
+		ALIGN16 matrix3x4_t finalMatrix;
+		if( GetMoveParent() )
+		{
+			// Construct the entity-to-world matrix
+			// Start with making an entity-to-parent matrix
+			ALIGN16 matrix3x4_t matEntityToParent;
+			AngleMatrix( GetLocalAngles(), matEntityToParent );
+			MatrixSetColumn( GetLocalOrigin(), 3, matEntityToParent );
+
+			// concatenate with our parent's transform
+			ALIGN16 matrix3x4_t scratchMatrix;
+			ConcatTransforms( GetParentToWorldTransform( scratchMatrix ), matEntityToParent, finalMatrix );
+
+			MatrixGetColumn( finalMatrix, 0, m_vForward );
+			MatrixGetColumn( finalMatrix, 1, m_vRight );
+			MatrixGetColumn( finalMatrix, 2, m_vUp );
+			Vector vTempOrigin;
+			MatrixGetColumn( finalMatrix, 3, vTempOrigin );
+			m_ptOrigin = vTempOrigin;
+			m_vRight = -m_vRight;
+
+			QAngle qTempAngle;
+			MatrixAngles( finalMatrix, qTempAngle );
+			m_qAbsAngle = qTempAngle;
+		}
+		else
+		{
+			AngleMatrix( m_qAbsAngle, finalMatrix );
+			MatrixGetColumn( finalMatrix, 0, m_vForward );
+			MatrixGetColumn( finalMatrix, 1, m_vRight );
+			MatrixGetColumn( finalMatrix, 2, m_vUp );
+			m_vRight = -m_vRight;
+		}		
+	}
+
 	ResetModel();
 
 	//setup our origin plane
-	GetVectors( &m_plane_Origin.normal, NULL, NULL );
-	m_plane_Origin.dist = m_plane_Origin.normal.Dot( GetAbsOrigin() );
-	m_plane_Origin.signbits = SignbitsForPlane( &m_plane_Origin );
-
-	Vector vAbsNormal;
-	vAbsNormal.x = fabs(m_plane_Origin.normal.x);
-	vAbsNormal.y = fabs(m_plane_Origin.normal.y);
-	vAbsNormal.z = fabs(m_plane_Origin.normal.z);
-
-	if( vAbsNormal.x > vAbsNormal.y )
-	{
-		if( vAbsNormal.x > vAbsNormal.z )
-		{
-			if( vAbsNormal.x > 0.999f )
-				m_plane_Origin.type = PLANE_X;
-			else
-				m_plane_Origin.type = PLANE_ANYX;
-		}
-		else
-		{
-			if( vAbsNormal.z > 0.999f )
-				m_plane_Origin.type = PLANE_Z;
-			else
-				m_plane_Origin.type = PLANE_ANYZ;
-		}
-	}
-	else
-	{
-		if( vAbsNormal.y > vAbsNormal.z )
-		{
-			if( vAbsNormal.y > 0.999f )
-				m_plane_Origin.type = PLANE_Y;
-			else
-				m_plane_Origin.type = PLANE_ANYY;
-		}
-		else
-		{
-			if( vAbsNormal.z > 0.999f )
-				m_plane_Origin.type = PLANE_Z;
-			else
-				m_plane_Origin.type = PLANE_ANYZ;
-		}
-	}
-
-
-
+	GetVectors( &m_plane_Origin.AsVector3D(), NULL, NULL );
+	m_plane_Origin.w = m_plane_Origin.AsVector3D().Dot( m_ptOrigin );
+	
 	if ( m_hLinkedPortal != NULL )
 	{
 		CProp_Portal_Shared::UpdatePortalTransformationMatrix( EntityToWorldTransform(), m_hLinkedPortal->EntityToWorldTransform(), &m_matrixThisToLinked );
@@ -1523,184 +1529,110 @@ void CProp_Portal::UpdatePortalTeleportMatrix( void )
 	}
 }
 
-//bool bShouldSpawnFilter = true;
-
-void CProp_Portal::UpdatePortalLinkage( void )
+void CProp_Portal::CreatePortalMicAndSpeakers( void )
 {
-	if( IsActive() )
+	// Don't use microphones in Rexaura! Many of the button sounds, timers, etc... are louder so both players can hear them, but they're way too loud for Rexaura
+	// Also disable in 3 player, certain things can be LOUD
+	bool bUseMicrophones = sv_portal_game.GetInt() != PORTAL_GAME_REXAURA && ( gpGlobals->maxClients <= 2 );
+
+	if ( !bUseMicrophones )
+		return;
+
+	// Initialize mics/speakers
+
+	int iLinkageGroupID = m_iLinkageGroupID;
+			
+	char tspeakername1[64];
+	char tspeakername2[64];
+	char tmicname1[64];
+	char tmicname2[64];
+
+	Q_snprintf( tspeakername1, sizeof(tspeakername1), "PortalSpeaker%i_1", iLinkageGroupID );
+	Q_snprintf( tspeakername2, sizeof(tspeakername2), "PortalSpeaker%i_2", iLinkageGroupID );
+	Q_snprintf( tmicname1, sizeof(tmicname1), "PortalMic%i_1", iLinkageGroupID );
+	Q_snprintf( tmicname2, sizeof(tmicname2), "PortalMic%i_2", iLinkageGroupID );
+			
+	string_t iszSpeakerName1 = AllocPooledString( tspeakername1 );
+	string_t iszSpeakerName2 = AllocPooledString( tspeakername2 );
+	string_t iszMicName1 = AllocPooledString( tmicname1 );
+	string_t iszMicName2 = AllocPooledString( tmicname2 );			
+
+	if( m_hMicrophone == NULL )
 	{
-		CProp_Portal *pLink = m_hLinkedPortal.Get();
+		inputdata_t inputdata;
 
-		if( !(pLink && pLink->IsActive()) )
+		m_hMicrophone = CreateEntityByName( "env_microphone" );
+		CEnvMicrophone *pMicrophone = static_cast<CEnvMicrophone*>( m_hMicrophone.Get() );
+		pMicrophone->SetOwnerEntity( this );
+		pMicrophone->AddSpawnFlags( SF_MICROPHONE_IGNORE_NONATTENUATED );
+		pMicrophone->AddSpawnFlags( SF_MICROPHONE_SOUND_COMBAT | SF_MICROPHONE_SOUND_WORLD | SF_MICROPHONE_SOUND_PLAYER | SF_MICROPHONE_SOUND_BULLET_IMPACT | SF_MICROPHONE_SOUND_EXPLOSION );
+	//	pMicrophone->KeyValue("ListenFilter", "weapon_portalgun_filter_disallow_in_code");
+		DispatchSpawn( pMicrophone );
+
+		m_hSpeaker = CreateEntityByName( "env_speaker" );
+		CSpeaker *pSpeaker = static_cast<CSpeaker*>( m_hSpeaker.Get() );
+
+		if( !m_bIsPortal2 )
 		{
-			//no old link, or inactive old link
-
-			if( pLink )
-			{
-				//we had an old link, must be inactive
-				if( pLink->m_hLinkedPortal.Get() != NULL )
-					pLink->UpdatePortalLinkage();
-
-				pLink = NULL;
-			}
-
-			int iPortalCount = s_PortalLinkageGroups[m_iLinkageGroupID].Count();
-
-			if( iPortalCount != 0 )
-			{
-				CProp_Portal **pPortals = s_PortalLinkageGroups[m_iLinkageGroupID].Base();
-				for( int i = 0; i != iPortalCount; ++i )
-				{
-					CProp_Portal *pCurrentPortal = pPortals[i];
-					if( pCurrentPortal == this )
-						continue;
-					if( pCurrentPortal->IsActive() && pCurrentPortal->m_hLinkedPortal.Get() == NULL )
-					{
-						pLink = pCurrentPortal;
-						pCurrentPortal->m_hLinkedPortal = this;
-						pCurrentPortal->UpdatePortalLinkage();
-						break;
-					}
-				}
-			}
-		}
-
-		m_hLinkedPortal = pLink;
-
-
-		if( pLink != NULL )
-		{
-			CHandle<CProp_Portal> hThis = this;
-			CHandle<CProp_Portal> hRemote = pLink;
-
-			this->m_hLinkedPortal = hRemote;
-			pLink->m_hLinkedPortal = hThis;
-			m_bIsPortal2 = !m_hLinkedPortal->m_bIsPortal2;
-#ifndef DONT_USE_MICROPHONESORSPEAKERS
-					
-			// Initialize mics/speakers
-
-			int iLinkageGroupID = m_iLinkageGroupID;
-			
-			char tspeakername1[64];
-			char tspeakername2[64];
-			char tmicname1[64];
-			char tmicname2[64];
-
-			Q_snprintf( tspeakername1, sizeof(tspeakername1), "PortalSpeaker%i_1", iLinkageGroupID );
-			Q_snprintf( tspeakername2, sizeof(tspeakername2), "PortalSpeaker%i_2", iLinkageGroupID );
-			Q_snprintf( tmicname1, sizeof(tmicname1), "PortalMic%i_1", iLinkageGroupID );
-			Q_snprintf( tmicname2, sizeof(tmicname2), "PortalMic%i_2", iLinkageGroupID );
-			
-			string_t iszSpeakerName1 = AllocPooledString( tspeakername1 );
-			string_t iszSpeakerName2 = AllocPooledString( tspeakername2 );
-			string_t iszMicName1 = AllocPooledString( tmicname1 );
-			string_t iszMicName2 = AllocPooledString( tmicname2 );			
-
-			if( m_hMicrophone == NULL )
-			{
-				inputdata_t inputdata;
-
-				m_hMicrophone = CreateEntityByName( "env_microphone" );
-				CEnvMicrophone *pMicrophone = static_cast<CEnvMicrophone*>( m_hMicrophone.Get() );
-				pMicrophone->AddSpawnFlags( SF_MICROPHONE_IGNORE_NONATTENUATED );
-				pMicrophone->AddSpawnFlags( SF_MICROPHONE_SOUND_COMBAT | SF_MICROPHONE_SOUND_WORLD | SF_MICROPHONE_SOUND_PLAYER | SF_MICROPHONE_SOUND_BULLET_IMPACT | SF_MICROPHONE_SOUND_EXPLOSION );
-			//	pMicrophone->KeyValue("ListenFilter", "weapon_portalgun_filter_disallow_in_code");
-				DispatchSpawn( pMicrophone );
-
-				m_hSpeaker = CreateEntityByName( "env_speaker" );
-				CSpeaker *pSpeaker = static_cast<CSpeaker*>( m_hSpeaker.Get() );
-
-				if( !m_bIsPortal2 )
-				{
-					pSpeaker->SetName( iszSpeakerName1 );
-					pMicrophone->SetName( iszMicName1 );
-					pMicrophone->Activate();
-					pMicrophone->SetSpeakerName( iszSpeakerName2 );
-					pMicrophone->SetSensitivity( 10.0f );
-				}
-				else
-				{
-					pSpeaker->SetName( iszSpeakerName2 );
-					pMicrophone->SetName( iszMicName2 );
-					pMicrophone->Activate();
-					pMicrophone->SetSpeakerName( iszSpeakerName1 );
-					pMicrophone->SetSensitivity( 10.0f );
-				}
-			}
-
-			if ( m_hLinkedPortal->m_hMicrophone == 0 )
-			{
-				inputdata_t inputdata;
-
-				m_hLinkedPortal->m_hMicrophone = CreateEntityByName( "env_microphone" );
-				CEnvMicrophone *pLinkedMicrophone = static_cast<CEnvMicrophone*>( m_hLinkedPortal->m_hMicrophone.Get() );
-				pLinkedMicrophone->AddSpawnFlags( SF_MICROPHONE_IGNORE_NONATTENUATED );
-				pLinkedMicrophone->AddSpawnFlags( SF_MICROPHONE_SOUND_COMBAT | SF_MICROPHONE_SOUND_WORLD | SF_MICROPHONE_SOUND_PLAYER | SF_MICROPHONE_SOUND_BULLET_IMPACT | SF_MICROPHONE_SOUND_EXPLOSION );
-			//	pLinkedMicrophone->KeyValue("ListenFilter", "weapon_portalgun_filter_disallow_in_code");
-				DispatchSpawn( pLinkedMicrophone );
-
-				m_hLinkedPortal->m_hSpeaker = CreateEntityByName( "env_speaker" );
-				CSpeaker *pLinkedSpeaker = static_cast<CSpeaker*>( m_hLinkedPortal->m_hSpeaker.Get() );
-
-				if ( !m_bIsPortal2 )
-				{
-					pLinkedSpeaker->SetName( iszSpeakerName2 );
-					pLinkedMicrophone->SetName( iszMicName2 );
-					pLinkedMicrophone->Activate();
-					pLinkedMicrophone->SetSpeakerName( iszSpeakerName1 );
-					pLinkedMicrophone->SetSensitivity( 10.0f );
-				}
-				else
-				{
-					pLinkedSpeaker->SetName( iszSpeakerName1 );
-					pLinkedMicrophone->SetName( iszMicName1 );
-					pLinkedMicrophone->Activate();
-					pLinkedMicrophone->SetSpeakerName( iszSpeakerName2 );
-					pLinkedMicrophone->SetSensitivity( 10.0f );
-				}
-			}
-			// Set microphone/speaker positions
-			Vector vZero( 0.0f, 0.0f, 0.0f );
-			CEnvMicrophone *pMicrophone = static_cast<CEnvMicrophone*>( m_hMicrophone.Get() );
-			pMicrophone->AddSpawnFlags( SF_MICROPHONE_IGNORE_NONATTENUATED );
-			pMicrophone->Teleport( &GetAbsOrigin(), &GetAbsAngles(), &vZero );
-			inputdata_t in;
-			pMicrophone->InputEnable( in );
-
-			CSpeaker *pSpeaker = static_cast<CSpeaker*>( m_hSpeaker.Get() );
-			pSpeaker->Teleport( &GetAbsOrigin(), &GetAbsAngles(), &vZero );
-			pSpeaker->InputTurnOn( in );
-#endif
-			UpdatePortalTeleportMatrix();
+			pSpeaker->SetName( iszSpeakerName1 );
+			pMicrophone->SetName( iszMicName1 );
+			pMicrophone->Activate();
+			pMicrophone->SetSpeakerName( iszSpeakerName2 );
+			pMicrophone->SetSensitivity( 10.0f );
 		}
 		else
 		{
-			m_PortalSimulator.DetachFromLinked();
-			m_PortalSimulator.ReleaseAllEntityOwnership();
+			pSpeaker->SetName( iszSpeakerName2 );
+			pMicrophone->SetName( iszMicName2 );
+			pMicrophone->Activate();
+			pMicrophone->SetSpeakerName( iszSpeakerName1 );
+			pMicrophone->SetSensitivity( 10.0f );
 		}
-		
-		m_PortalSimulator.MoveTo( m_ptOrigin, m_qAbsAngle );
-
-		if( pLink )
-			m_PortalSimulator.AttachTo( &pLink->m_PortalSimulator );
-
-		if( m_pAttachedCloningArea )
-			m_pAttachedCloningArea->UpdatePosition();
 	}
-	else
+
+	if ( m_hLinkedPortal->m_hMicrophone == 0 )
 	{
-		CProp_Portal *pRemote = m_hLinkedPortal;
-		//apparently we've been deactivated
-		m_PortalSimulator.DetachFromLinked();
-		m_PortalSimulator.ReleaseAllEntityOwnership();
+		inputdata_t inputdata;
 
-		PunchAllPenetratingPlayers();
+		m_hLinkedPortal->m_hMicrophone = CreateEntityByName( "env_microphone" );
+		CEnvMicrophone *pLinkedMicrophone = static_cast<CEnvMicrophone*>( m_hLinkedPortal->m_hMicrophone.Get() );
+		pLinkedMicrophone->SetOwnerEntity( m_hLinkedPortal );
+		pLinkedMicrophone->AddSpawnFlags( SF_MICROPHONE_IGNORE_NONATTENUATED );
+		pLinkedMicrophone->AddSpawnFlags( SF_MICROPHONE_SOUND_COMBAT | SF_MICROPHONE_SOUND_WORLD | SF_MICROPHONE_SOUND_PLAYER | SF_MICROPHONE_SOUND_BULLET_IMPACT | SF_MICROPHONE_SOUND_EXPLOSION );
+	//	pLinkedMicrophone->KeyValue("ListenFilter", "weapon_portalgun_filter_disallow_in_code");
+		DispatchSpawn( pLinkedMicrophone );
 
-		m_hLinkedPortal = NULL;
-		if( pRemote )
-			pRemote->UpdatePortalLinkage();
+		m_hLinkedPortal->m_hSpeaker = CreateEntityByName( "env_speaker" );
+		CSpeaker *pLinkedSpeaker = static_cast<CSpeaker*>( m_hLinkedPortal->m_hSpeaker.Get() );
+
+		if ( !m_bIsPortal2 )
+		{
+			pLinkedSpeaker->SetName( iszSpeakerName2 );
+			pLinkedMicrophone->SetName( iszMicName2 );
+			pLinkedMicrophone->Activate();
+			pLinkedMicrophone->SetSpeakerName( iszSpeakerName1 );
+		}
+		else
+		{
+			pLinkedSpeaker->SetName( iszSpeakerName1 );
+			pLinkedMicrophone->SetName( iszMicName1 );
+			pLinkedMicrophone->Activate();
+			pLinkedMicrophone->SetSpeakerName( iszSpeakerName2 );
+		}
+
+		pLinkedMicrophone->SetSensitivity( 10.0f );
 	}
+	// Set microphone/speaker positions
+	Vector vZero( 0.0f, 0.0f, 0.0f );
+	CEnvMicrophone *pMicrophone = static_cast<CEnvMicrophone*>( m_hMicrophone.Get() );
+	pMicrophone->AddSpawnFlags( SF_MICROPHONE_IGNORE_NONATTENUATED );
+	pMicrophone->Teleport( &GetAbsOrigin(), &GetAbsAngles(), &vZero );
+	inputdata_t in;
+	pMicrophone->InputEnable( in );
+
+	CSpeaker *pSpeaker = static_cast<CSpeaker*>( m_hSpeaker.Get() );
+	pSpeaker->Teleport( &GetAbsOrigin(), &GetAbsAngles(), &vZero );
+	pSpeaker->InputTurnOn( in );
 }
 
 void CProp_Portal::NewLocation( const Vector &vOrigin, const QAngle &qAngles )
@@ -1796,13 +1728,36 @@ void CProp_Portal::NewLocation( const Vector &vOrigin, const QAngle &qAngles )
 		}
 	}
 
-	if ( m_bIsPortal2 )
+
+	/*bool bOldPlaySound = false;
+	CWeaponPortalgun *pPortalgun = m_hPlacedBy;
+	if ( !pPortalgun || !pPortalgun->GetOwnerEntity() ) // a portalgun without an owner
+		bOldPlaySound = true;
+
+	if ( bOldPlaySound )
 	{
-		EmitSound( "Portal.open_red" );
+		if ( m_bIsPortal2 )
+		{
+			EmitSound( "Portal.open_red" );
+		}
+		else
+		{
+			EmitSound( "Portal.open_blue" );
+		}
 	}
-	else
+	else*/
 	{
-		EmitSound( "Portal.open_blue" );
+		CRecipientFilter filter;
+		filter.UsePredictionRules();
+		filter.AddRecipientsByPAS( GetAbsOrigin() );
+		if ( m_bIsPortal2 )
+		{
+			EmitSound( filter, entindex(), "Portal.open_red" );
+		}
+		else
+		{
+			EmitSound( filter, entindex(), "Portal.open_blue" );
+		}
 	}
 }
 
@@ -1814,15 +1769,12 @@ void CProp_Portal::NewLocation( const Vector &vOrigin, const QAngle &qAngles )
 void CProp_Portal::OnEntityTeleportedToPortal( CBaseEntity *pEntity )
 {
 	m_OnEntityTeleportToMe.FireOutput( this, this );
-#if PORTALBROADCAST
 	BroadcastPortalEvent( PORTALEVENT_ENTITY_TELEPORTED_TO );
-#endif
+
 	if ( pEntity->IsPlayer() )
 	{
 		m_OnPlayerTeleportToMe.FireOutput( this, this );
-#if PORTALBROADCAST
 		BroadcastPortalEvent( PORTALEVENT_PLAYER_TELEPORTED_TO );
-#endif
 	}
 }
 
@@ -1832,16 +1784,12 @@ void CProp_Portal::OnEntityTeleportedToPortal( CBaseEntity *pEntity )
 void CProp_Portal::OnEntityTeleportedFromPortal( CBaseEntity *pEntity )
 {
 	m_OnEntityTeleportFromMe.FireOutput( this, this );
-#if PORTALBROADCAST
 	BroadcastPortalEvent( PORTALEVENT_ENTITY_TELEPORTED_FROM );
-#endif
 
 	if ( pEntity->IsPlayer() )
 	{
 		m_OnPlayerTeleportFromMe.FireOutput( this, this );
-#if PORTALBROADCAST
 		BroadcastPortalEvent( PORTALEVENT_PLAYER_TELEPORTED_FROM );
-#endif
 	}
 }
 
@@ -1995,6 +1943,58 @@ void CProp_Portal::InputNewLocation( inputdata_t &inputdata )
 	NewLocation( vNewOrigin, vNewAngles );
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Tell all listeners about an event that just occurred 
+//-----------------------------------------------------------------------------
+void CProp_Portal::BroadcastPortalEvent( PortalEvent_t nEventType )
+{
+	/*
+	switch( nEventType )
+	{
+	case PORTALEVENT_MOVED:
+		Msg("[ Portal moved ]\n");
+		break;
+	
+	case PORTALEVENT_FIZZLE:
+		Msg("[ Portal fizzled ]\n");
+		break;
+	
+	case PORTALEVENT_LINKED:
+		Msg("[ Portal linked ]\n");
+		break;
+	}
+	*/
+
+	// We need to walk the list backwards because callers can remove themselves from our list as they're notified
+	for ( int i = m_PortalEventListeners.Count()-1; i >= 0; i-- )
+	{
+		if ( m_PortalEventListeners[i] == NULL )
+			continue;
+
+		m_PortalEventListeners[i]->NotifyPortalEvent( nEventType, this );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Add a listener to our collection
+//-----------------------------------------------------------------------------
+void CProp_Portal::AddPortalEventListener( EHANDLE hListener )
+{
+	// Don't multiply add
+	if ( m_PortalEventListeners.Find( hListener ) != m_PortalEventListeners.InvalidIndex() )
+		return;
+
+	m_PortalEventListeners.AddToTail( hListener );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Remove a listener to our collection
+//-----------------------------------------------------------------------------
+void CProp_Portal::RemovePortalEventListener( EHANDLE hListener )
+{
+	m_PortalEventListeners.FindAndFastRemove( hListener );
+}
+
 void CProp_Portal::UpdateCorners()
 {
 	Vector vOrigin = m_ptOrigin;
@@ -2106,4 +2106,21 @@ void CFunc_Portalled::OnPostPortalled( CBaseEntity *pEntity, bool m_bFireType )
 
 	if (sFireType != NULL && m_bFireOnPlayer)
 		m_OnEntityPostPortalled.FireOutput( pEntity, this );
+}
+
+void EntityPortalled( CProp_Portal *pPortal, CBaseEntity *pOther, const Vector &vNewOrigin, const QAngle &qNewAngles, bool bForcedDuck )
+{
+	/*if( pOther->IsPlayer() )
+	{
+		Warning( "Server player portalled %f   %f %f %f   %f %f %f\n", gpGlobals->curtime, XYZ( vNewOrigin ), XYZ( ((CPortal_Player *)pOther)->pl.v_angle ) ); 
+	}*/
+
+	for( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CPortal_Player *pPlayer = (CPortal_Player *)UTIL_PlayerByIndex( i );
+		if( pPlayer )
+		{
+			pPlayer->NetworkPortalTeleportation( pOther, pPortal, gpGlobals->curtime, bForcedDuck );
+		}
+	}
 }

@@ -18,6 +18,7 @@
 #include "shareddefs.h"
 #include "portal_shareddefs.h"
 #include "effect_color_tables.h"
+#include "prediction.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -43,6 +44,8 @@ private:
 
 	float	m_fCreationTime;
 	float	m_fDeathTime;
+
+	PortalPlacedByType m_ePlacedBy;
 };
 
 
@@ -66,9 +69,12 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 	m_ptCreationPoint = vStart;
 	m_ptDeathPoint = vEnd;
 
-	SetAbsOrigin( m_ptCreationPoint );
+	m_ePlacedBy = ePlacedBy;
 
+	SetAbsOrigin( m_ptCreationPoint );
+	
 	m_fCreationTime = gpGlobals->curtime;
+
 	m_fDeathTime = fDeathTime;
 
 	if ( m_fDeathTime - 0.1f < m_fCreationTime )
@@ -81,7 +87,6 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 
 	m_ptAimPoint = m_ptCreationPoint + vForward * m_ptCreationPoint.DistTo( m_ptDeathPoint );
 #if 0
-
 	Msg("/======================================\n");
 	Msg("/ C_PortalBlast::Init \n");
 	Msg("/======================================\n\n");
@@ -93,7 +98,7 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 	Msg("qAngles: %f %f %f\n", qAngles[0], qAngles[1], qAngles[2]);
 #endif
 
-	C_BasePlayer *pPlayer = dynamic_cast<C_BasePlayer*>(hEntity.Get());
+	C_BasePlayer *pPlayer = ToBasePlayer(hEntity.Get());
 
 	//Probably unnecessary
 	if (pPlayer)
@@ -157,7 +162,7 @@ void C_PortalBlast::ClientThink( void )
 		Remove();
 		return;
 	}
-
+	
 	float fT = ( gpGlobals->curtime - m_fCreationTime ) / ( m_fDeathTime - m_fCreationTime );
 
 	if ( fT >= 1.0f )

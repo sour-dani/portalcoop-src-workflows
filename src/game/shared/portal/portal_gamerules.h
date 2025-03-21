@@ -42,20 +42,32 @@ struct PortalPlayerStatistics_t
 	float fNumSecondsTaken;
 };
 
-class CPortalGameRulesProxy : public CGameRulesProxy
+class CPortalGameRulesProxy : public CHalfLife2Proxy
 {
 public:
-	DECLARE_CLASS( CPortalGameRulesProxy, CGameRulesProxy );
+	CPortalGameRulesProxy();
+
+	DECLARE_CLASS( CPortalGameRulesProxy, CHalfLife2Proxy );
 	DECLARE_NETWORKCLASS();
+#ifdef GAME_DLL
+	DECLARE_DATADESC();
+	
+	void InputSuspendRespawning( inputdata_t &inputdata );
+	void InputRespawnAllPlayers( inputdata_t &inputdata );
+	void InputResetDetachedCameras( inputdata_t &inputdata );
+	//void InputDisableGamePause( inputdata_t &inputdata );
+	
+	bool m_bSuspendRespawn;
+
+	COutputEvent m_OnPlayerConnected;
+#endif
 };
 
 
 class CPortalGameRules : public CHalfLife2
 {
 public:
-	DECLARE_CLASS( CPortalGameRules, CSingleplayRules );
-
-	virtual bool IsMultiplayer( void );
+	DECLARE_CLASS( CPortalGameRules, CHalfLife2 );
 
 	virtual bool	Init();
 	
@@ -64,6 +76,7 @@ public:
 	virtual void	ClientSettingsChanged( CBasePlayer *pPlayer );
 	virtual void	GoToIntermission( void );
 #ifndef CLIENT_DLL
+	virtual bool	ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen );
 	virtual bool	ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target );
 	virtual float	GetAutoAimScale( CBasePlayer *pPlayer );
 
@@ -129,6 +142,9 @@ private:
 	virtual void			PlayerSpawn( CBasePlayer *pPlayer );
 	virtual CBaseEntity *GetPlayerSpawnSpot( CBasePlayer *pPlayer );// Place this player on their spawnspot and face them the proper direction.
 	virtual bool			IsSpawnPointValid( CBaseEntity *pSpot, CBasePlayer *pPlayer );
+	
+// Weapon spawn/respawn control
+	virtual int WeaponShouldRespawn( CBaseCombatWeapon *pWeapon );
 
 	virtual void			InitDefaultAIRelationships( void );
 	virtual const char*		AIClassText(int classType);

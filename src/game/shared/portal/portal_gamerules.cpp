@@ -39,11 +39,11 @@
 #include "tier0/memdbgon.h"
 	
 extern ConVar physcannon_mega_enabled;
-ConVar sv_spawn_with_suit( "sv_spawn_with_suit", "0", FCVAR_REPLICATED, "Sets whether or not players should spawn with the suit" );
+ConVar sv_spawn_with_suit( "sv_spawn_with_suit", "0", FCVAR_REPLICATED, "Sets whether or not players should spawn with the HEV suit" );
 ConVar sv_portalgun_spawn( "sv_portalgun_spawn", "0", FCVAR_REPLICATED, "Sets if the player should spawn with the portalgun" );
-ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_REPLICATED, "Sets what portalgun colors players spawn with. 0 = Blue, 1 = Orange, 2 = Both" );
+ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_REPLICATED, "Sets what portalgun colors players spawn with. 0 = Primary, 1 = Secondary, 2 = Both" );
 
-ConVar sv_restart_server( "sv_restart_server", "0", FCVAR_REPLICATED, "When all players disconnect, it will change the map back to the first map in the map set" );
+ConVar sv_restart_server( "sv_restart_server", "0", FCVAR_REPLICATED, "When all players disconnect, the game will change the map back to the first map in the map set" );
 ConVar sv_restart_server_map( "sv_restart_server_map", "", FCVAR_REPLICATED, "Map to change when all players disconnect (requires sv_restart_server to be 1)" );
 ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "0", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );
 
@@ -74,21 +74,48 @@ BEGIN_SIMPLE_DATADESC( CPortalGameRules )
 
 END_DATADESC()
 
+#ifdef GAME_DLL
+BEGIN_DATADESC( CPortalGameRulesProxy )
+DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SuspendRespawning", InputSuspendRespawning ),
+DEFINE_INPUTFUNC( FIELD_VOID, "RespawnAllPlayers", InputRespawnAllPlayers ),
+DEFINE_INPUTFUNC( FIELD_VOID, "ResetDetachedCameras", InputResetDetachedCameras ),
+//DEFINE_INPUTFUNC( FIELD_BOOLEAN, "DisableGamePause", InputDisableGamePause ),
+
+DEFINE_OUTPUT( m_OnPlayerConnected, "OnPlayerConnected" ),
+END_DATADESC()
+#endif
+
 LINK_ENTITY_TO_CLASS_ALIASED( portal_gamerules, PortalGameRulesProxy );
 
-#ifdef GAME_DLL
-
-CON_COMMAND_F(portal_bot, "Creates a fake portal player", FCVAR_REPLICATED)
+CPortalGameRulesProxy::CPortalGameRulesProxy()
 {
-	if (!UTIL_IsCommandIssuedByServerAdmin())
-		return;
-
-	extern void ClientPutInServer(edict_t *pEdict, const char *playername);
-	
-	edict_t *pEdict = engine->CreateFakeClient( "PortalBot" );
-	ClientPutInServer( pEdict, "PortalBot" );
+#ifdef GAME_DLL
+	m_bSuspendRespawn = false;
+#endif
 }
 
+#ifdef GAME_DLL
+void CPortalGameRulesProxy::InputSuspendRespawning( inputdata_t &inputdata )
+{
+	m_bSuspendRespawn = inputdata.value.Bool();
+}
+
+extern void RespawnAllPlayers();
+void CPortalGameRulesProxy::InputRespawnAllPlayers( inputdata_t &inputdata )
+{
+	RespawnAllPlayers();
+}
+
+extern int g_iNumCamerasDetatched;
+void CPortalGameRulesProxy::InputResetDetachedCameras( inputdata_t &inputdata )
+{
+	g_iNumCamerasDetatched = 0;
+}
+
+//void CPortalGameRulesProxy::InputDisableGamePause( inputdata_t &inputdata )
+//{
+//	PortalGameRules()->m_bDisableGamePause = inputdata.value.Bool();
+//}
 #endif
 
 #ifdef CLIENT_DLL
@@ -311,23 +338,21 @@ static ConCommand cl_ent_create_portal_metal_sphere("cl_ent_create_portal_metal_
 
 #endif // CLIENT_DLL
 
-//=========================================================
-//=========================================================
-bool CPortalGameRules::IsMultiplayer(void)
-{
-	return true;
-}
-
 void CPortalGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 {
 #ifndef CLIENT_DLL
 	CPortal_Player *pPortalPlayer = static_cast<CPortal_Player*>( pPlayer );
+	int iPlayerIndex = pPlayer->entindex();
 
-	if (pPortalPlayer == NULL)
-		return;
+	// Handle portal funnel option
+	//
+	const char *pszName = engine->GetClientConVarValue( iPlayerIndex, "cl_player_funnel_into_portals" );
+	pPortalPlayer->m_bPortalFunnel = atoi( pszName ) != 0;
 
+	// Handle playermodel selection
+	//
 	const char *pCurrentModel = modelinfo->GetModelName(pPlayer->GetModel());
-	const char *szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
+	const char *szModelName = engine->GetClientConVarValue( iPlayerIndex, "cl_playermodel");
 
 	//If we're different.
 	if (stricmp(szModelName, pCurrentModel))
@@ -344,18 +369,20 @@ void CPortalGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 			ClientPrint(pPortalPlayer, HUD_PRINTTALK, szReturnString);
 		}
 	}
-	
-	const char *szColorSet = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_portal_color_set");
+
+	// Handle portal color set
+	//
+	const char *szColorSet = engine->GetClientConVarValue( iPlayerIndex, "cl_portal_color_set");
 	
 	if (!strcmp(szColorSet, "0"))
 		pPortalPlayer->m_iCustomPortalColorSet = 0;
-	if (!strcmp(szColorSet, "1"))
+	else if (!strcmp(szColorSet, "1"))
 		pPortalPlayer->m_iCustomPortalColorSet = 1;
-	if (!strcmp(szColorSet, "2"))
+	else if (!strcmp(szColorSet, "2"))
 		pPortalPlayer->m_iCustomPortalColorSet = 2;
-	if (!strcmp(szColorSet, "3"))
+	else if (!strcmp(szColorSet, "3"))
 		pPortalPlayer->m_iCustomPortalColorSet = 3;
-	if (!strcmp(szColorSet, "4"))
+	else if (!strcmp(szColorSet, "4"))
 		pPortalPlayer->m_iCustomPortalColorSet = 4;
 
 	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPortalPlayer->Weapon_OwnsThisType("weapon_portalgun"));
@@ -388,10 +415,18 @@ void CPortalGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 #ifdef GAME_DLL
 const char *CPortalGameRules::GetGameDescription( void )
 { 
+	if ( sv_portal_game.GetInt() == PORTAL_GAME_REXAURA )
+	{
+		if (gpGlobals->maxClients == 2)
+			return "Rexaura - 2 Player";
+		else if (gpGlobals->maxClients == 3)
+			return "Rexaura - 3 Player";
+	}
+	
 	if (gpGlobals->maxClients == 2)
-		return "2 Player";
-	if (gpGlobals->maxClients == 3)
-		return "3 Player";
+		return "Portal - 2 Player";
+	else if (gpGlobals->maxClients == 3)
+		return "Portal - 3 Player";
 
 	return "Custom Player Count"; 
 } 
@@ -451,7 +486,15 @@ const char *CPortalGameRules::GetGameDescription( void )
 	{
 		if (sv_portalgun_spawn.GetBool())
 		{
-			CWeaponPortalgun *pPortalgun = (CWeaponPortalgun*)CreateEntityByName("weapon_portalgun");
+			CWeaponPortalgun *pPortalgun = (CWeaponPortalgun*)pPlayer->GiveNamedItem("weapon_portalgun");
+
+			((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = true;
+			if ( pPlayer->BumpWeapon( pPortalgun ) )
+			{
+				pPortalgun->OnPickedUp( pPlayer );
+			}
+			((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = false;
+
 			if (sv_portalgun_color.GetInt() == 0)
 			{
 				pPortalgun->SetCanFirePortal1(true);
@@ -467,25 +510,25 @@ const char *CPortalGameRules::GetGameDescription( void )
 				pPortalgun->SetCanFirePortal1(true);
 				pPortalgun->SetCanFirePortal2(true);
 			}
-
-			DispatchSpawn(pPortalgun);
-			pPlayer->Weapon_Equip(pPortalgun);
 		}
 		else
 		{
-			// Sooo the reason why we can't use the info_player_portalcoop entity directly is because the portalgun spawns too fast, I think.
-			// We know for sure that spawning under the gamerules works fine, so we'll use it and we'll let cvars override our values. - Wonderland_War
-
-			CPortal_Player *pPortalPlayer = ToPortalPlayer(pPlayer);
-			
-			if (pPortalPlayer->m_pSpawnedPortalgun)
+			if ( ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bSpawnWithPortalgun )
 			{
-				DispatchSpawn(pPortalPlayer->m_pSpawnedPortalgun);
-				pPlayer->Weapon_Equip(pPortalPlayer->m_pSpawnedPortalgun);
+				CWeaponPortalgun *pPortalgun = (CWeaponPortalgun *)pPlayer->GiveNamedItem( "weapon_portalgun" );
+				if ( pPortalgun )
+				{
+					((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = true;
+					if ( pPlayer->BumpWeapon( pPortalgun ) )
+					{
+						pPortalgun->OnPickedUp( pPlayer );
+					}
+					((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = false;
+
+					pPortalgun->m_bCanFirePortal1 = ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bCanFirePortal1;
+					pPortalgun->m_bCanFirePortal2 = ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bCanFirePortal2;
+				}
 			}
-
-			pPortalPlayer->m_pSpawnedPortalgun = NULL;
-
 		}
 
 		if (sv_spawn_with_suit.GetBool())
@@ -498,9 +541,7 @@ const char *CPortalGameRules::GetGameDescription( void )
 	// Purpose:
 	//-----------------------------------------------------------------------------
 	CBaseEntity *CPortalGameRules::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
-	{
-		
-		
+	{		
 		CBaseEntity *pSpawnSpot = pPlayer->EntSelectSpawnPoint();
 		
 
@@ -508,7 +549,11 @@ const char *CPortalGameRules::GetGameDescription( void )
 
 		if ( pCoopSpawn )
 		{
-			Assert( pCoopSpawn->CanSpawnOnMe( pPlayer ) );
+			if ( !pCoopSpawn->CanSpawnOnMe( pPlayer ) )
+			{
+				AssertMsg( false, "Player spawned on the incorrect spawnpoint" );
+				Warning( "Warning: Player spawned on the incorrect spawnpoint!\n" );
+			}
 
 			pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
 			pPlayer->SetAbsVelocity( vec3_origin );
@@ -543,6 +588,15 @@ const char *CPortalGameRules::GetGameDescription( void )
 			return false;
 
 		return BaseClass::IsSpawnPointValid( pSpot, pPlayer );
+	}
+
+	//=========================================================
+	// WeaponShouldRespawn - any conditions inhibiting the
+	// respawning of this weapon?
+	//=========================================================
+	int CPortalGameRules::WeaponShouldRespawn( CBaseCombatWeapon *pWeapon )
+	{
+		return GR_WEAPON_RESPAWN_NO;
 	}
 	
 	//------------------------------------------------------------------------------
@@ -1420,8 +1474,9 @@ const char *CPortalGameRules::GetGameDescription( void )
 			// FIXME: Is there a better place for this?
 			m_bMegaPhysgun = ( GlobalEntity_GetState("super_phys_gun") == GLOBAL_ON );
 		}
+
 		if (GetBonusChallenge() == PORTAL_CHALLENGE_TIME)
-		UpdateSecondsTaken();
+			UpdateSecondsTaken();
 
 		if ( m_bOldAllowPortalCustomization != sv_allow_customized_portal_colors.GetBool() )
 		{
@@ -1551,6 +1606,14 @@ bool CPortalGameRules::Init()
 // ------------------------------------------------------------------------------------ //
 bool CPortalGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 {
+	// The smaller number is always first
+	if ( collisionGroup0 > collisionGroup1 )
+	{
+		// swap so that lowest is always first
+		int tmp = collisionGroup0;
+		collisionGroup0 = collisionGroup1;
+		collisionGroup1 = tmp;
+	}
 	// If it's a portal, we want to collide with it!
 	/*if ( collisionGroup0 == PORTALCOLLISION_GROUP_PORTAL && collisionGroup1 != PORTALCOLLISION_GROUP_PORTAL || 
 		 collisionGroup1 == PORTALCOLLISION_GROUP_PORTAL && collisionGroup0 != PORTALCOLLISION_GROUP_PORTAL )
@@ -1558,6 +1621,22 @@ bool CPortalGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 		return true;
 	}*/
 
+	extern ConVar pcoop_avoidplayers;
+	if ( pcoop_avoidplayers.GetBool() )
+	{
+		if ( collisionGroup0 == COLLISION_GROUP_PLAYER && collisionGroup1 == COLLISION_GROUP_PLAYER )
+		{
+			return false;
+		}
+		if ( collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT && collisionGroup1 == COLLISION_GROUP_PLAYER_MOVEMENT )
+		{
+			return false;
+		}
+		if ( collisionGroup0 == COLLISION_GROUP_PLAYER && collisionGroup1 == COLLISION_GROUP_PLAYER_MOVEMENT )
+		{
+			return false;
+		}
+	}
 	return BaseClass::ShouldCollide( collisionGroup0, collisionGroup1 ); 
 }
 
@@ -1591,6 +1670,49 @@ bool CPortalGameRules::ShouldUseRobustRadiusDamage(CBaseEntity *pEntity)
 }
 
 #ifndef CLIENT_DLL
+ConVar sv_require_game_install_necessary_for_map( "sv_require_game_install_necessary_for_map", "1", FCVAR_GAMEDLL, "Forces clients to have the maps' game to be mounted to play the server" );
+//=========================================================
+//=========================================================
+bool CPortalGameRules::ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen )
+{
+	//bool bIsHost = false;
+	//if ( !engine->IsDedicatedServer() )
+	//{
+	//	bIsHost = index == 1;
+	//}
+	if ( sv_require_game_install_necessary_for_map.GetBool()
+		//&& !bIsHost // Don't kick the listen server host!
+		) 
+	{
+		int index = ENTINDEX( pEntity );
+		int nInstallBits = atoi( engine->GetClientConVarValue( index, "cl_game_install_bits" ) );
+
+		// Check to see if Portal is mounted, this may be unnecessary since there's already an engine crash if Portal isn't installed
+		if ( ( nInstallBits & INSTALL_BITS_PORTAL ) == 0 )
+		{
+			Q_strncpy( reject, "Portal must be installed to play on this server\n", maxrejectlen );
+			return false;
+		}
+		
+		// Now check for necessary mods
+		PortalGameType_t gametype = (PortalGameType_t)sv_portal_game.GetInt();
+		switch ( gametype )
+		{
+			case PORTAL_GAME_REXAURA:
+			{
+				if ( ( nInstallBits & INSTALL_BITS_REXAURA ) == 0 )
+				{
+					Q_strncpy( reject, "Rexaura must be installed to play on this map, see readme.txt for install instructions\n", maxrejectlen );
+					return false;
+				}
+				break;
+			}
+		}
+	}
+	
+	return BaseClass::ClientConnected( pEntity, pszName, pszAddress, reject, maxrejectlen );
+}
+
 //---------------------------------------------------------
 //---------------------------------------------------------
 bool CPortalGameRules::ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target )
@@ -1689,7 +1811,6 @@ ConVar sv_bonus_map_challenge_wait_time("sv_bonus_map_challenge_wait_time", "5.0
 
 void CPortalGameRules::UpdateSecondsTaken(void)
 {
-
 	float fSecondsSinceLastUpdate = (gpGlobals->curtime - m_fTimeLastNumSecondsUpdate);
 	m_StatsThisLevel.fNumSecondsTaken += fSecondsSinceLastUpdate;
 	m_fTimeLastNumSecondsUpdate = gpGlobals->curtime;

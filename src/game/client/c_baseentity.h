@@ -60,7 +60,7 @@ class CEntityMapData;
 class ConVar;
 class CDmgAccumulator;
 class IHasAttributes;
-class C_GrabController;
+class CGrabController;
 class C_WeaponPhysCannon;
 class C_PhysicsShadowClone;
 
@@ -716,6 +716,10 @@ public:
 
 	virtual const Vector&			GetPrevLocalOrigin() const;
 	virtual const QAngle&			GetPrevLocalAngles() const;
+	
+	// change position, velocity, orientation instantly
+	// passing NULL means no change
+	virtual void					Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity );
 
 	void							SetLocalTransform( const matrix3x4_t &localTransform );
 
@@ -1486,9 +1490,9 @@ public:
 	void							CollisionRulesChanged();
 
 	//Grab Controller
-	C_GrabController *m_pGrabController;
-	C_GrabController *GetGrabController() { return m_pGrabController; }
-	void SetGrabController(C_GrabController *pGrabController) { m_pGrabController = pGrabController; }
+	CGrabController *m_pGrabController;
+	CGrabController *GetGrabController() { return m_pGrabController; }
+	void SetGrabController(CGrabController *pGrabController) { m_pGrabController = pGrabController; }
 	
 	//Physgun
 	C_WeaponPhysCannon *m_pPhysgun;
