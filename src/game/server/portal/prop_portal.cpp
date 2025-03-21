@@ -931,6 +931,7 @@ void CProp_Portal::Activate( void )
 {
 	m_ptOrigin = GetAbsOrigin();
 	m_qAbsAngle = GetAbsAngles();
+
 	UpdateCollisionShape();
 
 	if( s_PortalLinkageGroups[m_iLinkageGroupID].Find( this ) == -1 )
