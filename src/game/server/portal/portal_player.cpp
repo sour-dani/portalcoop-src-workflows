@@ -949,6 +949,18 @@ void ShowAnnotation( Vector location, int follow_entindex, int entindex, int for
 	}
 }
 
+void PingBaseAnimating( CBaseAnimating *pAnimating, Vector vColor )
+{
+	if (pAnimating->m_bGlowEnabled)
+	{
+		pAnimating->RemoveGlowEffect();
+	}
+
+	pAnimating->SetGlowEffectColor(vColor.x, vColor.y, vColor.z);
+	pAnimating->AddGlowTime(gpGlobals->curtime);
+	pAnimating->RemoveGlowTime(PINGTIME);
+}
+
 extern ConVar sv_allow_customized_portal_colors;
 
 void CPortal_Player::PlayCoopPingEffect( void )
@@ -1036,15 +1048,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			}
 			else
 			{
-				if (pAnimating->m_bGlowEnabled)
-				{
-					pAnimating->RemoveGlowEffect();
-				}
-
-				pAnimating->SetGlowEffectColor(vColor.x, vColor.y, vColor.z);
-				pAnimating->AddGlowTime(gpGlobals->curtime);
-				pAnimating->RemoveGlowTime(PINGTIME);
-
+				PingBaseAnimating( pAnimating, vColor );
 				ShowAnnotation( pAnimating->GetAbsOrigin(), pAnimating->entindex(), entindex() );
 			}
 
@@ -1115,11 +1119,7 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 		pChild = pEnt->GetBaseAnimating();
 			
 		if ( pChild )
-		{						
-			if (pChild->m_bGlowEnabled)
-			{
-				pChild->RemoveGlowEffect();
-			}
+		{
 
 			if (bShouldGetChild)
 			{
@@ -1127,9 +1127,8 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 				bShouldGetChild = false;
 			}
 
-			pChild->SetGlowEffectColor(vColor.x, vColor.y, vColor.z);
-			pChild->AddGlowTime(gpGlobals->curtime);
-			pChild->RemoveGlowTime(PINGTIME);
+			PingBaseAnimating( pChild, vColor );
+
 			bShouldCreateCrosshair = false;
 		}
 	}
