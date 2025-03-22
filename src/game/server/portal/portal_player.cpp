@@ -1087,7 +1087,6 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		}
 
 		EmitSound( COOP_PING_SOUNDSCRIPT_NAME );
-	//	UTIL_DecalTrace( &tr, "Portal2.CoopPingDecal" );
 	}
 
 	// Note this in the player proxy
@@ -1104,8 +1103,6 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 	CBaseAnimating *pChild = NULL;
 	CBaseAnimating *pChildForLinker = NULL;
 	CPointPingLinker *pPingLinker = NULL;
-
-	bool bShouldGetChild = true;
 		
 	CUtlVector<CBaseEntity *> children;
 	GetAllChildren( pEntity, children );
@@ -1117,18 +1114,15 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 			continue;
 
 		pChild = pEnt->GetBaseAnimating();
+
+		if ( !pChildForLinker )
+		{
+			pChildForLinker = pChild;
+		}
 			
 		if ( pChild )
 		{
-
-			if (bShouldGetChild)
-			{
-				pChildForLinker = pChild;
-				bShouldGetChild = false;
-			}
-
 			PingBaseAnimating( pChild, vColor );
-
 			bShouldCreateCrosshair = false;
 		}
 	}
@@ -1155,8 +1149,7 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 	{
 		pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
 	}
-
-	if (!pPingLinker) // Ping Linkers fire their own events
+	else // Ping Linkers fire their own events
 	{
 		ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
 	}
