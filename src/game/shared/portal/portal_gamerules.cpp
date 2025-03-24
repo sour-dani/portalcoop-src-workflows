@@ -1704,6 +1704,8 @@ void CPortalGameRules::LevelShutdown( void )
 {
 	BaseClass::LevelShutdown();
 	ResetThisLevelStats();
+
+	ResetPortalPlayerData();
 }
 
 extern void SavePortalPlayerData( CPortal_Player *pPlayer );
