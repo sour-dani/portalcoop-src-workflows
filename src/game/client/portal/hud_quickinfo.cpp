@@ -186,7 +186,7 @@ bool CHUDQuickInfo::ShouldDraw( void )
 	if ( player->IsSuppressingCrosshair() )
 		return false;
 	
-	if ( !pcoop_require_all_players.GetBool() )
+	if ( pcoop_require_all_players.GetBool() )
 	{	
 		if ( PortalGameRules() && PortalGameRules()->ShouldPauseGame() )
 			return false;

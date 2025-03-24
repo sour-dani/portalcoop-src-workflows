@@ -564,45 +564,31 @@ const char *CPortalGameRules::GetGameDescription( void )
 	CBaseEntity *CPortalGameRules::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 	{		
 		CBaseEntity *pSpawnSpot = pPlayer->EntSelectSpawnPoint();
-		CInfoPlayerPortalCoop *pCoopSpawn = dynamic_cast<CInfoPlayerPortalCoop*>(pSpawnSpot);
-		if ( pCoopSpawn )
-		{
-			if ( !pCoopSpawn->CanSpawnOnMe( pPlayer ) )
-			{
-				AssertMsg( false, "Player spawned on the incorrect spawnpoint" );
-				Warning( "Warning: Player spawned on the incorrect spawnpoint!\n" );
-			}
 
-			QAngle qSpawnAngles = pSpawnSpot->GetLocalAngles();
+		QAngle qSpawnAngles = pSpawnSpot->GetLocalAngles();
 
-			pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
-			pPlayer->SetAbsVelocity( vec3_origin );
-			pPlayer->SetLocalAngles( qSpawnAngles );
-			pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
-			pPlayer->m_Local.m_vecPunchAngleVel = vec3_angle;
-			pPlayer->SnapEyeAngles( qSpawnAngles );
+		pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
+		pPlayer->SetAbsVelocity( vec3_origin );
+		pPlayer->SetLocalAngles( qSpawnAngles );
+		pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
+		pPlayer->m_Local.m_vecPunchAngleVel = vec3_angle;
+		pPlayer->SnapEyeAngles( qSpawnAngles );
 			
-			// SnapEyeAngles works by processing the player commands
-			// but since that never runs when the game is paused, this workaround is necessary
-			CSingleUserRecipientFilter user(pPlayer);
-			user.MakeReliable();
+		// SnapEyeAngles works by processing the player commands
+		// but since that never runs when the game is paused, this workaround is necessary
+		CSingleUserRecipientFilter user(pPlayer);
+		user.MakeReliable();
 
-			UserMessageBegin( user, "SetMouseAngle" );
-			WRITE_FLOAT( qSpawnAngles.x );
-			WRITE_FLOAT( qSpawnAngles.y );
-			WRITE_FLOAT( qSpawnAngles.z );
-			MessageEnd();
+		UserMessageBegin( user, "SetMouseAngle" );
+		WRITE_FLOAT( qSpawnAngles.x );
+		WRITE_FLOAT( qSpawnAngles.y );
+		WRITE_FLOAT( qSpawnAngles.z );
+		MessageEnd();
 
-			pCoopSpawn->PlayerSpawned( pPlayer );
-		}
-		else
+		CInfoPlayerPortalCoop *pCoopSpawn = dynamic_cast<CInfoPlayerPortalCoop*>(pSpawnSpot);
+		if ( pCoopSpawn && pCoopSpawn->CanSpawnOnMe( pPlayer ) )
 		{
-			pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
-			pPlayer->SetAbsVelocity( vec3_origin );
-			pPlayer->SetLocalAngles( pSpawnSpot->GetLocalAngles() );
-			pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
-			pPlayer->m_Local.m_vecPunchAngleVel = vec3_angle;
-			pPlayer->SnapEyeAngles( pSpawnSpot->GetLocalAngles() );
+			pCoopSpawn->PlayerSpawned( pPlayer );
 		}
 
 		return pSpawnSpot;
@@ -1736,6 +1722,28 @@ void CPortalGameRules::LevelShutdown( void )
 extern void SavePortalPlayerData( CPortal_Player *pPlayer );
 extern void RestorePortalPlayerData( CPortal_Player *pPlayer );
 
+void PausePlayer( CBasePlayer *pPlayer )
+{
+	pPlayer->LockPlayerInPlace();
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 255;
+	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
+}
+
+void UnpausePlayer( CBasePlayer *pPlayer )
+{
+	pPlayer->UnlockPlayer();			
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 0;
+	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
+}
+
 void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
 {
 	if ( PlayerShouldPlay( pPlayer->entindex() ) )
@@ -1746,7 +1754,11 @@ void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
 	{
 		ent->m_OnPlayerConnected.FireOutput( pPlayer, pPlayer );
 	}
+
 	CheckShouldPause();
+	
+	if ( pcoop_paused.GetBool() )
+		PausePlayer( pPlayer );
 
 	m_bInRestore = true;
 	RestorePortalPlayerData( pPlayer );
@@ -1807,10 +1819,13 @@ void CPortalGameRules::ClientDisconnected( edict_t *pClient )
 		Warning("Client disconnected, but pointer is null or isn't connected!\n");
 		Assert( false );
 	}
-
-	CheckShouldPause();
 	
 	SavePortalPlayerData( pPlayer );
+
+	CheckShouldPause();
+
+	if ( pcoop_paused.GetBool() )
+		PausePlayer( pPlayer );
 
 	BaseClass::ClientDisconnected( pClient );
 }
@@ -1823,22 +1838,14 @@ void CPortalGameRules::CheckShouldPause( void )
 	{
 		if ( !pcoop_paused.GetBool() )
 		{
-#if 1
 			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
 			{
 				CPortal_Player *pPlayer = GetPortalPlayer( i );
 				if ( !pPlayer )
 					continue;
 
-				pPlayer->LockPlayerInPlace();
-				color32_s color;
-				color.r = 0;
-				color.g = 0;
-				color.b = 0;
-				color.a = 255;
-				UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
+				PausePlayer( pPlayer );
 			}
-#endif
 			pcoop_paused.SetValue( true );
 		}
 	}
@@ -1846,23 +1853,14 @@ void CPortalGameRules::CheckShouldPause( void )
 	{
 		if ( pcoop_paused.GetBool() )
 		{
-#if 1
 			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
 			{
 				CPortal_Player *pPlayer = GetPortalPlayer( i );
 				if ( !pPlayer )
 					continue;
 
-				pPlayer->UnlockPlayer();
-				
-				color32_s color;
-				color.r = 0;
-				color.g = 0;
-				color.b = 0;
-				color.a = 0;
-				UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
+				UnpausePlayer( pPlayer );
 			}
-#endif
 			pcoop_paused.SetValue( false );			
 		}
 	}

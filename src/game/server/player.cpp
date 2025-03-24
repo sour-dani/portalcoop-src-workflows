@@ -1933,12 +1933,12 @@ void CBasePlayer::WaterMove()
 		// not underwater
 		
 		// play 'up for air' sound
-		
+#ifndef PORTAL // This is playing when it shouldn't, this should be re-enabled much later though
 		if (m_AirFinished < gpGlobals->curtime)
 		{
 			EmitSound( "Player.DrownStart" );
 		}
-
+#endif
 		m_AirFinished = gpGlobals->curtime + AIRTIME;
 		m_nDrownDmgRate = DROWNING_DAMAGE_INITIAL;
 
@@ -5167,8 +5167,7 @@ int CBasePlayer::Restore( IRestore &restore )
 
 #ifdef PORTAL
 		CInfoPlayerPortalCoop *pCoopSpawn = dynamic_cast<CInfoPlayerPortalCoop*>(pSpawnSpot);
-
-		if ( pCoopSpawn )
+		if ( pCoopSpawn && pCoopSpawn->CanSpawnOnMe( this ) )
 		{
 			pCoopSpawn->PlayerSpawned(this);
 		}

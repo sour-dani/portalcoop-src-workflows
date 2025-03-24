@@ -706,6 +706,7 @@ void RestorePortalPlayerData( CPortal_Player *pPlayer )
 			if ( pHeldObject )
 			{
 				pPortalgun->DoEffect( EFFECT_HOLDING );
+				pPortalgun->OpenProngs( true );
 			}
 			
 			CProp_Portal *pPrimaryPortal = pPortalgun->m_hPrimaryPortal;
@@ -2863,6 +2864,28 @@ CBaseEntity* CPortal_Player::EntSelectSpawnPoint(void)
 			return pCoopSpawn;
 		}
 	}
+
+	// Search again, but this time ignore the "CanSpawnOnMe" check
+	CUtlVector<CInfoPlayerPortalCoop*> coop_spawns;
+	coop_spawns.Purge();
+	pEntity = NULL;
+	while ( ( pEntity = gEntList.FindEntityByClassname( pEntity, "info_player_portalcoop" ) ) != NULL )
+	{
+		CInfoPlayerPortalCoop *pCoopSpawn = static_cast<CInfoPlayerPortalCoop*>( pEntity );
+		if ( pCoopSpawn && pCoopSpawn->m_iValidPlayerIndex <= gpGlobals->maxClients )
+		{
+			coop_spawns.AddToTail( pCoopSpawn );
+		}
+	}
+
+	Assert( coop_spawns.Count() != 0 );
+
+	if ( coop_spawns.Count() != 0 )
+	{
+		int i = RandomInt( 0, coop_spawns.Count()-1 );
+		return coop_spawns[i];
+	}
+	
 
 	// If a normal coop spawn wasn't found, use the normal behavior
 	return BaseClass::EntSelectSpawnPoint();
