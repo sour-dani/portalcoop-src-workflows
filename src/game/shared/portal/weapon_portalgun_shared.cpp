@@ -768,7 +768,7 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 		}
 		else
 		{
-			fDelay = 0.1;
+			fDelay = 0.15;
 		}
 
 		DoEffectBlast(pOwner, pPortal->m_bIsPortal2, ePlacedBy, vTracerOrigin, vFinalPosition, qFireAngles, fDelay, m_iPortalColorSet );
