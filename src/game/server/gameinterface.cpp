@@ -1351,7 +1351,7 @@ void CServerGameDLL::GameFrame( bool simulating )
 	// FIXME:  Should this only occur on the final tick?
 	UpdateAllClientData();
 
-	if ( g_pGameRules )
+	if ( bSimulateEntities && g_pGameRules )
 	{
 		g_pGameRules->EndGameFrame();
 	}
