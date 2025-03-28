@@ -1228,12 +1228,30 @@ bool CHLClient::ReplayPostInit()
 #endif
 }
 
+bool IsNewSDK()
+{
+	// If all of these files exist, then the new SDK is being used (most likely).
+	if ( filesystem->FileExists( "resource/ui/econ/confirmdialog_sc.res", "GAME" ) && 
+		filesystem->FileExists( "resource/ui/econ/messageboxdialog_sc.res", "GAME" ) && 
+		filesystem->FileExists( "media/valve.webm", "GAME" ) )
+	{
+		return true;
+	}
+
+	return false;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Called after client & server DLL are loaded and all systems initialized
 //-----------------------------------------------------------------------------
 void CHLClient::PostInit()
 {
 	IGameSystem::PostInitAllSystems();
+
+	if ( IsNewSDK() )
+	{
+		Error( "The previous2021 beta is not selected for Source SDK Base 2013 Multiplayer, see readme.txt for instructions." );
+	}
 
 #ifdef SIXENSE
 	// allow sixnese input to perform post-init operations
