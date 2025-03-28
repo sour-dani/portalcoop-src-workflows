@@ -1233,7 +1233,21 @@ bool IsNewSDK()
 	// If all of these files exist, then the new SDK is being used (most likely).
 	if ( filesystem->FileExists( "resource/ui/econ/confirmdialog_sc.res", "GAME" ) && 
 		filesystem->FileExists( "resource/ui/econ/messageboxdialog_sc.res", "GAME" ) && 
-		filesystem->FileExists( "media/valve.webm", "GAME" ) )
+		filesystem->FileExists( "media/valve.webm", "GAME" ) &&
+		filesystem->FileExists( "resource/fontinfo.kv" ) &&
+		filesystem->FileExists( "resource/linux_fonts/dejavusans.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/dejavusans-bold.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/dejavusans-boldoblique.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/dejavusans-oblique.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/firasans-ofl.txt" ) &&
+		filesystem->FileExists( "resource/linux_fonts/firasans-regular.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/liberationmono-regular.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/liberationsans-bold.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/liberationsans-regular.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/notosanscjk-regular.ttc" ) &&
+		filesystem->FileExists( "resource/linux_fonts/notosanscjk-regular_license.txt" ) &&
+		filesystem->FileExists( "resource/linux_fonts/notosansthai.ttf" ) &&
+		filesystem->FileExists( "resource/linux_fonts/notosansthai_license.txt" ) )
 	{
 		return true;
 	}
