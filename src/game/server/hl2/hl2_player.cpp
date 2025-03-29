@@ -733,13 +733,14 @@ void CHL2_Player::PreThink(void)
 	VPROF_SCOPE_BEGIN( "CHL2_Player::PreThink-CheckSuitZoom" );
 	CheckSuitZoom();
 	VPROF_SCOPE_END();
-
 	if (m_lifeState >= LIFE_DYING)
 	{
+#ifdef PORTAL
+		if ( !IsObserver() )
+#endif
 		PlayerDeathThink();
 		return;
 	}
-
 #ifdef HL2_EPISODIC
 	CheckFlashlight();
 #endif	// HL2_EPISODIC

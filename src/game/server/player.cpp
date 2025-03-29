@@ -2057,6 +2057,10 @@ void CBasePlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *d
 
 void CBasePlayer::PlayerDeathThink(void)
 {
+#ifdef PORTAL
+	((CPortal_Player*)this)->CPortal_Player::PlayerDeathThink();
+	return;
+#endif
 	float flForward;
 
 	SetNextThink( gpGlobals->curtime + 0.1f );

@@ -47,7 +47,7 @@ ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_REPLICATED, "Sets wh
 
 ConVar sv_restart_server( "sv_restart_server", "0", FCVAR_REPLICATED, "When all players disconnect, the game will change the map back to the first map in the map set" );
 ConVar sv_restart_server_map( "sv_restart_server_map", "", FCVAR_REPLICATED, "Map to change when all players disconnect (requires sv_restart_server to be 1)" );
-ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "0", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );
+ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "1", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );
 
 ConVar sv_allow_customized_portal_colors("sv_allow_customized_portal_colors", "0", FCVAR_REPLICATED, "Sets if clients can choose their own portal color.");
 

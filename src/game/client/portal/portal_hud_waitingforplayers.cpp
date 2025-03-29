@@ -73,31 +73,39 @@ void CWaitingForPlayersText::Paint()
 	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
-	
-	const char *printFormatString;
-	int ypos;
-	int xpos;
 
 	if ( pPlayer->IsObserver() )
 	{
-		printFormatString = "#portalcoop_waiting_for_players_spectator";
-		ypos = YRES(260);
-		xpos = XRES(250);
-	}
-	else
-	{
-		printFormatString = "#portalcoop_waiting_for_players";
-		ypos = YRES(260);
-		xpos = XRES(250);
-	}
+		wchar_t wszObserverText[64];
+		g_pVGuiLocalize->ConstructString( wszObserverText, sizeof(wszObserverText), g_pVGuiLocalize->Find("#portalcoop_waiting_for_players_spectator"), 0 );
 
-	wchar_t wszFinalText[64];
-	g_pVGuiLocalize->ConstructString( wszFinalText, sizeof(wszFinalText), g_pVGuiLocalize->Find(printFormatString), 0 );
+		int ypos = YRES(280);
+		int xpos = XRES(175);
 
-	if ( wszFinalText[0] )
+		if ( wszObserverText[0] )
+		{
+			int wide, tall;
+			vgui::surface()->GetTextSize( m_hFont, wszObserverText, wide, tall );
+					
+			vgui::surface()->DrawSetTextFont( m_hFont );
+			vgui::surface()->DrawSetTextPos( xpos, ypos );
+		
+			Color c = Color( 255, 160, 32, 255 );
+
+			vgui::surface()->DrawSetTextColor( c );
+			vgui::surface()->DrawPrintText( wszObserverText, wcslen(wszObserverText) );
+		}
+	}
+	wchar_t wszWaitingText[32];
+	g_pVGuiLocalize->ConstructString( wszWaitingText, sizeof(wszWaitingText), g_pVGuiLocalize->Find("#portalcoop_waiting_for_players"), 0 );
+	
+	int ypos = YRES(260);
+	int xpos = XRES(250);
+
+	if ( wszWaitingText[0] )
 	{
 		int wide, tall;
-		vgui::surface()->GetTextSize( m_hFont, wszFinalText, wide, tall );
+		vgui::surface()->GetTextSize( m_hFont, wszWaitingText, wide, tall );
 					
 		vgui::surface()->DrawSetTextFont( m_hFont );
 		vgui::surface()->DrawSetTextPos( xpos, ypos );
@@ -105,6 +113,6 @@ void CWaitingForPlayersText::Paint()
 		Color c = Color( 255, 160, 32, 255 );
 
 		vgui::surface()->DrawSetTextColor( c );
-		vgui::surface()->DrawPrintText( wszFinalText, wcslen(wszFinalText) );
+		vgui::surface()->DrawPrintText( wszWaitingText, wcslen(wszWaitingText) );
 	}
 }
