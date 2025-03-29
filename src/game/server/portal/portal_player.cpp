@@ -1311,13 +1311,9 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		if (pAnimating)
 		{
-			if ( pAnimating->GetParent() &&
-				!FClassnameIs( pAnimating, "weapon_portalgun" ) // Hacky
-				)
+			if ( pAnimating->GetParent() )
 			{
 				PingChildrenOfEntity( pAnimating->GetParent(), vColor, bShouldCreateCrosshair );
-				EmitSound( COOP_PING_SOUNDSCRIPT_NAME );
-				return;
 			}
 
 			CPointPingLinker *pPingLinker = NULL;
