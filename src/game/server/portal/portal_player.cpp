@@ -40,6 +40,7 @@
 #include "dt_utlvector_send.h"
 #include "physicsshadowclone.h"
 #include "weapon_portalgun_shared.h"
+#include "modelentities.h"
 
 extern CBaseEntity* g_pLastSpawn;
 
@@ -1256,6 +1257,34 @@ void PingBaseAnimating( CBaseAnimating *pAnimating, Vector vColor )
 	pAnimating->RemoveGlowTime(PINGTIME);
 }
 
+bool BrushEntityMoves( CBaseEntity *pEntity )
+{
+	CBaseDoor *pDoor = dynamic_cast<CBaseDoor*>( pEntity );
+	if ( pDoor )
+		return true;
+	CFuncTrackTrain *pTrain = dynamic_cast<CFuncTrackTrain*>( pEntity );
+	if ( pTrain )
+		return true;
+
+	return false;
+}
+
+bool CanParentBePinged( CBaseEntity *pParent )
+{
+	if ( BrushEntityMoves( pParent ) )
+		return true;
+	
+	const char *pszModelName = pParent->GetModelName().ToCStr();
+	int modelIndex = modelinfo->GetModelIndex( pszModelName );
+	const model_t *model = modelinfo->GetModel( modelIndex );
+	if ( model && modelinfo->GetModelType( model ) == mod_brush )
+	{
+		return true;
+	}
+
+	return false;
+}
+
 extern ConVar sv_allow_customized_portal_colors;
 
 void CPortal_Player::PlayCoopPingEffect( void )
@@ -1311,41 +1340,44 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		if (pAnimating)
 		{
-			if ( pAnimating->GetParent() )
+			CBaseEntity *pParent = pAnimating->GetParent();
+			if ( pParent )
 			{
-				PingChildrenOfEntity( pAnimating->GetParent(), vColor, bShouldCreateCrosshair );
-			}
-
-			CPointPingLinker *pPingLinker = NULL;
-			//Find a ping linker to use
-			CBaseEntity *pEntityTemp = NULL;
-			while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
-			{
-				pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
-				if ( !pPingLinker )
-					continue;
-
-				if ( pPingLinker->HasThisEntity( pAnimating ) )
-				{
-					break;
-				}
-				else
-				{
-					pPingLinker = NULL;
-				}
-			}
-
-			if ( pPingLinker )
-			{
-				pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+				PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true );
 			}
 			else
 			{
-				PingBaseAnimating( pAnimating, vColor );
-				ShowAnnotation( pAnimating->GetAbsOrigin(), pAnimating->entindex(), entindex() );
-			}
+				CPointPingLinker *pPingLinker = NULL;
+				//Find a ping linker to use
+				CBaseEntity *pEntityTemp = NULL;
+				while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
+				{
+					pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
+					if ( !pPingLinker )
+						continue;
 
-			bShouldCreateCrosshair = false;
+					if ( pPingLinker->HasThisEntity( pAnimating ) )
+					{
+						break;
+					}
+					else
+					{
+						pPingLinker = NULL;
+					}
+				}
+
+				if ( pPingLinker )
+				{
+					pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+				}
+				else
+				{
+					PingBaseAnimating( pAnimating, vColor );
+					ShowAnnotation( pAnimating->GetAbsOrigin(), pAnimating->entindex(), entindex() );
+				}
+
+				bShouldCreateCrosshair = false;
+			}
 		}
 		else
 		{
@@ -1361,7 +1393,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			}
 			else
 			{
-				PingChildrenOfEntity( tr.m_pEnt, vColor, bShouldCreateCrosshair );
+				PingChildrenOfEntity( tr.m_pEnt, vColor, bShouldCreateCrosshair, false );
 			}
 		}
 
@@ -1386,13 +1418,11 @@ void CPortal_Player::PlayCoopPingEffect( void )
 	FirePlayerProxyOutput( "OnCoopPing", variant_t(), this, this );
 }
 
-void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair )
+void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent )
 {
-	CBaseDoor *pDoor = dynamic_cast<CBaseDoor*>( pEntity );
-	CFuncTrackTrain *pTrain = dynamic_cast<CFuncTrackTrain*>( pEntity );
-	if ( !pDoor && !pTrain )
+	if ( bParent && !CanParentBePinged( pEntity ) )
 		return;
-		
+
 	CBaseAnimating *pChild = NULL;
 	CBaseAnimating *pChildForLinker = NULL;
 	CPointPingLinker *pPingLinker = NULL;
@@ -1442,7 +1472,7 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 	{
 		pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
 	}
-	else // Ping Linkers fire their own events
+	else if ( !bShouldCreateCrosshair ) // Ping Linkers fire their own events
 	{
 		ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
 	}
