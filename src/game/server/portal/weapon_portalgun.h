@@ -140,17 +140,17 @@ public:
 
 	CNetworkVar(bool, m_bCanAttack);
 	
-	CNetworkVar(CHandle<CProp_Portal>, m_hPrimaryPortal);
-	CNetworkVar(CHandle<CProp_Portal>, m_hSecondaryPortal);
+	CNetworkHandle( CProp_Portal, m_hPrimaryPortal );
+	CNetworkHandle( CProp_Portal, m_hSecondaryPortal );
+	
+	// Portalgun effects
+	void	DoEffect( int effectType, Vector *pos = NULL );
 
 protected:
 
 	void	StartEffects( void );	// Initialize all sprites and beams
 	void	StopEffects( bool stopSound = true );	// Hide all effects temporarily
 	void	DestroyEffects( void );	// Destroy all sprites and beams
-
-	// Portalgun effects
-	void	DoEffect( int effectType, Vector *pos = NULL );
 
 	void	DoEffectClosed( void );
 	void	DoEffectReady( void );

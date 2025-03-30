@@ -1897,17 +1897,6 @@ void CGameMovement::StayOnGround( void )
 	{
 		float flDelta = fabs(mv->GetAbsOrigin().z - trace.endpos.z);
 
-#ifdef PORTAL		
-		// Set the implicit vertical speed keeping the player on the surface
-		// Ignore this one if it's on an angled surface, the player is moving, and we get a zero.
-		// The values cycle back to zero occasionally while moving on sloped surfaces, which doesn't accurately reflect this implicit speed.
-		if( gpGlobals->frametime != 0.0f && ( flDelta != 0.0f || AlmostEqual( trace.plane.normal.z, 1.0f ) || ( mv->m_flSideMove == 0.0f && mv->m_flForwardMove == 0.0f ) ) )
-		{
-			CPortal_Player *pPortalPlayer = (CPortal_Player*)player;
-			pPortalPlayer->SetImplicitVerticalStepSpeed( flDelta / gpGlobals->frametime );
-		}
-#endif
-
 		//This is incredibly hacky. The real problem is that trace returning that strange value we can't network over.
 		if ( flDelta > 0.5f * COORD_RESOLUTION)
 		{

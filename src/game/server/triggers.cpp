@@ -40,6 +40,11 @@
 #include "hl2_player.h"
 #endif
 
+#ifdef PORTAL
+#include "portal_shareddefs.h"
+extern ConVar pcoop_spectate_after_past_required_players;
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -597,10 +602,15 @@ bool CBaseTrigger::AllPlayersAreTouching(void)
 	//Only test if we can
 	if (!HasSpawnFlags(SF_TRIGGER_ALLOW_CLIENTS) && !HasSpawnFlags(SF_TRIGGER_ALLOW_ALL))
 		return false;
+	
+#ifdef PORTAL
+	int nMaxPlayers = pcoop_spectate_after_past_required_players.GetBool() ? GetRequiredPlayers() : gpGlobals->maxClients;
+#else
+	int nMaxPlayers = gpGlobals->maxClients;
+#endif
 
 	int iPlayerCount = 0;
-
-	for (int i = 1; i <= gpGlobals->maxClients; ++i)
+	for (int i = 1; i <= nMaxPlayers; ++i)
 	{
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
 		if (pPlayer)
@@ -620,8 +630,14 @@ bool CBaseTrigger::MaxPlayersAreTouching(void)
 	//Only test if we can
 	if (!HasSpawnFlags(SF_TRIGGER_ALLOW_CLIENTS) && !HasSpawnFlags(SF_TRIGGER_ALLOW_ALL))
 		return false;
+	
+#ifdef PORTAL
+	int nMaxPlayers = pcoop_spectate_after_past_required_players.GetBool() ? GetRequiredPlayers() : gpGlobals->maxClients;
+#else
+	int nMaxPlayers = gpGlobals->maxClients;
+#endif
 
-	if ( m_hTouchingPlayers.Count() == gpGlobals->maxClients )
+	if ( m_hTouchingPlayers.Count() == nMaxPlayers )
 		return true;
 
 	return false;

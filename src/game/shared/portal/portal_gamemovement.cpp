@@ -1264,8 +1264,13 @@ void CPortalGameMovement::HandlePortallingLegacy( void )
 		player->SetNetworkAngles( qPlayerAngle );
 #endif
 	}
-
-
+#ifdef GAME_DLL
+	if ( player->IsBot() )
+	{
+		void TransformBotAngles( int index, VMatrix matThisToLinked );
+		TransformBotAngles( player->entindex(), pPortal->MatrixThisToLinked() );
+	}
+#endif
 	mv->m_vecVelocity = vNewVelocity;
 	
 #if defined( GAME_DLL )

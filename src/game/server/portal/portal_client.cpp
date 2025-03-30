@@ -89,6 +89,9 @@ void ClientActive( edict_t *pEdict, bool bLoadGame )
 		pPlayer->Spawn();
 	}
 	*/
+	
+
+	PortalGameRules()->ClientActive( pPlayer );
 }
 
 

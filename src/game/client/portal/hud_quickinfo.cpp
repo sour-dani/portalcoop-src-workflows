@@ -17,6 +17,7 @@
 #include "c_portal_player.h"
 #include "c_weapon_portalgun.h"
 #include "IGameUIFuncs.h"
+#include "portal_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -28,6 +29,7 @@ static ConVar	hud_quickinfo( "hud_quickinfo", "1", FCVAR_ARCHIVE );
 static ConVar	hud_quickinfo_swap( "hud_quickinfo_swap", "0", FCVAR_ARCHIVE );
 
 extern ConVar crosshair;
+extern ConVar pcoop_require_all_players;
 
 #define QUICKINFO_EVENT_DURATION	1.0f
 #define	QUICKINFO_BRIGHTNESS_FULL	255
@@ -183,6 +185,12 @@ bool CHUDQuickInfo::ShouldDraw( void )
 
 	if ( player->IsSuppressingCrosshair() )
 		return false;
+	
+	if ( pcoop_require_all_players.GetBool() )
+	{	
+		if ( PortalGameRules() && PortalGameRules()->ShouldPauseGame() )
+			return false;
+	}
 
 	return ( CHudElement::ShouldDraw() && !engine->IsDrawingLoadingImage() );
 }

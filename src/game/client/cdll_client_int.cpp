@@ -1228,12 +1228,22 @@ bool CHLClient::ReplayPostInit()
 #endif
 }
 
+bool IsNewSDK()
+{
+	return engine->GetProtocolVersion() != 24;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Called after client & server DLL are loaded and all systems initialized
 //-----------------------------------------------------------------------------
 void CHLClient::PostInit()
 {
 	IGameSystem::PostInitAllSystems();
+
+	if ( IsNewSDK() )
+	{
+		Error( "The previous2021 beta must be selected for Source SDK Base 2013 Multiplayer to play this mod, see readme.txt for instructions." );
+	}
 
 #ifdef SIXENSE
 	// allow sixnese input to perform post-init operations

@@ -13,6 +13,7 @@
 #include "physicsshadowclone.h"
 #include "prop_box.h"
 #include "trigger_box_reflector.h"
+#include "portal_gamerules.h"
 
 // resource file names
 #define IMPACT_DECAL_NAME	"decals/smscorch1model"
@@ -44,6 +45,8 @@ public:
 	virtual void EndTouch( CBaseEntity *pOther );
 	virtual void StartTouch( CBaseEntity *pOther );
 	virtual void NotifySystemEvent( CBaseEntity *pNotify, notify_system_event_t eventType, const notify_system_event_params_t &params );
+
+	virtual bool ShouldCollide( int collisionGroup, int contentsMask ) const OVERRIDE;
 
 	bool HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything );
 
@@ -245,6 +248,8 @@ void CPropEnergyBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEven
 			pEntity = pEvent->pEntities[1];
 		}
 
+		Assert( !pEntity || !FClassnameIs(pEntity, "weapon_portalgun" ) );
+
 		bool bDoEffects = true;
 
 		// Only place decals and draw effects if we hit something valid
@@ -320,6 +325,14 @@ void CPropEnergyBall::NotifySystemEvent(CBaseEntity *pNotify, notify_system_even
 	}
 
 	//BaseClass::NotifySystemEvent( pNotify, eventType, params );
+}
+
+bool CPropEnergyBall::ShouldCollide( int collisionGroup, int contentsMask ) const
+{
+	if ( collisionGroup == COLLISION_GROUP_WEAPON )
+		return false;
+
+	return BaseClass::ShouldCollide( collisionGroup, contentsMask );
 }
 
 bool CPropEnergyBall::HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything )
@@ -572,6 +585,8 @@ void CEnergyBallLauncher::SpawnBall()
 	if ( pBall == NULL )
 		return;
 
+	Assert( !PortalGameRules()->ShouldPauseGame() );
+
 	pBall->SetRadius( m_flBallRadius );
 	Vector vecAbsOrigin = GetAbsOrigin();
 	Vector zaxis;
@@ -726,8 +741,6 @@ static void fire_energy_ball_f( void )
 		pBall->SetNextThink ( gpGlobals->curtime + 0.1f );
 
 	}
-
-
 }
 
 ConCommand fire_energy_ball( "fire_energy_ball", fire_energy_ball_f, "Fires a test energy ball out of your face", FCVAR_CHEAT );

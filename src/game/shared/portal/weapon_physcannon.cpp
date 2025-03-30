@@ -766,19 +766,13 @@ QAngle CGrabController::TransformAnglesFromPlayerSpace( const QAngle &anglesIn, 
 
 
 void CGrabController::AttachEntity( CPortal_Player *pPlayer, CBaseEntity *pEntity, IPhysicsObject *pPhys, bool bIsMegaPhysCannon, const Vector &vGrabPosition, bool bUseGrabPosition )
-{
-#ifdef CLIENT_DLL
-	//uugghhh pEntity is garbage sometimes and this still doesn't fix it...
-	if (!pPhys)
-		return;
-#endif
-		
+{		
 	Assert(pPlayer);
 	m_hHoldingPlayer = pPlayer;
 	// play the impact sound of the object hitting the player
 	// used as feedback to let the player know he picked up the object
 #ifdef GAME_DLL
-	if ( !pPlayer->m_bSilentDropAndPickup )
+	if ( !pPlayer->m_bSilentDropAndPickup && !PortalGameRules()->IsInRestore() )
 	{
 		int hitMaterial = pPhys->GetMaterialIndex();
 		int playerMaterial = pPlayer->VPhysicsGetObject() ? pPlayer->VPhysicsGetObject()->GetMaterialIndex() : hitMaterial;

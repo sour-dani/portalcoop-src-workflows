@@ -972,17 +972,6 @@ void CPortal_Player::PickupObject(CBaseEntity* pObject, bool bLimitMassAndSize)
 	PlayerPickupObject(this, pObject);
 }
 
-float CPortal_Player::GetImplicitVerticalStepSpeed() const
-{
-	return m_flImplicitVerticalStepSpeed;
-}
-
-void CPortal_Player::SetImplicitVerticalStepSpeed( float speed )
-{
-	Assert( !IS_NAN( speed ) );
-	m_flImplicitVerticalStepSpeed = speed;
-}
-
 void CPortal_Player::ForceDuckThisFrame( Vector origin, Vector velocity )
 {
 	if (m_Local.m_bDucked != true)

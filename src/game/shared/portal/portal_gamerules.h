@@ -55,7 +55,9 @@ public:
 	void InputSuspendRespawning( inputdata_t &inputdata );
 	void InputRespawnAllPlayers( inputdata_t &inputdata );
 	void InputResetDetachedCameras( inputdata_t &inputdata );
-	//void InputDisableGamePause( inputdata_t &inputdata );
+	void InputDisableGamePause( inputdata_t &inputdata );
+	void InputDisablePlayerRestore( inputdata_t &inputdata );
+	void InputPurgePlayerRestoreData( inputdata_t &inputdata );
 	
 	bool m_bSuspendRespawn;
 
@@ -76,6 +78,7 @@ public:
 	virtual void	ClientSettingsChanged( CBasePlayer *pPlayer );
 	virtual void	GoToIntermission( void );
 #ifndef CLIENT_DLL
+	virtual void	LevelInitPreEntity( void ) OVERRIDE;
 	virtual bool	ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen );
 	virtual bool	ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target );
 	virtual float	GetAutoAimScale( CBasePlayer *pPlayer );
@@ -87,8 +90,14 @@ public:
 	float m_flPreStartTime;
 	bool m_bReadyToCountProgress;
 	bool m_bShouldSetPreStartTime;
+	
+	void ClientActive( CPortal_Player *pPlayer );
+	virtual void	ClientDisconnected( edict_t *pClient );
+
+	void			CheckShouldPause( void );
 
 #endif
+	bool			ShouldPauseGame( void );
 
 #ifdef CLIENT_DLL
 	virtual bool IsBonusChallengeTimeBased( void );
@@ -134,10 +143,6 @@ private:
 
 	virtual void			Think( void );
 
-#ifdef GAME_DLL
-	virtual void ClientDisconnected( edict_t *pClient );
-#endif
-
 	virtual bool			ClientCommand( CBaseEntity *pEdict, const CCommand &args );
 	virtual void			PlayerSpawn( CBasePlayer *pPlayer );
 	virtual CBaseEntity *GetPlayerSpawnSpot( CBasePlayer *pPlayer );// Place this player on their spawnspot and face them the proper direction.
@@ -160,11 +165,18 @@ private:
 	
 public:
 
+	bool IsInRestore() { return m_bInRestore; }
+
 	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer );
 
-private:
+public:
 
 	int						DefaultFOV( void ) { return 75; }
+	
+	unsigned char m_iPlayingPlayers; // The amount of players who are actually playing (not spectators)
+	bool m_bInRestore;
+	bool m_bDisableGamePause;
+	bool m_bDisablePlayerRestore;
 #endif
 };
 

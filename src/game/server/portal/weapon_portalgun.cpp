@@ -169,6 +169,13 @@ void CWeaponPortalgun::Drop(const Vector &vecVelocity)
 
 void CWeaponPortalgun::FizzleOwnedPortals()
 {
+	// If the player disconnected, then don't fizzle the portals
+	extern bool g_bRemovingPortalPlayer;
+	if ( pcoop_require_all_players.GetBool() && g_bRemovingPortalPlayer )
+	{
+		return;
+	}
+
 	for (int i = 0; i <= 1; ++i)
 	{
 		if (i >= 2)

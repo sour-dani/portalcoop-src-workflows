@@ -99,8 +99,34 @@ extern ConVar sv_portal_game;
 
 extern char *g_ppszPortalPassThroughMaterials[];
 
+extern ConVar pcoop_require_all_players;
+extern ConVar pcoop_require_all_players_force_amount;
+
 #define RADIO_DATA_FILE "scripts/radios.txt"
 extern KeyValues *LoadRadioData();
+
+// Map data stuff
+//
+extern KeyValues *LoadMapDataForMap( const char *map );
+
+class CMapInfo
+{
+public:
+	void Reset();
+
+	int GetRequiredPlayers() { return m_iRequiredPlayers; }
+
+private:
+	int m_iRequiredPlayers;
+
+	friend class CMapDataLoader;
+};
+
+extern CMapInfo g_MapInfo;
+
+int GetRequiredPlayers();
+
+bool PlayerShouldPlay( int index );
 
 #define INSTALL_BITS_PORTAL		(1<<0)
 #define INSTALL_BITS_REXAURA	(1<<1)

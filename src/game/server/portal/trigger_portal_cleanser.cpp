@@ -220,7 +220,7 @@ void CTriggerPortalCleanser::FizzleBaseAnimating( CBaseEntity *pOther, CTriggerP
 			}
 		}
 
-		if ( FClassnameIs( pBaseAnimating, "prop_radio" ) )
+		if ( FClassnameIs( pBaseAnimating, "prop_radio" ) && sv_portal_game.GetInt() != PORTAL_GAME_REXAURA )
 		{
 			pBaseAnimating->EmitSound( "UpdateItem.Fizzle" );
 		}

@@ -803,7 +803,10 @@ private:
 	CCommandContext		*GetCommandContext( int index );
 	CCommandContext		*AllocCommandContext( void );
 	void				RemoveCommandContext( int index );
-	void				RemoveAllCommandContexts( void );
+
+	public:
+		void				RemoveAllCommandContexts( void );
+private:
 	CCommandContext		*RemoveAllCommandContextsExceptNewest( void );
 	void				ReplaceContextCommands( CCommandContext *ctx, CUserCmd *pCommands, int nCommands );
 

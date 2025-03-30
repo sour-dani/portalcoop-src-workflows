@@ -58,6 +58,9 @@ void RegisterUserMessages()
 	usermessages->Register( "VotePass", -1 );
 	usermessages->Register( "VoteFailed", 2 );
 	usermessages->Register( "VoteSetup", -1 );  // Initiates client-side voting UI
+	
+	// Set's the player's mouse angle
+	usermessages->Register( "SetMouseAngle", sizeof( QAngle ) );
 
 	// NVNT register haptic user messages
 	RegisterHapticMessages();

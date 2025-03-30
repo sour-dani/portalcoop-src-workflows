@@ -39,6 +39,8 @@
 #include "hierarchy.h"
 #include "dt_utlvector_send.h"
 #include "physicsshadowclone.h"
+#include "weapon_portalgun_shared.h"
+#include "modelentities.h"
 
 extern CBaseEntity* g_pLastSpawn;
 
@@ -408,8 +410,6 @@ DEFINE_SOUNDPATCH(m_pWooshSound),
 	DEFINE_FIELD(m_flLastPingTime, FIELD_FLOAT),
 	DEFINE_FIELD(m_iCustomPortalColorSet, FIELD_INTEGER),
 
-//DEFINE_THINKFUNC( HudHintThink ),
-
 DEFINE_INPUTFUNC( FIELD_VOID, "DoPingHudHint", InputDoPingHudHint ),
 
 DEFINE_EMBEDDEDBYREF(m_pExpresser),
@@ -417,6 +417,8 @@ DEFINE_EMBEDDEDBYREF(m_pExpresser),
 END_DATADESC()
 
 ConVar sv_regeneration_wait_time("sv_regeneration_wait_time", "1.0", FCVAR_REPLICATED);
+
+ConVar pcoop_spectate_after_past_required_players( "pcoop_spectate_after_past_required_players", "1", FCVAR_NOTIFY | FCVAR_ARCHIVE, "If set, players who connect after the amount of required players joined will become spectators" );
 
 #define MAX_COMBINE_MODELS 4
 #define MODEL_CHANGE_INTERVAL 5.0f
@@ -433,6 +435,298 @@ extern ConVar sv_turbophysics;
 #define VPHYS_MAX_VEL			10
 #define VPHYS_MAX_DISTSQR		(VPHYS_MAX_DISTANCE*VPHYS_MAX_DISTANCE)
 #define VPHYS_MAX_VELSQR		(VPHYS_MAX_VEL*VPHYS_MAX_VEL)
+
+ConVar pcoop_restore_players( "pcoop_restore_players", "1", FCVAR_NONE, "If set, player data will be restored after disconnecting, when a new player connects or the previous player reconnects, they will be put back into place." );
+
+struct PortalPlayerRestoreData
+{
+	PortalPlayerRestoreData()
+	{
+		Reset();
+	}
+
+	void Reset()
+	{
+		m_bNeedsRestore = false;
+
+		m_vecOrigin = vec3_invalid;
+		m_vecVelocity = vec3_invalid;
+		m_qAngle = vec3_angle;
+
+		m_hHeldObject = NULL;
+
+		m_FL_ONGROUND = false;
+
+		m_FL_DUCKING = false;
+		m_bDucked = false;
+		m_bDucking = false;
+		m_bInDuckJump = false;
+
+		m_flDucktime = 0;
+		m_flDuckJumpTime = 0;
+		m_flJumpTime = 0;
+
+		m_hHeldObjectPortal = NULL;
+		m_bIsHeldObjectOnOppositeSideOfPortal = false;
+
+		m_iHealth = 100;
+		m_bIntersectingPortalPlane = false;
+		m_fTimeLastHurt = 0;
+		m_bIsRegenerating = false;
+
+		m_bHasPortalgun = false;
+		m_iLastFiredPortal = 0;
+
+		m_hViewEntity = NULL;
+		m_hGroundEntity = NULL;
+		m_hPortalEnvironment = NULL;
+
+		m_MoveType = MOVETYPE_NONE;
+
+		//m_flTimeOnRestore = 0;
+	}
+
+	//void FixTimers()
+	//{
+		//float delta = gpGlobals->curtime - m_flTimeOnRestore;
+	//}
+
+	bool m_bNeedsRestore;
+
+	// Player
+	Vector m_vecOrigin;
+	Vector m_vecVelocity;
+	QAngle m_qAngle;
+	EHANDLE m_hHeldObject;
+
+	bool m_FL_ONGROUND;
+
+	bool m_FL_DUCKING;
+	bool m_bDucked;
+	bool m_bDucking;
+	bool m_bInDuckJump;
+
+	float m_flDucktime;
+	float m_flDuckJumpTime;
+	float m_flJumpTime;
+
+	CHandle<CProp_Portal> m_hHeldObjectPortal;
+	bool m_bIsHeldObjectOnOppositeSideOfPortal;
+
+	int m_iHealth;
+	bool m_bIntersectingPortalPlane;
+	float m_fTimeLastHurt;
+	bool m_bIsRegenerating;
+
+	EHANDLE m_hViewEntity;
+	EHANDLE m_hGroundEntity;
+	CHandle<CProp_Portal> m_hPortalEnvironment;
+
+	MoveType_t m_MoveType;
+
+	bool m_bSuppressingCrosshair;
+
+	// Portalgun
+	bool m_bHasPortalgun;
+	bool m_bCanFirePortal1;
+	bool m_bCanFirePortal2;
+	int m_iLastFiredPortal;
+
+	//float m_flTimeOnRestore;
+};
+
+PortalPlayerRestoreData g_PortalPlayerRestoreData[MAX_PLAYERS];
+
+void ResetPortalPlayerData( void )
+{
+	for ( int i = 0; i < gpGlobals->maxClients; ++i )
+	{
+		g_PortalPlayerRestoreData[i].Reset();
+	}
+}
+
+void SavePortalPlayerData( CPortal_Player *pPlayer )
+{
+	if ( !pcoop_restore_players.GetBool() )
+		return;
+	
+	if ( PortalGameRules()->m_bDisablePlayerRestore )
+		return;
+	
+	if ( !pPlayer->IsAlive() ) // No need to save if we're dead
+		return;
+
+	if ( pPlayer->IsInAVehicle() ) // Probably not going to effect anything, but it's better to be safe
+		return;
+
+	if ( pPlayer->IsObserver() )
+		return;
+
+	PortalPlayerRestoreData *data = &g_PortalPlayerRestoreData[pPlayer->entindex()-1];
+	
+	data->m_bNeedsRestore = true;
+	data->m_vecOrigin = pPlayer->GetAbsOrigin();
+	data->m_vecVelocity = pPlayer->GetAbsVelocity();
+	data->m_qAngle = pPlayer->EyeAngles(); // Better to use eye angles than AbsAngles
+
+	CBaseEntity *pHeldObject = GetPlayerHeldEntity( pPlayer );
+	data->m_hHeldObject = pHeldObject;
+	data->m_FL_ONGROUND = (pPlayer->GetFlags() & FL_ONGROUND) != 0;
+	data->m_FL_DUCKING = (pPlayer->GetFlags() & FL_DUCKING) != 0;
+	data->m_bDucked = pPlayer->m_Local.m_bDucked;
+	data->m_bDucking = pPlayer->m_Local.m_bDucking;
+	data->m_bInDuckJump = pPlayer->m_Local.m_bInDuckJump;
+	data->m_flDucktime = pPlayer->m_Local.m_flDucktime;
+	data->m_flDuckJumpTime = pPlayer->m_Local.m_flDuckJumpTime;
+	data->m_flJumpTime = pPlayer->m_Local.m_flJumpTime;
+
+	data->m_hHeldObjectPortal = pPlayer->GetHeldObjectPortal();
+	data->m_bIsHeldObjectOnOppositeSideOfPortal = pPlayer->IsHeldObjectOnOppositeSideOfPortal();
+
+	data->m_hViewEntity = pPlayer->GetViewEntity();
+	data->m_hGroundEntity = pPlayer->GetGroundEntity();
+	data->m_hPortalEnvironment = pPlayer->m_hPortalEnvironment;
+
+	data->m_MoveType = pPlayer->GetMoveType();
+
+	data->m_bSuppressingCrosshair = pPlayer->IsSuppressingCrosshair();
+
+	data->m_iHealth = pPlayer->GetHealth();
+	data->m_bIntersectingPortalPlane = pPlayer->m_bIntersectingPortalPlane;
+	data->m_fTimeLastHurt = pPlayer->m_fTimeLastHurt;
+	data->m_bIsRegenerating = pPlayer->m_bIsRegenerating;
+
+	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>( pPlayer->Weapon_OwnsThisType( "weapon_portalgun" ) );
+	if ( pPortalgun )
+	{
+		data->m_bHasPortalgun = true;
+		data->m_bCanFirePortal1 = pPortalgun->CanFirePortal1();
+		data->m_bCanFirePortal2 = pPortalgun->CanFirePortal2();
+		data->m_iLastFiredPortal = pPortalgun->GetLastFiredPortal();
+	}
+	else
+	{
+		if ( pPlayer->m_PortalGunSpawnInfo.m_bSpawnWithPortalgun )
+		{
+			data->m_bHasPortalgun = true;
+			data->m_bCanFirePortal1 = pPlayer->m_PortalGunSpawnInfo.m_bCanFirePortal1;
+			data->m_bCanFirePortal2 = pPlayer->m_PortalGunSpawnInfo.m_bCanFirePortal2;
+		}
+	}
+
+	//data->m_flTimeOnRestore = gpGlobals->curtime;
+}
+
+void RestorePortalPlayerData( CPortal_Player *pPlayer )
+{
+	if ( !pcoop_restore_players.GetBool() )
+		return;
+	
+	PortalPlayerRestoreData *data = &g_PortalPlayerRestoreData[pPlayer->entindex()-1];
+	if ( !data->m_bNeedsRestore )
+		return;
+
+	data->m_bNeedsRestore = false;	
+
+	// Ensure m_bNeedsRestore is set to false before returning
+	if ( PortalGameRules()->m_bDisablePlayerRestore )
+		return;
+
+	pPlayer->SetAbsOrigin( data->m_vecOrigin );
+	pPlayer->SetAbsVelocity( data->m_vecVelocity );
+	pPlayer->SetAbsAngles( data->m_qAngle );
+	pPlayer->SnapEyeAngles( data->m_qAngle );	
+	pPlayer->m_angEyeAngles = data->m_qAngle;
+	
+	pPlayer->SetHeldObjectPortal( data->m_hHeldObjectPortal );
+	pPlayer->SetHeldObjectOnOppositeSideOfPortal( data->m_bIsHeldObjectOnOppositeSideOfPortal );
+	
+	CBaseEntity *pHeldObject = data->m_hHeldObject;
+	if ( pHeldObject )
+	{
+		//pPlayer->m_bSilentDropAndPickup = true;
+		PlayerPickupObject( pPlayer, pHeldObject );
+		//pPlayer->m_bSilentDropAndPickup = false;
+	}
+
+	if ( data->m_FL_ONGROUND )
+	{
+		pPlayer->AddFlag( FL_ONGROUND );
+	}
+
+	pPlayer->m_Local.m_bDucking = data->m_bDucking;
+	if ( data->m_bDucked || data->m_FL_DUCKING )
+	{
+		pPlayer->m_Local.m_bDucked = data->m_bDucked;
+		if ( data->m_FL_DUCKING )
+			pPlayer->AddFlag( FL_DUCKING );
+
+		pPlayer->SetCollisionBounds( VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX );
+		pPlayer->SetVCollisionState( data->m_vecOrigin, data->m_vecVelocity, VPHYS_CROUCH);
+	}
+
+	pPlayer->m_Local.m_bInDuckJump = data->m_bInDuckJump;
+	pPlayer->m_Local.m_flDucktime = data->m_flDucktime;
+	pPlayer->m_Local.m_flDuckJumpTime = data->m_flDuckJumpTime;
+	pPlayer->m_Local.m_flJumpTime = data->m_flJumpTime;
+
+	pPlayer->SetViewEntity( data->m_hViewEntity );
+	pPlayer->SetGroundEntity( data->m_hGroundEntity );
+	CProp_Portal *pPortalEnv = data->m_hPortalEnvironment;
+	if ( pPortalEnv )
+	{
+		Assert( pPlayer->m_hPortalEnvironment == NULL );
+		Assert( CPortalSimulator::GetSimulatorThatOwnsEntity( pPlayer ) == NULL );
+		pPlayer->m_hPortalEnvironment = pPortalEnv;
+		pPortalEnv->m_PortalSimulator.TakeOwnershipOfEntity( pPlayer );
+	}
+
+	pPlayer->SetMoveType( data->m_MoveType );
+
+	pPlayer->SuppressCrosshair( data->m_bSuppressingCrosshair );
+	
+	pPlayer->SetHealth( data->m_iHealth );
+	pPlayer->m_bIntersectingPortalPlane = data->m_bIntersectingPortalPlane;
+	pPlayer->m_fTimeLastHurt = data->m_fTimeLastHurt;
+	pPlayer->m_bIsRegenerating = data->m_bIsRegenerating;
+
+	if ( data->m_bHasPortalgun )
+	{
+		CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>( pPlayer->Weapon_OwnsThisType( "weapon_portalgun" ) );
+		if ( !pPortalgun )
+		{
+			pPortalgun = static_cast<CWeaponPortalgun*>( pPlayer->GiveNamedItem( "weapon_portalgun" ) );
+		}
+
+		if ( pPortalgun )
+		{
+			pPortalgun->m_bCanFirePortal1 = data->m_bCanFirePortal1;
+			pPortalgun->m_bCanFirePortal2 = data->m_bCanFirePortal2;
+			pPortalgun->SetLastFiredPortal( data->m_iLastFiredPortal );
+
+			if ( pHeldObject )
+			{
+				pPortalgun->DoEffect( EFFECT_HOLDING );
+				pPortalgun->OpenProngs( true );
+			}
+			
+			CProp_Portal *pPrimaryPortal = pPortalgun->m_hPrimaryPortal;
+			if ( pPrimaryPortal )
+			{
+				pPrimaryPortal->m_hPlacedBy = pPortalgun;
+			}
+
+			CProp_Portal *pSecondaryPortal = pPortalgun->m_hSecondaryPortal;
+			if ( pSecondaryPortal )
+			{
+				pSecondaryPortal->m_hPlacedBy = pPortalgun;
+			}
+		}
+	}
+
+	// Touch portals and other triggers
+	//pPlayer->PhysicsTouchTriggers();
+}
 
 ConVar sv_portal_coop_ping_cooldown_time( "sv_portal_coop_ping_cooldown_time", "0.5", FCVAR_REPLICATED, "Time (in seconds) between coop pings", true, 0.1f, false, 60.0f );
 #if 0
@@ -477,8 +771,6 @@ CPortal_Player::CPortal_Player()
 
 	m_flLastPingTime = 0.0f;
 	
-	m_flImplicitVerticalStepSpeed = 0.0f;
-	
 	m_EntityPortalledNetworkMessages.SetCount( MAX_ENTITY_PORTALLED_NETWORK_MESSAGES );
 
 	m_bPortalFunnel = false;
@@ -519,9 +811,12 @@ CPortal_Player::~CPortal_Player(void)
 	*/
 }
 
+bool g_bRemovingPortalPlayer = false;
 void CPortal_Player::UpdateOnRemove(void)
 {
+	g_bRemovingPortalPlayer = true;
 	BaseClass::UpdateOnRemove();
+	g_bRemovingPortalPlayer = false;
 }
 
 void CPortal_Player::Precache(void)
@@ -677,8 +972,11 @@ void CPortal_Player::Spawn(void)
 	SetPlayerUnderwater(false);
 
 	m_bIsListenServerHost = ( this == UTIL_GetListenServerHost() );
-
-//	HudHintThink();
+	
+	if ( WantsToBeObserver() )
+	{
+		StartObserverMode( OBS_MODE_ROAMING );
+	}
 	
 #ifdef PORTAL_MP
 	PickTeam();
@@ -691,8 +989,6 @@ void CPortal_Player::Spawn(void)
 void CPortal_Player::Activate(void)
 {
 	BaseClass::Activate();
-	//SetContextThink(&CPortal_Player::HudHintThink, gpGlobals->curtime + 10, s_pHudHintContext);
-	//SetNextThink(gpGlobals->curtime + 10.0f);
 	
 	const char *pszName = engine->GetClientConVarValue( entindex(), "cl_player_funnel_into_portals" );
 	m_bPortalFunnel = atoi( pszName ) != 0;
@@ -961,6 +1257,34 @@ void PingBaseAnimating( CBaseAnimating *pAnimating, Vector vColor )
 	pAnimating->RemoveGlowTime(PINGTIME);
 }
 
+bool BrushEntityMoves( CBaseEntity *pEntity )
+{
+	CBaseDoor *pDoor = dynamic_cast<CBaseDoor*>( pEntity );
+	if ( pDoor )
+		return true;
+	CFuncTrackTrain *pTrain = dynamic_cast<CFuncTrackTrain*>( pEntity );
+	if ( pTrain )
+		return true;
+
+	return false;
+}
+
+bool CanParentBePinged( CBaseEntity *pParent )
+{
+	if ( BrushEntityMoves( pParent ) )
+		return true;
+	
+	const char *pszModelName = pParent->GetModelName().ToCStr();
+	int modelIndex = modelinfo->GetModelIndex( pszModelName );
+	const model_t *model = modelinfo->GetModel( modelIndex );
+	if ( model && modelinfo->GetModelType( model ) == mod_brush )
+	{
+		return true;
+	}
+
+	return false;
+}
+
 extern ConVar sv_allow_customized_portal_colors;
 
 void CPortal_Player::PlayCoopPingEffect( void )
@@ -1016,43 +1340,44 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		if (pAnimating)
 		{
-			if ( pAnimating->GetParent() )
+			CBaseEntity *pParent = pAnimating->GetParent();
+			if ( pParent )
 			{
-				PingChildrenOfEntity( pAnimating->GetParent(), vColor, bShouldCreateCrosshair );
-				EmitSound( COOP_PING_SOUNDSCRIPT_NAME );
-				return;
-			}
-
-			CPointPingLinker *pPingLinker = NULL;
-			//Find a ping linker to use
-			CBaseEntity *pEntityTemp = NULL;
-			while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
-			{
-				pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
-				if ( !pPingLinker )
-					continue;
-
-				if ( pPingLinker->HasThisEntity( pAnimating ) )
-				{
-					break;
-				}
-				else
-				{
-					pPingLinker = NULL;
-				}
-			}
-
-			if ( pPingLinker )
-			{
-				pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+				PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true );
 			}
 			else
 			{
-				PingBaseAnimating( pAnimating, vColor );
-				ShowAnnotation( pAnimating->GetAbsOrigin(), pAnimating->entindex(), entindex() );
-			}
+				CPointPingLinker *pPingLinker = NULL;
+				//Find a ping linker to use
+				CBaseEntity *pEntityTemp = NULL;
+				while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
+				{
+					pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
+					if ( !pPingLinker )
+						continue;
 
-			bShouldCreateCrosshair = false;
+					if ( pPingLinker->HasThisEntity( pAnimating ) )
+					{
+						break;
+					}
+					else
+					{
+						pPingLinker = NULL;
+					}
+				}
+
+				if ( pPingLinker )
+				{
+					pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+				}
+				else
+				{
+					PingBaseAnimating( pAnimating, vColor );
+					ShowAnnotation( pAnimating->GetAbsOrigin(), pAnimating->entindex(), entindex() );
+				}
+
+				bShouldCreateCrosshair = false;
+			}
 		}
 		else
 		{
@@ -1068,7 +1393,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			}
 			else
 			{
-				PingChildrenOfEntity( tr.m_pEnt, vColor, bShouldCreateCrosshair );
+				PingChildrenOfEntity( tr.m_pEnt, vColor, bShouldCreateCrosshair, false );
 			}
 		}
 
@@ -1093,13 +1418,11 @@ void CPortal_Player::PlayCoopPingEffect( void )
 	FirePlayerProxyOutput( "OnCoopPing", variant_t(), this, this );
 }
 
-void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair )
+void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent )
 {
-	CBaseDoor *pDoor = dynamic_cast<CBaseDoor*>( pEntity );
-	CFuncTrackTrain *pTrain = dynamic_cast<CFuncTrackTrain*>( pEntity );
-	if ( !pDoor && !pTrain )
+	if ( bParent && !CanParentBePinged( pEntity ) )
 		return;
-		
+
 	CBaseAnimating *pChild = NULL;
 	CBaseAnimating *pChildForLinker = NULL;
 	CPointPingLinker *pPingLinker = NULL;
@@ -1149,7 +1472,7 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 	{
 		pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
 	}
-	else // Ping Linkers fire their own events
+	else if ( !bShouldCreateCrosshair ) // Ping Linkers fire their own events
 	{
 		ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
 	}
@@ -1735,9 +2058,9 @@ bool CPortal_Player::BumpWeapon(CBaseCombatWeapon* pWeapon)
 
 	pWeapon->CheckRespawn();
 	Weapon_Equip(pWeapon);
-
-	// If we're holding and object before picking up portalgun, drop it
-	if (pPickupPortalgun)
+	
+	// If we're holding an object before picking up portalgun, drop it
+	if ( pPickupPortalgun && !PortalGameRules()->IsInRestore() )
 	{
 		ForceDropOfCarriedPhysObjects(GetPlayerHeldEntity(this));
 	}
@@ -1748,6 +2071,11 @@ bool CPortal_Player::BumpWeapon(CBaseCombatWeapon* pWeapon)
 void CPortal_Player::ShutdownUseEntity(void)
 {
 	ShutdownPickupController(m_hUseEntity);
+}
+
+bool CPortal_Player::WantsToBeObserver()
+{
+	return entindex() > GetRequiredPlayers() && pcoop_spectate_after_past_required_players.GetBool();
 }
 
 void CPortal_Player::Teleport( const Vector* newPosition, const QAngle* newAngles, const Vector* newVelocity )
@@ -2567,6 +2895,28 @@ CBaseEntity* CPortal_Player::EntSelectSpawnPoint(void)
 			return pCoopSpawn;
 		}
 	}
+
+	// Search again, but this time ignore the "CanSpawnOnMe" check
+	CUtlVector<CInfoPlayerPortalCoop*> coop_spawns;
+	coop_spawns.Purge();
+	pEntity = NULL;
+	while ( ( pEntity = gEntList.FindEntityByClassname( pEntity, "info_player_portalcoop" ) ) != NULL )
+	{
+		CInfoPlayerPortalCoop *pCoopSpawn = static_cast<CInfoPlayerPortalCoop*>( pEntity );
+		if ( pCoopSpawn && pCoopSpawn->m_iValidPlayerIndex <= gpGlobals->maxClients )
+		{
+			coop_spawns.AddToTail( pCoopSpawn );
+		}
+	}
+
+	Assert( coop_spawns.Count() != 0 );
+
+	if ( coop_spawns.Count() != 0 )
+	{
+		int i = RandomInt( 0, coop_spawns.Count()-1 );
+		return coop_spawns[i];
+	}
+	
 
 	// If a normal coop spawn wasn't found, use the normal behavior
 	return BaseClass::EntSelectSpawnPoint();

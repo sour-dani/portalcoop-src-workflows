@@ -296,7 +296,6 @@ BEGIN_RECV_TABLE_NOBASE( C_Portal_Player, DT_PortalLocalPlayerExclusive )
 
 	RecvPropUtlVector( RECVINFO_UTLVECTOR( m_EntityPortalledNetworkMessages ), C_Portal_Player::MAX_ENTITY_PORTALLED_NETWORK_MESSAGES, RecvPropDataTable(NULL, 0, 0, &REFERENCE_RECV_TABLE( DT_EntityPortalledNetworkMessage ) ) ),
 	RecvPropInt( RECVINFO( m_iEntityPortalledNetworkMessageCount ) ),
-	//RecvPropBool( RECVINFO( m_bPaused ) ),
 END_RECV_TABLE()
 
 IMPLEMENT_CLIENTCLASS_DT(C_Portal_Player, DT_Portal_Player, CPortal_Player)
@@ -392,8 +391,6 @@ C_Portal_Player::C_Portal_Player()
 	m_bIntersectingPortalPlane = false;
 
 	m_angEyeAngles.Init();
-	
-	m_flImplicitVerticalStepSpeed = 0.0f;
 	
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
 
@@ -1229,6 +1226,10 @@ void C_Portal_Player::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 int C_Portal_Player::DrawModel( int flags )
 {
 	if ( !m_bReadyToDraw )
+		return 0;
+
+	C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+	if ( pLocalPlayer && pLocalPlayer->GetObserverTarget() == this && pLocalPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
 		return 0;
 
 	if( IsLocalPlayer() )

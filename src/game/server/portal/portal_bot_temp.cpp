@@ -60,7 +60,6 @@ typedef struct
 
 static botdata_t g_BotData[ MAX_PLAYERS ];
 
-
 //-----------------------------------------------------------------------------
 // Purpose: Create a new Bot and put it in the game.
 // Output : Pointer to the new Bot, or NULL if there's no free clients.
@@ -324,10 +323,14 @@ void Bot_Think( CPortal_Player *pBot )
 				vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
 
 				vecEnd = vecSrc + forward * 10;
-
+#if 0
 				UTIL_TraceHull( vecSrc, vecEnd, VEC_HULL_MIN, VEC_HULL_MAX, 
 					MASK_PLAYERSOLID, pBot, COLLISION_GROUP_NONE, &trace );
-
+#else
+				Ray_t ray;
+				ray.Init( vecSrc, vecEnd, VEC_HULL_MIN, VEC_HULL_MAX );
+				UTIL_Portal_TraceRay( ray, MASK_PLAYERSOLID, pBot, COLLISION_GROUP_NONE, &trace, true );
+#endif
 				if ( trace.fraction == 1.0 )
 				{
 					if ( gpGlobals->curtime < botdata->nextturntime )
@@ -527,6 +530,13 @@ void Bot_Think( CPortal_Player *pBot )
 	// pBot->PostClientMessagesSent();
 
 	RunPlayerMove( pBot, vecViewAngles, forwardmove, sidemove, upmove, buttons, impulse, frametime );
+}
+
+void TransformBotAngles( int index, VMatrix matThisToLinked )
+{
+	botdata_t *botdata = &g_BotData[ index-1 ];
+	botdata->lastAngles = TransformAnglesToWorldSpace( botdata->lastAngles, matThisToLinked.As3x4() );
+	botdata->forwardAngle = TransformAnglesToWorldSpace( botdata->forwardAngle, matThisToLinked.As3x4() );
 }
 
 //------------------------------------------------------------------------------

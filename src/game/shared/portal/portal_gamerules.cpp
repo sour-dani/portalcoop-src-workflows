@@ -33,6 +33,8 @@
 
 	#include "achievementmgr.h"
 	extern CAchievementMgr g_AchievementMgrPortal;
+	
+extern void ResetPortalPlayerData( void );
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -45,10 +47,11 @@ ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_REPLICATED, "Sets wh
 
 ConVar sv_restart_server( "sv_restart_server", "0", FCVAR_REPLICATED, "When all players disconnect, the game will change the map back to the first map in the map set" );
 ConVar sv_restart_server_map( "sv_restart_server_map", "", FCVAR_REPLICATED, "Map to change when all players disconnect (requires sv_restart_server to be 1)" );
-ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "0", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );
+ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "1", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );
 
 ConVar sv_allow_customized_portal_colors("sv_allow_customized_portal_colors", "0", FCVAR_REPLICATED, "Sets if clients can choose their own portal color.");
 
+ConVar pcoop_paused( "pcoop_paused", "0", FCVAR_REPLICATED | FCVAR_HIDDEN );
 
 REGISTER_GAMERULES_CLASS( CPortalGameRules );
 
@@ -79,7 +82,9 @@ BEGIN_DATADESC( CPortalGameRulesProxy )
 DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SuspendRespawning", InputSuspendRespawning ),
 DEFINE_INPUTFUNC( FIELD_VOID, "RespawnAllPlayers", InputRespawnAllPlayers ),
 DEFINE_INPUTFUNC( FIELD_VOID, "ResetDetachedCameras", InputResetDetachedCameras ),
-//DEFINE_INPUTFUNC( FIELD_BOOLEAN, "DisableGamePause", InputDisableGamePause ),
+DEFINE_INPUTFUNC( FIELD_BOOLEAN, "DisableGamePause", InputDisableGamePause ),
+DEFINE_INPUTFUNC( FIELD_BOOLEAN, "DisablePlayerRestore", InputDisablePlayerRestore ),
+DEFINE_INPUTFUNC( FIELD_VOID, "PurgePlayerRestoreData", InputPurgePlayerRestoreData ),
 
 DEFINE_OUTPUT( m_OnPlayerConnected, "OnPlayerConnected" ),
 END_DATADESC()
@@ -112,10 +117,20 @@ void CPortalGameRulesProxy::InputResetDetachedCameras( inputdata_t &inputdata )
 	g_iNumCamerasDetatched = 0;
 }
 
-//void CPortalGameRulesProxy::InputDisableGamePause( inputdata_t &inputdata )
-//{
-//	PortalGameRules()->m_bDisableGamePause = inputdata.value.Bool();
-//}
+void CPortalGameRulesProxy::InputDisableGamePause( inputdata_t &inputdata )
+{
+	PortalGameRules()->m_bDisableGamePause = inputdata.value.Bool();
+}
+
+void CPortalGameRulesProxy::InputDisablePlayerRestore( inputdata_t &inputdata )
+{
+	PortalGameRules()->m_bDisablePlayerRestore = inputdata.value.Bool();
+}
+
+void CPortalGameRulesProxy::InputPurgePlayerRestoreData( inputdata_t &inputdata )
+{
+	ResetPortalPlayerData();
+}
 #endif
 
 #ifdef CLIENT_DLL
@@ -457,6 +472,12 @@ const char *CPortalGameRules::GetGameDescription( void )
 		m_flPreStartTime = 0.0f;
 
 		g_pCVar->FindVar( "sv_maxreplay" )->SetValue( "1.5" );
+#ifdef GAME_DLL
+		m_iPlayingPlayers = 0;
+		m_bInRestore = false;
+		m_bDisableGamePause = false;
+		m_bDisablePlayerRestore = false;
+#endif
 	}
 
 
@@ -484,16 +505,21 @@ const char *CPortalGameRules::GetGameDescription( void )
 	//-----------------------------------------------------------------------------
 	void CPortalGameRules::PlayerSpawn( CBasePlayer *pPlayer )
 	{
+		// Do not spawn players with the portalgun if they're supposed to be a spectator
+		CPortal_Player *pPortalPlayer = static_cast<CPortal_Player*>( pPlayer );
+		if ( pPortalPlayer->WantsToBeObserver() )
+			return;
+
 		if (sv_portalgun_spawn.GetBool())
 		{
 			CWeaponPortalgun *pPortalgun = (CWeaponPortalgun*)pPlayer->GiveNamedItem("weapon_portalgun");
 
-			((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = true;
+			pPortalPlayer->m_bForceBumpWeapon = true;
 			if ( pPlayer->BumpWeapon( pPortalgun ) )
 			{
 				pPortalgun->OnPickedUp( pPlayer );
 			}
-			((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = false;
+			pPortalPlayer->m_bForceBumpWeapon = false;
 
 			if (sv_portalgun_color.GetInt() == 0)
 			{
@@ -513,20 +539,20 @@ const char *CPortalGameRules::GetGameDescription( void )
 		}
 		else
 		{
-			if ( ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bSpawnWithPortalgun )
+			if ( pPortalPlayer->m_PortalGunSpawnInfo.m_bSpawnWithPortalgun )
 			{
 				CWeaponPortalgun *pPortalgun = (CWeaponPortalgun *)pPlayer->GiveNamedItem( "weapon_portalgun" );
 				if ( pPortalgun )
 				{
-					((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = true;
+					pPortalPlayer->m_bForceBumpWeapon = true;
 					if ( pPlayer->BumpWeapon( pPortalgun ) )
 					{
 						pPortalgun->OnPickedUp( pPlayer );
 					}
-					((CPortal_Player*)pPlayer)->m_bForceBumpWeapon = false;
+					pPortalPlayer->m_bForceBumpWeapon = false;
 
-					pPortalgun->m_bCanFirePortal1 = ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bCanFirePortal1;
-					pPortalgun->m_bCanFirePortal2 = ((CPortal_Player*)pPlayer)->m_PortalGunSpawnInfo.m_bCanFirePortal2;
+					pPortalgun->m_bCanFirePortal1 = pPortalPlayer->m_PortalGunSpawnInfo.m_bCanFirePortal1;
+					pPortalgun->m_bCanFirePortal2 = pPortalPlayer->m_PortalGunSpawnInfo.m_bCanFirePortal2;
 				}
 			}
 		}
@@ -543,35 +569,31 @@ const char *CPortalGameRules::GetGameDescription( void )
 	CBaseEntity *CPortalGameRules::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 	{		
 		CBaseEntity *pSpawnSpot = pPlayer->EntSelectSpawnPoint();
-		
+
+		QAngle qSpawnAngles = pSpawnSpot->GetLocalAngles();
+
+		pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
+		pPlayer->SetAbsVelocity( vec3_origin );
+		pPlayer->SetLocalAngles( qSpawnAngles );
+		pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
+		pPlayer->m_Local.m_vecPunchAngleVel = vec3_angle;
+		pPlayer->SnapEyeAngles( qSpawnAngles );
+			
+		// SnapEyeAngles works by processing the player commands
+		// but since that never runs when the game is paused, this workaround is necessary
+		CSingleUserRecipientFilter user(pPlayer);
+		user.MakeReliable();
+
+		UserMessageBegin( user, "SetMouseAngle" );
+		WRITE_FLOAT( qSpawnAngles.x );
+		WRITE_FLOAT( qSpawnAngles.y );
+		WRITE_FLOAT( qSpawnAngles.z );
+		MessageEnd();
 
 		CInfoPlayerPortalCoop *pCoopSpawn = dynamic_cast<CInfoPlayerPortalCoop*>(pSpawnSpot);
-
-		if ( pCoopSpawn )
+		if ( pCoopSpawn && pCoopSpawn->CanSpawnOnMe( pPlayer ) )
 		{
-			if ( !pCoopSpawn->CanSpawnOnMe( pPlayer ) )
-			{
-				AssertMsg( false, "Player spawned on the incorrect spawnpoint" );
-				Warning( "Warning: Player spawned on the incorrect spawnpoint!\n" );
-			}
-
-			pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
-			pPlayer->SetAbsVelocity( vec3_origin );
-			pPlayer->SetLocalAngles( pSpawnSpot->GetLocalAngles() );
-			pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
-			pPlayer->m_Local.m_vecPunchAngleVel = vec3_angle;
-			pPlayer->SnapEyeAngles( pSpawnSpot->GetLocalAngles() );
-
 			pCoopSpawn->PlayerSpawned( pPlayer );
-		}
-		else
-		{			
-			pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
-			pPlayer->SetAbsVelocity( vec3_origin );
-			pPlayer->SetLocalAngles( pSpawnSpot->GetLocalAngles() );
-			pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
-			pPlayer->m_Local.m_vecPunchAngleVel = vec3_angle;
-			pPlayer->SnapEyeAngles( pSpawnSpot->GetLocalAngles() );
 		}
 
 		return pSpawnSpot;
@@ -1511,56 +1533,6 @@ const char *CPortalGameRules::GetGameDescription( void )
 
 	}
 	
-#ifdef GAME_DLL
-	//=========================================================
-	//=========================================================
-	void CPortalGameRules::ClientDisconnected( edict_t *pClient )
-	{
-		if ( pClient )
-		{
-			CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
-
-			if ( pPlayer )
-			{
-				FireTargets( "game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0 );
-
-				pPlayer->RemoveAllItems( true );// destroy all of the players weapons and items
-
-				// Kill off view model entities
-				pPlayer->DestroyViewModels();
-
-				pPlayer->SetConnected( PlayerDisconnected );
-			}
-
-			if ( sv_restart_server.GetBool() )
-			{
-				int iConnectedPlayers = 0;
-
-				for ( int i = 1; i <= gpGlobals->maxClients; ++i )
-				{
-					CBasePlayer *pConnectedPlayer = UTIL_PlayerByIndex( i );
-
-					if ( !pConnectedPlayer )
-						continue;
-
-					if ( pConnectedPlayer->IsBot() && !sv_restart_server_include_bots.GetBool() )
-						continue;
-
-					++iConnectedPlayers;
-
-				}
-
-				// We actually have to subtract this value by 1
-				--iConnectedPlayers;
-			
-				if ( iConnectedPlayers == 0 )
-				{
-					engine->ChangeLevel( sv_restart_server_map.GetString(), NULL );
-				}
-			}
-		}
-	}
-#endif
 	//-----------------------------------------------------------------------------
 	// Purpose: Returns how much damage the given ammo type should do to the victim
 	//			when fired by the attacker.
@@ -1637,6 +1609,13 @@ bool CPortalGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 			return false;
 		}
 	}
+
+	// Energy balls shouldn't collide with portalguns
+	if ( collisionGroup0 == COLLISION_GROUP_WEAPON && collisionGroup1 == COLLISION_GROUP_PROJECTILE )
+	{
+		return false;
+	}
+
 	return BaseClass::ShouldCollide( collisionGroup0, collisionGroup1 ); 
 }
 
@@ -1713,6 +1692,13 @@ bool CPortalGameRules::ClientConnected( edict_t *pEntity, const char *pszName, c
 	return BaseClass::ClientConnected( pEntity, pszName, pszAddress, reject, maxrejectlen );
 }
 
+void CPortalGameRules::LevelInitPreEntity( void )
+{
+	m_bDisableGamePause = false;
+	m_bDisablePlayerRestore = false;
+	ResetPortalPlayerData();
+}
+
 //---------------------------------------------------------
 //---------------------------------------------------------
 bool CPortalGameRules::ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target )
@@ -1741,6 +1727,155 @@ void CPortalGameRules::LevelShutdown( void )
 {
 	BaseClass::LevelShutdown();
 	ResetThisLevelStats();
+
+	ResetPortalPlayerData();
+}
+
+extern void SavePortalPlayerData( CPortal_Player *pPlayer );
+extern void RestorePortalPlayerData( CPortal_Player *pPlayer );
+
+void PausePlayer( CBasePlayer *pPlayer )
+{
+	pPlayer->LockPlayerInPlace();
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 255;
+	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
+}
+
+void UnpausePlayer( CBasePlayer *pPlayer )
+{
+	pPlayer->UnlockPlayer();			
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 0;
+	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
+}
+
+void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
+{
+	if ( PlayerShouldPlay( pPlayer->entindex() ) )
+		++m_iPlayingPlayers;
+
+	CPortalGameRulesProxy *ent = NULL;
+	while ( ( ent = static_cast<CPortalGameRulesProxy*>( gEntList.FindEntityByClassname( ent, "portal_gamerules" ) ) ) != NULL )
+	{
+		ent->m_OnPlayerConnected.FireOutput( pPlayer, pPlayer );
+	}
+
+	CheckShouldPause();
+	
+	if ( pcoop_paused.GetBool() )
+		PausePlayer( pPlayer );
+
+	m_bInRestore = true;
+	RestorePortalPlayerData( pPlayer );
+	m_bInRestore = false;
+}
+
+void CPortalGameRules::ClientDisconnected( edict_t *pClient )
+{
+	Assert( pClient );
+	
+	CPortal_Player *pPlayer = assert_cast<CPortal_Player*>( CBaseEntity::Instance( pClient ) );
+
+	if ( pPlayer )
+	{
+		FireTargets( "game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0 );
+
+		pPlayer->RemoveAllItems( true );// destroy all of the players weapons and items
+
+		// Kill off view model entities
+		pPlayer->DestroyViewModels();
+
+		pPlayer->SetConnected( PlayerDisconnected );
+	}
+
+	if ( sv_restart_server.GetBool() )
+	{
+		int iConnectedPlayers = 0;
+
+		for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+		{
+			CBasePlayer *pConnectedPlayer = UTIL_PlayerByIndex( i );
+
+			if ( !pConnectedPlayer )
+				continue;
+
+			if ( pConnectedPlayer->IsBot() && !sv_restart_server_include_bots.GetBool() )
+				continue;
+
+			++iConnectedPlayers;
+
+		}
+
+		// We actually have to subtract this value by 1
+		--iConnectedPlayers;
+			
+		if ( iConnectedPlayers == 0 )
+		{
+			engine->ChangeLevel( sv_restart_server_map.GetString(), NULL );
+		}
+	}
+
+	if ( pPlayer && PlayerShouldPlay( pPlayer->entindex() ) )
+	{
+		--m_iPlayingPlayers;
+	}
+	else
+	{
+		Warning("Client disconnected, but pointer is null or isn't connected!\n");
+		Assert( false );
+	}
+	
+	SavePortalPlayerData( pPlayer );
+
+	CheckShouldPause();
+
+	if ( pcoop_paused.GetBool() )
+		PausePlayer( pPlayer );
+
+	BaseClass::ClientDisconnected( pClient );
+}
+
+void CPortalGameRules::CheckShouldPause( void )
+{
+	int nRequiredPlayers = GetRequiredPlayers();
+	bool bShouldFreeze = pcoop_require_all_players.GetBool() && m_iPlayingPlayers < nRequiredPlayers && !m_bDisableGamePause;
+	if ( bShouldFreeze )
+	{
+		if ( !pcoop_paused.GetBool() )
+		{
+			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+			{
+				CPortal_Player *pPlayer = GetPortalPlayer( i );
+				if ( !pPlayer )
+					continue;
+
+				PausePlayer( pPlayer );
+			}
+			pcoop_paused.SetValue( true );
+		}
+	}
+	else
+	{
+		if ( pcoop_paused.GetBool() )
+		{
+			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+			{
+				CPortal_Player *pPlayer = GetPortalPlayer( i );
+				if ( !pPlayer )
+					continue;
+
+				UnpausePlayer( pPlayer );
+			}
+			pcoop_paused.SetValue( false );			
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1863,6 +1998,11 @@ bool CPortalGameRules::IsBonusChallengeTimeBased( void )
 }
 
 #endif
+
+bool CPortalGameRules::ShouldPauseGame( void )
+{
+	return pcoop_paused.GetBool();
+}
 
 // ------------------------------------------------------------------------------------ //
 // Global functions.

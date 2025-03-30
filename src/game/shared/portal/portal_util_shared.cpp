@@ -306,7 +306,7 @@ void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Vector &vColor )
 	else if ( pPortalgun->m_iPortalColorSet == 2 )
 		vColor = Vector(1.0, 0, 0); // 255 0 0
 	else if ( pPortalgun->m_iPortalColorSet == 3 )
-		vColor = Vector(0.0, 255, 0); // 0 255 0
+		vColor = Vector(0.0, 1.0, 0); // 0 255 0
 }
 
 void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Color &color )
@@ -323,8 +323,7 @@ void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Color &color )
 	else if ( pPortalgun->m_iPortalColorSet == 2 )
 		color = Color(255, 0, 0, 255);
 	else if ( pPortalgun->m_iPortalColorSet == 3 )
-		color = Color(0, 255, 0, 255
-		);
+		color = Color(0, 255, 0, 255);
 }
 
 void UTIL_Portal_Trace_Filter( CTraceFilterSimpleClassnameList *traceFilterPortalShot )

@@ -175,9 +175,6 @@ public:
 	};
 	CUtlVector<PredictedPortalTeleportation_t> m_PredictedPortalTeleportations;
 	
-	float GetImplicitVerticalStepSpeed() const;
-	void SetImplicitVerticalStepSpeed( float speed );
-	
 	void ForceDuckThisFrame( Vector origin, Vector velocity );
 	void UnDuck ( void );
 	inline void ForceJumpThisFrame( void ) { ForceButtons( IN_JUMP ); }
@@ -255,9 +252,6 @@ private:
 
 	CDiscontinuousInterpolatedVar< Vector > m_iv_vEyeOffset;
 	
-	float m_flImplicitVerticalStepSpeed;	// When moving with step code, the player has an implicit vertical
-											// velocity that keeps her on ramps, steps, etc. We need this to
-											// correctly transform her velocity when she teleports.
 
 	virtual IRagdoll		*GetRepresentativeRagdoll() const;
 	EHANDLE	m_hRagdoll;

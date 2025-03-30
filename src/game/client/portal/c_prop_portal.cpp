@@ -688,6 +688,10 @@ void C_Prop_Portal::Simulate()
 			{
 				if( !m_PortalSimulator.EntityHitBoxExtentIsInPortalHole( (C_BaseAnimating*)pEntity, false ) )
 					continue;
+
+				CPortal_Player *pPortalPlayer = static_cast<CPortal_Player*>( pEntity );
+				if ( pPortalPlayer->IsObserver() )
+					continue;
 			}
 			else
 			{

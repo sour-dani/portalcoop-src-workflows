@@ -166,11 +166,10 @@ void C_Portal_Dinosaur::Precache( void )
 
 const char *C_Portal_Dinosaur::GetRadioSongScript( void )
 {
-	// TODO: Add a new radio song for Rexaura
-	//if ( sv_portal_game.GetInt() == PORTAL_GAME_REXAURA )
-	//{
-	//	return = "Rexaura.Radio";
-	//}
+	if ( sv_portal_game.GetInt() == PORTAL_GAME_REXAURA )
+	{
+		return "";
+	}
 	
 	return "Portal.room1_radio";
 }

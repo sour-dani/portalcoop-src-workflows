@@ -115,7 +115,6 @@ public:
 	virtual void PostThink( void );
 	virtual void PreThink( void );
 	virtual void PlayerDeathThink( void );
-//	void HudHintThink( void );
 	
 	CNetworkVar (bool, m_bHasSprintDevice);
 	CNetworkVar (bool, m_bSprintEnabled);
@@ -151,6 +150,7 @@ public:
 	virtual bool Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0);
 	virtual bool BumpWeapon( CBaseCombatWeapon *pWeapon );
 	virtual void ShutdownUseEntity( void );
+	bool WantsToBeObserver();
 
 	virtual void VPhysicsShadowUpdate( IPhysicsObject *pPhysics );
 
@@ -194,9 +194,6 @@ public:
 	int	GetPlayerConcept( void );
 	void UpdateExpression ( void );
 	void ClearExpression ( void );
-	
-	float GetImplicitVerticalStepSpeed() const;
-	void SetImplicitVerticalStepSpeed( float speed );
 	
 	void NetworkPortalTeleportation( CBaseEntity *pOther, CProp_Portal *pPortal, float fTime, bool bForcedDuck );
 
@@ -242,6 +239,7 @@ public:
 	CNetworkHandle( CBaseEntity, m_hRagdoll );	// networked entity handle
 
 	void SuppressCrosshair( bool bState ) { m_bSuppressingCrosshair = bState; }
+	bool IsSuppressingCrosshair() { return m_bSuppressingCrosshair; }
 
 	// In multiplayer, last time we used a coop ping to draw our partner's attention
 	CNetworkVar(float, m_flLastPingTime);
@@ -261,6 +259,15 @@ public:
 	bool m_bPortalFunnel;
 	bool m_bForceBumpWeapon;
 
+
+	float m_fTimeLastHurt;
+	bool  m_bIsRegenerating;		// Is the player currently regaining health
+
+	bool m_bIntersectingPortalPlane;
+	bool m_bStuckOnPortalCollisionObject;	
+
+	CNetworkQAngle( m_angEyeAngles );
+
 private:
 	
 	bool m_bLookingForUseEntity;
@@ -272,14 +279,8 @@ private:
 
 	CSoundPatch		*m_pWooshSound;
 
-	CNetworkQAngle( m_angEyeAngles );
-
 	CPortalPlayerAnimState*   m_PlayerAnimState;
 	
-	float m_flImplicitVerticalStepSpeed;	// When moving with step code, the player has an implicit vertical
-											// velocity that keeps her on ramps, steps, etc. We need this to
-											// correctly transform her velocity when she teleports.
-
 	int m_iLastWeaponFireUsercmd;
 	CNetworkVar( int, m_iSpawnInterpCounter );
 	CNetworkVar( bool, m_bSuppressingCrosshair );
@@ -287,13 +288,6 @@ private:
 	CNetworkVar( bool, m_bIsListenServerHost )
 
 	CNetworkVar(bool, m_bHeldObjectOnOppositeSideOfPortal);
-
-	bool m_bIntersectingPortalPlane;
-	bool m_bStuckOnPortalCollisionObject;
-
-
-	float m_fTimeLastHurt;
-	bool  m_bIsRegenerating;		// Is the player currently regaining health
 
 	float m_fNeuroToxinDamageTime;
 			
@@ -325,7 +319,7 @@ public:
 	
 	// Coop ping effect
 	void	PlayCoopPingEffect( void );
-	void	PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair );
+	void	PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent );
 
 	friend class CProp_Portal;
 	
