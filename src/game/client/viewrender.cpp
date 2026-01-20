@@ -2824,13 +2824,15 @@ void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCus
 	CTextureReference pPrimaryWaterReflectionTexture;
 	pPrimaryWaterReflectionTexture.Init( GetWaterReflectionTexture() );
 	CTextureReference pReplacementWaterReflectionTexture;
-	pReplacementWaterReflectionTexture.Init( portalrendertargets->GetWaterReflectionTextureForStencilDepth( iRecursionLevel ) );
+	if ( pReplacementWaterReflectionTexture != NULL )
+		pReplacementWaterReflectionTexture.Init( portalrendertargets->GetWaterReflectionTextureForStencilDepth( iRecursionLevel ) );
 
 	//get references to refraction textures
 	CTextureReference pPrimaryWaterRefractionTexture;
 	pPrimaryWaterRefractionTexture.Init( GetWaterRefractionTexture() );
 	CTextureReference pReplacementWaterRefractionTexture;
-	pReplacementWaterRefractionTexture.Init( portalrendertargets->GetWaterRefractionTextureForStencilDepth( iRecursionLevel ) );
+	if ( pReplacementWaterReflectionTexture != NULL )
+		pReplacementWaterRefractionTexture.Init( portalrendertargets->GetWaterRefractionTextureForStencilDepth( iRecursionLevel ) );
 
 
 	//swap texture contents for the primary render targets with those we set aside for this recursion level

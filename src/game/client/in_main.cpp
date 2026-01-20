@@ -495,7 +495,15 @@ void IN_Grenade2Down( const CCommand &args ) { KeyDown( &in_grenade2, args[1] );
 void IN_XboxStub( const CCommand &args ) { /*do nothing*/ }
 void IN_Attack3Down( const CCommand &args ) { KeyDown(&in_attack3, args[1] );}
 void IN_Attack3Up( const CCommand &args ) { KeyUp(&in_attack3, args[1] );}
+#ifdef PORTAL
+kbutton_t	in_coop_ping;
 
+void IN_CoopPingUp( const CCommand &args) { KeyUp( &in_coop_ping, args[1] ); }
+void IN_CoopPingDown( const CCommand &args) { KeyDown( &in_coop_ping, args[1] ); }
+
+static ConCommand presscoopping( "+coop_ping", IN_CoopPingDown );
+static ConCommand unpresscoopping( "-coop_ping", IN_CoopPingUp );
+#endif
 void IN_DuckToggle( const CCommand &args ) 
 { 
 	if ( ::input->KeyState(&in_ducktoggle) )
@@ -1475,7 +1483,9 @@ int CInput::GetButtonBits( int bResetState )
 	CalcButtonBits( bits, IN_GRENADE1, s_ClearInputState, &in_grenade1, bResetState );
 	CalcButtonBits( bits, IN_GRENADE2, s_ClearInputState, &in_grenade2, bResetState );
 	CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
-
+#ifdef PORTAL
+	CalcButtonBits( bits, IN_COOP_PING, s_ClearInputState, &in_coop_ping, bResetState );
+#endif
 	if ( KeyState(&in_ducktoggle) )
 	{
 		bits |= IN_DUCK;

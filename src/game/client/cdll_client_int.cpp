@@ -94,7 +94,6 @@
 #include "replay/replay.h"
 #include "replay/ireplaysystem.h"
 #include "replay/iclientreplay.h"
-#include "replay/ienginereplay.h"
 #include "replay/ireplaymanager.h"
 #include "replay/ireplayscreenshotmanager.h"
 #include "replay/iclientreplaycontext.h"
@@ -102,6 +101,9 @@
 #include "replay/vgui/replaybrowsermainpanel.h"
 #include "replay/vgui/replayinputpanel.h"
 #include "replay/vgui/replayperformanceeditor.h"
+#endif
+#if defined ( REPLAY_ENABLED ) || defined ( PORTAL ) // portalcoop needs this for GetLevelNameShort even though we aren't actually using replay
+#include "replay/ienginereplay.h"
 #endif
 #include "vgui/ILocalize.h"
 #include "vgui/IVGui.h"
@@ -167,6 +169,7 @@ extern vgui::IInputInternal *g_InputInternal;
 
 #ifdef PORTAL
 #include "PortalRender.h"
+#include "portal_shareddefs.h"
 #endif
 
 #ifdef SIXENSE
@@ -215,8 +218,11 @@ IReplayScreenshotManager *g_pReplayScreenshotManager = NULL;
 IReplayPerformanceManager *g_pReplayPerformanceManager = NULL;
 IReplayPerformanceController *g_pReplayPerformanceController = NULL;
 IEngineReplay *g_pEngineReplay = NULL;
-IEngineClientReplay *g_pEngineClientReplay = NULL;
 IReplaySystem *g_pReplay = NULL;
+#endif
+
+#if defined ( REPLAY_ENABLED ) || defined ( PORTAL )
+IEngineClientReplay *g_pEngineClientReplay = NULL;
 #endif
 
 IHaptics* haptics = NULL;// NVNT haptics system interface singleton
@@ -340,6 +346,31 @@ static ConVar s_cl_load_hl1_content("cl_load_hl1_content", "0", FCVAR_ARCHIVE, "
 #endif
 
 ConVar r_lightmap_bicubic_set( "r_lightmap_bicubic_set", "0", FCVAR_ARCHIVE | FCVAR_HIDDEN, "Hack to get this convar to be re-set on first launch." );
+
+#ifdef PORTAL
+ConVar cl_game_install_bits( "cl_game_install_bits", "0", FCVAR_HIDDEN | FCVAR_DEVELOPMENTONLY | FCVAR_USERINFO );
+
+void SetupGameInstallBits()
+{
+	int nInstallBits = 0;
+		
+	// Check to see if Portal is mounted, this may be unnecessary since there's already an engine crash if Portal isn't installed
+	IMaterial *pMaterial = materials->FindMaterial( "nature/hazard_liquid", NULL, false );
+	if ( pMaterial && !pMaterial->IsErrorMaterial() )
+	{
+		nInstallBits |= INSTALL_BITS_PORTAL;
+	}
+
+	// Check to see if Rexaura is mounted
+	pMaterial = materials->FindMaterial( "vgui/bonusmaps/rex_bonus_04_recycle", NULL, false );
+	if ( pMaterial && !pMaterial->IsErrorMaterial() )
+	{
+		nInstallBits |= INSTALL_BITS_REXAURA;
+	}
+	
+	cl_game_install_bits.SetValue( nInstallBits );
+}
+#endif
 
 // Physics system
 bool g_bLevelInitialized;
@@ -956,6 +987,9 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 #if defined( REPLAY_ENABLED )
 	if ( IsPC() && (g_pEngineReplay = (IEngineReplay *)appSystemFactory( ENGINE_REPLAY_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+#endif
+	
+#if defined( REPLAY_ENABLED ) || defined ( PORTAL ) // portalcoop needs this for GetLevelNameShort even though we aren't actually using replay
 	if ( IsPC() && (g_pEngineClientReplay = (IEngineClientReplay *)appSystemFactory( ENGINE_REPLAY_CLIENT_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
 #endif
@@ -1167,6 +1201,10 @@ void CHLClient::PostInit()
 #endif
 
 	g_ClientVirtualReality.StartupComplete();
+
+#ifdef PORTAL
+	SetupGameInstallBits();
+#endif
 
 #ifdef HL1MP_CLIENT_DLL
 	if ( s_cl_load_hl1_content.GetBool() && steamapicontext && steamapicontext->SteamApps() )
@@ -1775,6 +1813,8 @@ void CHLClient::LevelShutdown( void )
 	CReplayRagdollRecorder::Instance().Shutdown();
 	CReplayRagdollCache::Instance().Shutdown();
 #endif
+	extern void PurgeAndDeleteCCHandles();
+	PurgeAndDeleteCCHandles();
 }
 
 
@@ -2205,7 +2245,11 @@ void OnRenderStart()
 
 	// Simulate all the entities.
 	SimulateEntities();
+#if defined( PORTAL ) && 1 //slight detour if we're the portal mod
+	PortalPhysicsSimulate();
+#else
 	PhysicsSimulate();
+#endif //PORTAL
 
 	C_BaseAnimating::ThreadedBoneSetup();
 
@@ -2327,6 +2371,10 @@ void CHLClient::FrameStageNotify( ClientFrameStage_t curStage )
 	case FRAME_NET_UPDATE_POSTDATAUPDATE_END:
 		{
 			VPROF( "CHLClient::FrameStageNotify FRAME_NET_UPDATE_POSTDATAUPDATE_END" );
+#if defined( PORTAL )
+			extern void ProcessPortalTeleportations();
+			ProcessPortalTeleportations();
+#endif
 			PREDICTION_ENDTRACKVALUE();
 			// Let prediction copy off pristine data
 			prediction->PostEntityPacketReceived();

@@ -133,9 +133,16 @@ public:
 	virtual bool	CreateMove( float flInputSampleTime, CUserCmd *pCmd );
 	virtual void	AvoidPhysicsProps( CUserCmd *pCmd );
 	
-	virtual void	PlayerUse( void );
+	virtual bool	PlayerUse( void );
 	CBaseEntity		*FindUseEntity( void );
 	virtual bool	IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps );
+	bool					ClearUseEntity();
+	CBaseEntity				*DoubleCheckUseNPC( CBaseEntity *pNPC, const Vector &vecSrc, const Vector &vecDir );
+
+	// physics interactions
+	// mass/size limit set to zero for none
+	static bool				CanPickupObject( CBaseEntity *pObject, float massLimit, float sizeLimit );
+	virtual void			PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true ) {}
 
 	// Data handlers
 	virtual bool	IsPlayer( void ) const { return true; }
@@ -241,7 +248,9 @@ public:
 #endif
 
 	virtual void				PhysicsSimulate( void );
+	void						SetVCollisionState( const Vector &vecAbsOrigin, const Vector &vecAbsVelocity, int collisionState );
 	virtual unsigned int	PhysicsSolidMaskForEntity( void ) const { return MASK_PLAYERSOLID; }
+	void						PhysicsTouchTriggers( const Vector *pPrevAbsOrigin = NULL ); // prediction calls it on C_BasePlayer object
 
 	// Prediction stuff
 	virtual bool				ShouldPredict( void );
@@ -313,6 +322,10 @@ public:
 
 	float					GetTimeBase( void ) const;
 	float					GetFinalPredictedTime() const;
+	float					PredictedServerTime() const;
+
+	float					m_fLastUpdateServerTime;
+	int						m_nLastUpdateTickBase;
 
 	bool					IsInVGuiInputMode() const;
 	bool					IsInViewModelVGuiInputMode() const;
@@ -361,6 +374,9 @@ public:
 
 	virtual void ExitLadder() {}
 	surfacedata_t *GetLadderSurface( const Vector &origin );
+	
+	void	ForceButtons( int nButtons );
+	void	UnforceButtons( int nButtons );
 
 	surfacedata_t *GetSurfaceData( void ) { return m_pSurfaceData; }
 
@@ -438,6 +454,8 @@ public:
 
 	int				m_nButtons;
 
+	int				m_afButtonForced;	// These are forced onto the player's inputs
+
 	CUserCmd		*m_pCurrentCommand;
 
 	// Movement constraints
@@ -446,6 +464,8 @@ public:
 	float			m_flConstraintRadius;
 	float			m_flConstraintWidth;
 	float			m_flConstraintSpeedFactor;
+	
+	void SetUseEntity( CBaseEntity *pUseEntity );
 
 protected:
 
@@ -491,6 +511,7 @@ protected:
 
 	float			m_flStepSoundTime;
 	bool			m_IsFootprintOnLeft;
+	CDiscontinuousInterpolatedVar< Vector >	m_iv_vecViewOffset;
 
 private:
 	// Make sure no one calls this...
@@ -503,11 +524,6 @@ private:
 	EHANDLE			m_hUseEntity;
 	
 	float			m_flMaxspeed;
-
-	int				m_iBonusProgress;
-	int				m_iBonusChallenge;
-
-	CInterpolatedVar< Vector >	m_iv_vecViewOffset;
 
 	// Not replicated
 	Vector			m_vecWaterJumpVel;
@@ -585,6 +601,9 @@ private:
 	float m_flAvoidanceDotForward;
 	float m_flAvoidanceDotRight;
 
+public:
+	// PCOOP_PORT: IsDucked is moved here, but there may be a better solution to that 
+
 protected:
 	virtual bool IsDucked( void ) const { return m_Local.m_bDucked; }
 	virtual bool IsDucking( void ) const { return m_Local.m_bDucking; }
@@ -658,6 +677,11 @@ inline C_BasePlayer *ToBasePlayer( C_BaseEntity *pEntity )
 #endif
 
 	return static_cast<C_BasePlayer *>( pEntity );
+}
+
+inline void CBasePlayer::SetUseEntity( CBaseEntity *pUseEntity ) 
+{ 
+	m_hUseEntity = pUseEntity; 
 }
 
 inline C_BaseEntity *C_BasePlayer::GetUseEntity() 

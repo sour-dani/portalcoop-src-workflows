@@ -421,6 +421,39 @@ void UTIL_Smoke( const Vector &origin, const float scale, const float framerate 
 	te->Smoke( filter, 0.0f, &origin, g_sModelIndexSmoke, scale, framerate );
 }
 
+//-----------------------------------------------------------------------------
+// Drops an entity onto the floor
+//-----------------------------------------------------------------------------
+int UTIL_DropToFloor( CBaseEntity *pEntity, unsigned int mask, CBaseEntity *pIgnore )
+{
+	// Assume no ground
+	pEntity->SetGroundEntity( NULL );
+
+	Assert( pEntity );
+
+	trace_t	trace;
+
+#ifndef HL2MP
+	// HACK: is this really the only sure way to detect crossing a terrain boundry?
+	UTIL_TraceEntity( pEntity, pEntity->GetAbsOrigin(), pEntity->GetAbsOrigin(), mask, pIgnore, pEntity->GetCollisionGroup(), &trace );
+	if (trace.fraction == 0.0)
+		return -1;
+#endif // HL2MP
+
+	UTIL_TraceEntity( pEntity, pEntity->GetAbsOrigin(), pEntity->GetAbsOrigin() - Vector(0,0,256), mask, pIgnore, pEntity->GetCollisionGroup(), &trace );
+
+	if (trace.allsolid)
+		return -1;
+
+	if (trace.fraction == 1)
+		return 0;
+
+	pEntity->SetAbsOrigin( trace.endpos );
+	pEntity->SetGroundEntity( trace.m_pEnt );
+
+	return 1;
+}
+
 void UTIL_SetOrigin( C_BaseEntity *entity, const Vector &vecOrigin )
 {
 	entity->SetLocalOrigin( vecOrigin );
@@ -606,28 +639,6 @@ bool GetTargetInHudSpace( C_BaseEntity *pTargetEntity, int& iX, int& iY, Vector 
 void ClientPrint( C_BasePlayer *player, int msg_dest, const char *msg_name, const char *param1 /*= NULL*/, const char *param2 /*= NULL*/, const char *param3 /*= NULL*/, const char *param4 /*= NULL*/ )
 {
 }
-
-//-----------------------------------------------------------------------------
-// class CFlaggedEntitiesEnum
-//-----------------------------------------------------------------------------
-// enumerate entities that match a set of edict flags into a static array
-class CFlaggedEntitiesEnum : public IPartitionEnumerator
-{
-public:
-	CFlaggedEntitiesEnum( C_BaseEntity **pList, int listMax, int flagMask );
-	// This gets called	by the enumeration methods with each element
-	// that passes the test.
-	virtual IterationRetval_t EnumElement( IHandleEntity *pHandleEntity );
-	
-	int GetCount() { return m_count; }
-	bool AddToList( C_BaseEntity *pEntity );
-	
-private:
-	C_BaseEntity		**m_pList;
-	int				m_listMax;
-	int				m_flagMask;
-	int				m_count;
-};
 
 CFlaggedEntitiesEnum::CFlaggedEntitiesEnum( C_BaseEntity **pList, int listMax, int flagMask )
 {

@@ -25,6 +25,10 @@
 #include "c_basehlplayer.h"
 #endif
 
+#ifdef PORTAL
+#include "c_portal_player.h"
+#endif
+
 #include "tier0/vprof.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -96,6 +100,7 @@ CPrediction::CPrediction( void )
 
 	m_nIncomingPacketNumber = 0;
 	m_flIdealPitch = 0.0f;
+	m_nLastCommandAcknowledged = 0;
 
 	m_nPreviousStartFrame = -1;
 
@@ -279,6 +284,7 @@ void CPrediction::OnReceivedUncompressedPacket( void )
 	m_nCommandsPredicted = 0;
 	m_nServerCommandsAcknowledged = 0;
 	m_nPreviousStartFrame = -1;
+	m_nLastCommandAcknowledged = 0;
 #endif
 }
 
@@ -460,21 +466,24 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 
 		// Transfer intermediate data from other predictables
 		int c = predictables->GetPredictableCount();
+		bool *bHadErrors = (bool *)stackalloc( sizeof( bool ) * c );
 		int i;
 		for ( i = 0; i < c; i++ )
 		{
 			C_BaseEntity *ent = predictables->GetPredictable( i );
 			if ( !ent )
 				continue;
+			
+			if ( !ent->GetPredictable() )
+				continue;
+			
+			bHadErrors[i] = ent->PostNetworkDataReceived( m_nServerCommandsAcknowledged );
 
-			if ( ent->GetPredictable() )
+			if ( bHadErrors[i] )
 			{
-				if ( ent->PostNetworkDataReceived( m_nServerCommandsAcknowledged ) )
-				{
-					m_bPreviousAckHadErrors = true;
-					m_bPreviousAckErrorTriggersFullLatchReset |= ent->PredictionErrorShouldResetLatchedForAllPredictables() ? 1 : 0;
-					m_EntsWithPredictionErrorsInLastAck.AddToTail( ent );
-				}
+				m_bPreviousAckHadErrors = true;
+				m_bPreviousAckErrorTriggersFullLatchReset |= ent->PredictionErrorShouldResetLatchedForAllPredictables() ? 1 : 0;
+				m_EntsWithPredictionErrorsInLastAck.AddToTail( ent );
 			}
 
 			if ( showlist )
@@ -524,6 +533,37 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 				dump->DumpEntity( ent, m_nServerCommandsAcknowledged );
 			}
 #endif
+		}
+		
+		//Give entities with predicted fields that are not networked a chance to fix their current values for those fields.
+		//We do this in two passes. One pass to fix the fields, then another to save off the changes after they've all finished (to handle interdependancies, portals)
+		if( m_bPreviousAckHadErrors )
+		{
+			//give each predicted entity a chance to fix up its non-networked predicted fields
+			for ( i = 0; i < c; i++ )
+			{
+				C_BaseEntity *ent = predictables->GetPredictable(i);
+				if ( !ent )
+					continue;
+
+				if ( !ent->GetPredictable() )
+					continue;
+
+				ent->HandlePredictionError( bHadErrors[i] );
+			}
+
+			//save off any changes
+			for ( i = 0; i < c; i++ )
+			{
+				C_BaseEntity *ent = predictables->GetPredictable(i);
+				if ( !ent )
+					continue;
+
+				if ( !ent->GetPredictable() )
+					continue;
+
+				ent->SaveData( "PostNetworkDataReceived() Ack Errors", C_BaseEntity::SLOT_ORIGINALDATA, PC_EVERYTHING );
+			}
 		}
 
 		if ( showlist >= 2 )
@@ -893,6 +933,9 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// Set globals appropriately
 	gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
 	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
+	
+	// Add and subtract buttons we're forcing on the player
+	ucmd->buttons |= player->m_afButtonForced;
 
 	g_pGameMovement->StartTrackPredictionErrors( player );
 
@@ -1747,6 +1790,8 @@ void CPrediction::_Update( bool received_new_world_update, bool validframe,
 	if ( !localPlayer )
 		return;
 
+	m_nLastCommandAcknowledged = incoming_acknowledged;
+
 	// Always using current view angles no matter what
 	// NOTE: ViewAngles are always interpreted as being *relative* to the player
 	QAngle viewangles;
@@ -1814,6 +1859,19 @@ bool CPrediction::IsFirstTimePredicted( void ) const
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: For verifying/fixing operations that don't save/load in a datatable very well
+// Output : Returns the how many commands the server has processed and sent results for
+//-----------------------------------------------------------------------------
+int CPrediction::GetLastAcknowledgedCommandNumber( void ) const
+{
+#if !defined( NO_ENTITY_PREDICTION )
+	return m_nLastCommandAcknowledged;
+#else
+	return 0;
+#endif
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : org - 
 //-----------------------------------------------------------------------------
@@ -1842,8 +1900,8 @@ void CPrediction::SetViewOrigin( Vector& org )
 
 	player->SetLocalOrigin( org );
 	player->m_vecNetworkOrigin = org;
-
-	player->m_iv_vecOrigin.Reset();
+	
+	player->m_iv_vecOrigin.Reset( gpGlobals->curtime );
 }
 
 //-----------------------------------------------------------------------------
@@ -1874,7 +1932,7 @@ void CPrediction::SetViewAngles( QAngle& ang )
 		return;
 
 	player->SetViewAngles( ang );
-	player->m_iv_angRotation.Reset();
+	player->m_iv_angRotation.Reset( gpGlobals->curtime );
 }
 
 //-----------------------------------------------------------------------------
