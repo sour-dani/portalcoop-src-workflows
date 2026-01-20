@@ -484,7 +484,7 @@ void CAchievementMgr::LevelInitPreEntity()
 
 	// load global state if we haven't already; X360 users may not have had a storage device available or selected at boot time
 	EnsureGlobalStateLoaded();
-
+#ifndef PORTAL
 #ifdef GAME_DLL
 	// For single-player games, achievement mgr must live on the server.  (Only the server has detailed knowledge of game state.)
 	Assert( !GameRules()->IsMultiplayer() );	
@@ -492,7 +492,7 @@ void CAchievementMgr::LevelInitPreEntity()
 	// For multiplayer games, achievement mgr must live on the client.  (Only the client can read/write player state from Steam/XBox Live.)
 	Assert( GameRules()->IsMultiplayer() );
 #endif 
-
+#endif
 	// clear list of achievements listening for events
 	m_vecKillEventListeners.RemoveAll();
 	m_vecMapEventListeners.RemoveAll();

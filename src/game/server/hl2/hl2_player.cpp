@@ -46,6 +46,7 @@
 #include "gamestats.h"
 #include "filters.h"
 #include "tier0/icommandline.h"
+#include "hl2_player_shared.h"
 
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
@@ -83,10 +84,6 @@ extern ConVar autoaim_max_dist;
 extern int gEvilImpulse101;
 
 ConVar sv_autojump( "sv_autojump", "0" );
-
-ConVar hl2_walkspeed( "hl2_walkspeed", "150", FCVAR_REPLICATED );
-ConVar hl2_normspeed( "hl2_normspeed", "190", FCVAR_REPLICATED );
-ConVar hl2_sprintspeed( "hl2_sprintspeed", "320", FCVAR_REPLICATED );
 
 #define	HL2_WALK_SPEED hl2_walkspeed.GetFloat()
 #define	HL2_NORM_SPEED hl2_normspeed.GetFloat()

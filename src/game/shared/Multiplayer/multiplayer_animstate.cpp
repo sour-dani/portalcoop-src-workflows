@@ -30,6 +30,10 @@ ConVar anim_showmainactivity( "anim_showmainactivity", "0", FCVAR_CHEAT, "Show t
 #define CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( o, r, n )
 #endif
 
+#if defined( PORTAL )
+#include "portal_player_shared.h"
+#endif
+
 #define MOVING_MINIMUM_SPEED	0.5f
 
 ConVar anim_showstate( "anim_showstate", "-1", FCVAR_CHEAT | FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY, "Show the (client) animation state for the specified entity (-1 for none)." );
@@ -1049,7 +1053,7 @@ float CMultiPlayerAnimState::CalcMovementSpeed( bool *bIsMoving )
 {
 	// Get the player's current velocity and speed.
 	Vector vecVelocity;
-	GetOuterAbsVelocity( vecVelocity );
+	GetRelativeVelocity( vecVelocity );
 	float flSpeed = vecVelocity.Length2D();
 
 	if ( flSpeed > MOVING_MINIMUM_SPEED )
@@ -1209,7 +1213,7 @@ void CMultiPlayerAnimState::ResetGroundSpeed( void )
 {
 #ifdef CLIENT_DLL
 		m_flMaxGroundSpeed = GetCurrentMaxGroundSpeed();
-		m_iv_flMaxGroundSpeed.Reset();
+		m_iv_flMaxGroundSpeed.Reset( gpGlobals->curtime );
 		m_iv_flMaxGroundSpeed.NoteChanged( gpGlobals->curtime, 0, false );
 #endif
 }
@@ -1655,7 +1659,7 @@ void CMultiPlayerAnimState::EstimateYaw( void )
 
 	// Get the player's velocity and angles.
 	Vector vecEstVelocity;
-	GetOuterAbsVelocity( vecEstVelocity );
+	GetRelativeVelocity( vecEstVelocity );
 	QAngle angles = GetBasePlayer()->GetLocalAngles();
 
 	// If we are not moving, sync up the feet and eyes slowly.
@@ -1703,7 +1707,7 @@ void CMultiPlayerAnimState::ComputePoseParam_AimYaw( CStudioHdr *pStudioHdr )
 {
 	// Get the movement velocity.
 	Vector vecVelocity;
-	GetOuterAbsVelocity( vecVelocity );
+	GetRelativeVelocity( vecVelocity );
 
 	// Check to see if we are moving.
 	bool bMoving = ( vecVelocity.Length() > 1.0f ) ? true : false;
@@ -1827,6 +1831,19 @@ void CMultiPlayerAnimState::ConvergeYawAngles( float flGoalYaw, float flYawRate,
 //-----------------------------------------------------------------------------
 const QAngle& CMultiPlayerAnimState::GetRenderAngles()
 {
+#if defined( PORTAL ) && defined( CLIENT_DLL )
+	C_Portal_Player *pPlayer = (C_Portal_Player *)GetBasePlayer();
+	
+	if( pPlayer )
+	{		
+		if( pPlayer->GetOriginInterpolator().GetInterpolatedTime( pPlayer->GetEffectiveInterpolationCurTime( gpGlobals->curtime ) ) < pPlayer->m_fLatestServerTeleport )
+		{
+			m_angRender_InterpHistory = TransformAnglesToWorldSpace( m_angRender, pPlayer->m_matLatestServerTeleportationInverseMatrix.As3x4() );
+			return m_angRender_InterpHistory;
+		}
+	}
+#endif
+
 	return m_angRender;
 }
 
@@ -1840,6 +1857,27 @@ void CMultiPlayerAnimState::GetOuterAbsVelocity( Vector& vel )
 	GetBasePlayer()->EstimateAbsVelocity( vel );
 #else
 	vel = GetBasePlayer()->GetAbsVelocity();
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : vel - 
+//-----------------------------------------------------------------------------
+void CMultiPlayerAnimState::GetRelativeVelocity( Vector& vel )
+{
+	CBasePlayer *pPlayer = GetBasePlayer();
+#if defined( CLIENT_DLL )
+	pPlayer->EstimateAbsVelocity( vel );
+#else
+	vel = pPlayer->GetAbsVelocity();
+#endif
+
+#ifdef PORTAL
+	if ( vel.Length() != 0 )
+	{
+		vel -= static_cast<CPortal_Player*>( pPlayer )->m_vecAnimStateBaseVelocity;
+	}
 #endif
 }
 
@@ -1859,7 +1897,7 @@ void CMultiPlayerAnimState::Release( void )
 float CMultiPlayerAnimState::GetOuterXYSpeed()
 {
 	Vector vel;
-	GetOuterAbsVelocity( vel );
+	GetRelativeVelocity( vel );
 	return vel.Length2D();
 }
 
@@ -1915,7 +1953,7 @@ void CMultiPlayerAnimState::DebugShowAnimStateForPlayer( bool bIsServer )
 {
 	// Get the player's velocity.
 	Vector vecVelocity;
-	GetOuterAbsVelocity( vecVelocity );
+	GetRelativeVelocity( vecVelocity );
 
 	// Start animation state logging.
 	int iLine = 5;
@@ -2045,7 +2083,7 @@ void CMultiPlayerAnimState::DebugShowActivity( Activity activity )
 void CMultiPlayerAnimState::DebugShowAnimState( int iStartLine )
 {
 	Vector vOuterVel;
-	GetOuterAbsVelocity( vOuterVel );
+	GetRelativeVelocity( vOuterVel );
 
 	Anim_StateLog( "----------------- frame %d -----------------\n", gpGlobals->framecount );
 

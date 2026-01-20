@@ -25,6 +25,10 @@ static ConVar sv_ladderautomountdot( "sv_ladderautomountdot", "0.4", FCVAR_REPLI
 
 static ConVar sv_ladder_useonly( "sv_ladder_useonly", "0", FCVAR_REPLICATED, "If set, ladders can only be mounted by pressing +USE" );
 
+ConVar hl2_walkspeed( "hl2_walkspeed", "150", FCVAR_REPLICATED );
+ConVar hl2_normspeed( "hl2_normspeed", "190", FCVAR_REPLICATED );
+ConVar hl2_sprintspeed( "hl2_sprintspeed", "320", FCVAR_REPLICATED );
+
 #define USE_DISMOUNT_SPEED 100
 
 //-----------------------------------------------------------------------------

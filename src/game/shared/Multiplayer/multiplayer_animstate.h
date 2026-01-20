@@ -225,6 +225,7 @@ protected:
 	virtual void RestartMainSequence();
 
 	virtual void GetOuterAbsVelocity( Vector& vel );
+	virtual void GetRelativeVelocity( Vector& vel );
 	float GetOuterXYSpeed();
 
 	virtual bool HandleJumping( Activity &idealActivity );
@@ -295,6 +296,10 @@ protected:
 	CBasePlayer	*m_pPlayer;
 
 	QAngle				m_angRender;
+	
+#if defined( PORTAL ) && defined( CLIENT_DLL )
+	QAngle				m_angRender_InterpHistory; //discontinuous space handling
+#endif
 
 	// Pose parameters.
 	bool						m_bPoseParameterInit;
