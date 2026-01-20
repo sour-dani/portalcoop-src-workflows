@@ -80,6 +80,8 @@ CBaseCombatWeapon::CBaseCombatWeapon()
 
 	m_bFlipViewModel	= false;
 
+	m_bHolstered = false;
+
 #if defined( CLIENT_DLL )
 	m_iState = m_iOldState = WEAPON_NOT_CARRIED;
 	m_iClip1 = -1;
@@ -92,6 +94,9 @@ CBaseCombatWeapon::CBaseCombatWeapon()
 	m_pConstraint = NULL;
 	m_bSoundsEnabled = true;
 	OnBaseCombatWeaponCreated( this );
+
+	m_bAllowPlayerEquip = true;
+
 #endif
 
 	m_hWeaponFileInfo = GetInvalidWeaponInfoHandle();
@@ -691,6 +696,7 @@ void CBaseCombatWeapon::Drop( const Vector &vecVelocity )
 	SetGravity(1.0);
 	m_iState = WEAPON_NOT_CARRIED;
 	RemoveEffects( EF_NODRAW );
+	RemoveEffects( EF_NOSHADOW ); // PCOOP_PORT: Why was this added?
 	FallInit();
 	SetGroundEntity( NULL );
 	SetThink( &CBaseCombatWeapon::SetPickupTouch );
@@ -740,8 +746,8 @@ void CBaseCombatWeapon::OnPickedUp( CBaseCombatCharacter *pNewOwner )
 {
 #if !defined( CLIENT_DLL )
 	RemoveEffects( EF_ITEM_BLINK );
-
-	if( pNewOwner->IsPlayer() )
+	
+	if( pNewOwner->IsPlayer() && m_bAllowPlayerEquip )
 	{
 		m_OnPlayerPickup.FireOutput(pNewOwner, this);
 
@@ -853,6 +859,8 @@ void CBaseCombatWeapon::DefaultTouch( CBaseEntity *pOther )
 
 	if( HasSpawnFlags(SF_WEAPON_NO_PLAYER_PICKUP) )
 		return;
+
+	AddEffects(EF_NOSHADOW); // PCOOP_PORT: Why was this added?
 
 	if (pPlayer->BumpWeapon(this))
 	{
@@ -1026,7 +1034,8 @@ void CBaseCombatWeapon::SetActivity( Activity act, float duration )
 { 
 	//Adrian: Oh man...
 #if !defined( CLIENT_DLL ) && (defined( HL2MP ) || defined( PORTAL ))
-	SetModel( GetWorldModel() );
+	if ( GetOwner()->IsPlayer() )
+		SetModel( GetWorldModel() );
 #endif
 	
 	int sequence = SelectWeightedSequence( act ); 
@@ -1037,7 +1046,8 @@ void CBaseCombatWeapon::SetActivity( Activity act, float duration )
 
 	//Adrian: Oh man again...
 #if !defined( CLIENT_DLL ) && (defined( HL2MP ) || defined( PORTAL ))
-	SetModel( GetViewModel() );
+	if ( GetOwner()->IsPlayer() )
+		SetModel( GetViewModel() );
 #endif
 
 	if ( sequence != ACTIVITY_NOT_AVAILABLE )
@@ -1473,6 +1483,8 @@ bool CBaseCombatWeapon::Deploy( )
 	MDLCACHE_CRITICAL_SECTION();
 	bool bResult = DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), GetDrawActivity(), (char*)GetAnimPrefix() );
 
+	m_bHolstered = false;
+
 	return bResult;
 }
 
@@ -1497,6 +1509,8 @@ bool CBaseCombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
 
 	// Send holster animation
 	SendWeaponAnim( ACT_VM_HOLSTER );
+
+	m_bHolstered = true;
 
 	// Some weapon's don't have holster anims yet, so detect that
 	float flSequenceDuration = 0;
@@ -1740,7 +1754,8 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 				bFired = ShouldBlockPrimaryFire();
 			}
 
-			SecondaryAttack();
+			if ( !m_bHolstered )
+				SecondaryAttack();
 
 			// Secondary ammo doesn't have a reload animation
 			if ( UsesClipsForAmmo2() )
@@ -1783,8 +1798,11 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 			{
 				 m_flNextPrimaryAttack = gpGlobals->curtime;
 			}
-
-			PrimaryAttack();
+			
+			if (!m_bHolstered)
+			{
+				PrimaryAttack();
+			}
 
 			if ( AutoFiresFullClip() )
 			{
@@ -2627,6 +2645,11 @@ IMPLEMENT_NETWORKCLASS_ALIASED( BaseCombatWeapon, DT_BaseCombatWeapon )
 //-----------------------------------------------------------------------------// 
 BEGIN_DATADESC( CBaseCombatWeapon )
 
+	DEFINE_KEYFIELD( m_bAllowPlayerEquip, FIELD_BOOLEAN, "AllowPlayerPickup" ),	
+
+	DEFINE_INPUTFUNC( FIELD_VOID, "EnablePlayerPickup", InputEnablePlayerPickup ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "DisablePlayerPickup", InputDisablePlayerPickup ),
+
 	DEFINE_FIELD( m_flNextPrimaryAttack, FIELD_TIME ),
 	DEFINE_FIELD( m_flNextSecondaryAttack, FIELD_TIME ),
 	DEFINE_FIELD( m_flTimeWeaponIdle, FIELD_TIME ),
@@ -2870,6 +2893,7 @@ BEGIN_NETWORK_TABLE(CBaseCombatWeapon, DT_BaseCombatWeapon)
 	SendPropModelIndex( SENDINFO(m_iWorldModelIndex) ),
 	SendPropInt( SENDINFO(m_iState ), 8, SPROP_UNSIGNED ),
 	SendPropEHandle( SENDINFO(m_hOwner) ),
+	SendPropBool( SENDINFO (m_bHolstered ) ),
 #else
 	RecvPropDataTable("LocalWeaponData", 0, 0, &REFERENCE_RECV_TABLE(DT_LocalWeaponData)),
 	RecvPropDataTable("LocalActiveWeaponData", 0, 0, &REFERENCE_RECV_TABLE(DT_LocalActiveWeaponData)),
@@ -2877,5 +2901,6 @@ BEGIN_NETWORK_TABLE(CBaseCombatWeapon, DT_BaseCombatWeapon)
 	RecvPropInt( RECVINFO(m_iWorldModelIndex)),
 	RecvPropInt( RECVINFO(m_iState), 0, &CBaseCombatWeapon::RecvProxy_WeaponState ),
 	RecvPropEHandle( RECVINFO(m_hOwner ), RecvProxy_WeaponOwner ),
+	RecvPropBool( RECVINFO (m_bHolstered ) ),
 #endif
 END_NETWORK_TABLE()

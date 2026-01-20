@@ -2464,7 +2464,9 @@ bool CGameMovement::CheckJumpButton( void )
 
 	// Add a little forward velocity based on your current forward velocity - if you are not sprinting.
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
+#ifndef PORTAL
 	if ( gpGlobals->maxClients == 1 )
+#endif
 	{
 		CHLMoveData *pMoveData = ( CHLMoveData* )mv;
 		Vector vecForward;
@@ -2503,7 +2505,9 @@ bool CGameMovement::CheckJumpButton( void )
 	OnJump(mv->m_outJumpVel.z);
 
 	// Set jump time.
+#ifndef PORTAL
 	if ( gpGlobals->maxClients == 1 )
+#endif
 	{
 		player->m_Local.m_flJumpTime = GAMEMOVEMENT_JUMP_TIME;
 		player->m_Local.m_bInDuckJump = true;

@@ -238,6 +238,7 @@ public:
 	virtual bool			HolsterOnDetach() { return false; }
 	virtual bool			IsHolstered(){ return false; }
 	virtual void			Detach() {}
+	CNetworkVar(bool, m_bHolstered);
 
 	// Weapon behaviour
 	virtual void			ItemPreFrame( void );					// called each frame by the player PreThink
@@ -443,6 +444,8 @@ public:
 	virtual int				UpdateTransmitState( void );
 
 	void					InputHideWeapon( inputdata_t &inputdata );
+	void					InputEnablePlayerPickup( inputdata_t &inputdata ) { m_bAllowPlayerEquip = true; }
+	void					InputDisablePlayerPickup( inputdata_t &inputdata ) { m_bAllowPlayerEquip = false; }
 	void					Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
 	virtual CDmgAccumulator	*GetDmgAccumulator( void ) { return NULL; }
@@ -572,6 +575,10 @@ protected:
 	int						m_nCritChecks;
 	int						m_nCritSeedRequests;
 #endif // TF
+
+#ifdef GAME_DLL
+	bool					m_bAllowPlayerEquip;
+#endif
 
 public:
 

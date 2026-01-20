@@ -316,6 +316,22 @@ bool CTraceFilterSimple::ShouldHitEntity( IHandleEntity *pHandleEntity, int cont
 //-----------------------------------------------------------------------------
 // Purpose: Trace filter that only hits NPCs and the player
 //-----------------------------------------------------------------------------
+bool CTraceFilterOnlyPlayer::ShouldHitEntity( IHandleEntity *pHandleEntity, int contentsMask )
+{
+	if ( CTraceFilterSimple::ShouldHitEntity( pHandleEntity, contentsMask ) )
+	{
+		CBaseEntity *pEntity = EntityFromEntityHandle( pHandleEntity );
+		if ( !pEntity )
+			return false;
+
+		return ( pEntity->IsPlayer() );
+	}
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Trace filter that only hits NPCs and the player
+//-----------------------------------------------------------------------------
 bool CTraceFilterOnlyNPCsAndPlayer::ShouldHitEntity( IHandleEntity *pHandleEntity, int contentsMask )
 {
 	if ( CTraceFilterSimple::ShouldHitEntity( pHandleEntity, contentsMask ) )
@@ -477,7 +493,18 @@ bool CTraceFilterSimpleClassnameList::ShouldHitEntity( IHandleEntity *pHandleEnt
 	CBaseEntity *pEntity = EntityFromEntityHandle( pHandleEntity );
 	if ( !pEntity )
 		return false;
-
+#if 0 // PCOOP_PORT: This is a very weird check, so I'm not going to include it
+	CBaseEntity *pOwner = pEntity->GetOwnerEntity();
+	if ( pOwner )
+	{
+		const char *pOwnerClass = pOwner->GetClassname();
+		for ( int i = 0; i < m_PassClassnames.Count(); i++ )
+		{
+			if ( !V_strcmp( m_PassClassnames[i], pOwnerClass ) )
+				return false;
+		}
+	}
+#endif
 	for ( int i = 0; i < m_PassClassnames.Count(); ++i )
 	{
 		if ( FClassnameIs( pEntity, m_PassClassnames[ i ] ) )
@@ -774,7 +801,17 @@ void UTIL_Tracer( const Vector &vecStart, const Vector &vecEnd, int iEntIndex,
 		DispatchEffect( "Tracer", data );
 	}
 }
+#ifdef CLIENT_DLL
+static csurface_t	g_NullSurface = { "**empty**", 0 };
 
+void UTIL_ClearTrace(trace_t &trace)
+{
+	memset(&trace, 0, sizeof(trace));
+	trace.fraction = 1.f;
+	trace.fractionleftsolid = 0;
+	trace.surface = g_NullSurface;
+}
+#endif
 
 void UTIL_BloodDrips( const Vector &origin, const Vector &direction, int color, int amount )
 {

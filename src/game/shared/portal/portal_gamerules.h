@@ -148,6 +148,8 @@ private:
 	virtual CBaseEntity *GetPlayerSpawnSpot( CBasePlayer *pPlayer );// Place this player on their spawnspot and face them the proper direction.
 	virtual bool			IsSpawnPointValid( CBaseEntity *pSpot, CBasePlayer *pPlayer );
 	
+	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer ) { return true; }
+
 // Weapon spawn/respawn control
 	virtual int WeaponShouldRespawn( CBaseCombatWeapon *pWeapon );
 

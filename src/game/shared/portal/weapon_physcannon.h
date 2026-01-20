@@ -504,4 +504,9 @@ bool PhysCannonAccountableForObject( CBaseCombatWeapon *pPhysCannon, CBaseEntity
 
 void GrabController_SetPortalPenetratingEntity( CGrabController *pController, CBaseEntity *pPenetrated );
 
+CGrabController *GetGrabControllerForEntity( CBaseEntity *pEntity );
+CGrabController *GetPhyscannonGrabControllerFromEntity( CBaseEntity *pEntity );
+
+CWeaponPhysCannon *GetPhyscannonFromEntity( CBaseEntity *pEntity );
+
 #endif // WEAPON_PHYSCANNON_H

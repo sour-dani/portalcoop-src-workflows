@@ -432,6 +432,22 @@ public:
 	virtual bool IsOfficialMap() { return false; }
 #endif
 
+	// Bonus Logic
+	
+#ifdef GAME_DLL
+	bool	m_bPauseBonusProgress;
+#endif
+
+	// Never let the client set its own progress, it's networked
+#ifdef GAME_DLL
+	void					PauseBonusProgress( bool bPause = true );
+	void					SetBonusProgress( int iBonusProgress );
+	void					SetBonusChallenge( int iBonusChallenge );
+#endif
+
+	int						GetBonusProgress() const;
+	int						GetBonusChallenge() const;
+
 protected:
 	CUtlVector< string_t > m_SavedConvars;
 
