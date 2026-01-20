@@ -42,8 +42,8 @@ public:
 	static void DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy, float maxVerticleKickAngle, float fireDurationTime, float slideLimitTime );
 
 protected:
-
-	int	m_nShotsFired;	// Number of consecutive shots fired
+	
+	CNetworkVar(int, m_nShotsFired);	// Number of consecutive shots fired
 
 	float	m_flNextSoundTime;	// real-time clock of when to make next sound
 };
