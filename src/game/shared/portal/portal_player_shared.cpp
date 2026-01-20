@@ -1005,10 +1005,6 @@ bool CPortal_Player::UseFoundEntity(CBaseEntity* pUseEntity)
 {
 	bool usedSomething = false;
 
-#ifdef GAME_DLL
-	CPointCommentaryNode *pCommentaryNode = dynamic_cast<CPointCommentaryNode*>(pUseEntity);	
-#endif
-
 	//!!!UNDONE: traceline here to prevent +USEing buttons through walls			
 	int caps = pUseEntity->ObjectCaps();
 #ifdef GAME_DLL
@@ -1021,22 +1017,9 @@ bool CPortal_Player::UseFoundEntity(CBaseEntity* pUseEntity)
 	if (m_afButtonPressed & IN_USE)
 #endif
 	{
-#ifdef GAME_DLL	
-		if (pCommentaryNode)
-		{
-			inputdata_t inputdata;
-			inputdata.pActivator = this;
-			inputdata.pCaller = this;
-			pCommentaryNode->InputUse(inputdata);
-		}
-#endif
 		// Robin: Don't play sounds for NPCs, because NPCs will allow respond with speech.
 		if (!pUseEntity->MyNPCPointer() )
 		{
-			//Using commentary nodes shouldn't play a sound
-#ifdef GAME_DLL
-			if (!pCommentaryNode)
-#endif
 			EmitSound("HL2Player.Use");
 		}
 	}
@@ -1199,12 +1182,6 @@ bool CPortal_Player::PlayerUse( void )
 			pUseEntity = FindUseEntityThroughPortal();
 		}
 
-#ifdef GAME_DLL
-		if (!pUseEntity && !m_bLookingForUseEntity) // Don't search for commentary nodes
-		{
-			pUseEntity = dynamic_cast<CBaseEntity*>(GetNodeUnderCrosshair());
-		}
-#endif
 		if (pUseEntity)
 		{
 			if (pPortal)
@@ -1224,16 +1201,6 @@ bool CPortal_Player::PlayerUse( void )
 			SetLookForUseEntity(true);
 
 			m_flLookForUseEntityTime = gpGlobals->curtime + 0.25;
-			return false;
-		}
-#else
-		else if (m_afButtonPressed & IN_USE)
-		{
-			// Signal that we want to play the deny sound, unless the user is +USEing on a ladder!
-			// The sound is emitted in ItemPostFrame, since that occurs after GameMovement::ProcessMove which
-			// lets the ladder code unset this flag.
-
-			m_bPlayUseDenySound = true;
 			return false;
 		}
 #endif

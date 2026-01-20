@@ -81,7 +81,7 @@
 				return false;
 #endif // CSTRIKE_DLL
 
-			return g_pGameRules->CanEntityBeUsePushed( pEntity );
+			return true;//g_pGameRules->CanEntityBeUsePushed( pEntity );
 		}
 	};
 #if defined(GAME_DLL) && !defined(_XBOX)
@@ -1409,9 +1409,11 @@ bool CBasePlayer::PlayerUse ( void )
 		PlayUseDenySound();
 		return false;
 	}
+	return pUseEntity != NULL;
+#else
+	return true;
 #endif
 
-	return pUseEntity != NULL;
 }
 
 ConVar	sv_suppress_viewpunch( "sv_suppress_viewpunch", "0", FCVAR_REPLICATED | FCVAR_CHEAT );

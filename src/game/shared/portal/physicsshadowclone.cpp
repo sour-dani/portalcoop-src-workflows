@@ -452,13 +452,14 @@ static void FullSyncPhysicsObject( IPhysicsObject *pSource, IPhysicsObject *pDes
 		pDest->Wake();
 
 	float fSavedMass = 0.0f, fSavedRotationalDamping; //setting mass to 0.0f purely to kill a warning that I can't seem to kill with pragmas
+#ifndef CLIENT_DLL // PCOOP_PORT: Do nothing on the client for now
 	if( pSource->GetGameFlags() & FVPHYSICS_PLAYER_HELD )
 	{
 		//CBasePlayer *pPlayer = UTIL_PlayerByIndex( 1 );
 		//Assert( pPlayer );
 
 		CBaseEntity *pLookingForEntity = (CBaseEntity *)pSource->GetGameData();
-#ifdef GAME_DLL
+
 		CBasePlayer *pHoldingPlayer = GetPlayerHoldingEntity( pLookingForEntity );
 		if( pHoldingPlayer )
 		{
@@ -467,14 +468,12 @@ static void FullSyncPhysicsObject( IPhysicsObject *pSource, IPhysicsObject *pDes
 			if ( !pGrabController )
 				pGrabController = GetGrabControllerForPhysCannon( pHoldingPlayer->GetActiveWeapon() );
 		}
-#else
-		pGrabController = pLookingForEntity->GetGrabController();
-#endif
+
 		AssertMsg( pGrabController, "Physics object is held, but we can't find the holding controller." );
 				
 		GetSavedParamsForCarriedPhysObject( pGrabController, pSource, &fSavedMass, &fSavedRotationalDamping );
 	}
-
+#endif
 	//Boiler plate
 	{
 		pDest->SetGameIndex( pSource->GetGameIndex() ); //what's it do?

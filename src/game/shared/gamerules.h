@@ -115,6 +115,9 @@ abstract_class CGameRules : public CAutoGameSystemPerFrame
 {
 public:
 	DECLARE_CLASS_GAMEROOT( CGameRules, CAutoGameSystemPerFrame );
+	
+	//DECLARE_NETWORKCLASS_NOBASE();
+	DECLARE_SIMPLE_DATADESC();
 
 	virtual char const *Name() { return "CGameRules"; }
 

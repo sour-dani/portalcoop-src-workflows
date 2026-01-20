@@ -38,11 +38,6 @@ public:
 
 	void ClientThink();
 	
-	float	m_minFalloff;
-	float	m_maxFalloff;
-
-	Vector	m_vecOrigin;
-
 	ClientCCHandle_t CCHandle() const { return m_CCHandle; }
 
 	Vector	m_vecOrigin;

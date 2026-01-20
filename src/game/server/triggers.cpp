@@ -589,7 +589,7 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 				bFoundOtherTouchee = true;
 			}
 		}
-		int iSize = m_hTouchingPlayers.Count();
+		iSize = m_hTouchingPlayers.Count();
 		for ( int i = iSize-1; i >= 0; i-- )
 		{
 			EHANDLE hOther;

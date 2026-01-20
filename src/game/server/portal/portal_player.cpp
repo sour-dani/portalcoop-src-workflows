@@ -2676,7 +2676,7 @@ int CPortal_Player::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 	if (event)
 	{
 		event->SetInt("userid", GetUserID());
-		event->SetInt("health", max(0, m_iHealth));
+		event->SetInt("health", MAX(0, m_iHealth));
 		event->SetInt("priority", 5);	// HLTV event priority, not transmitted
 
 		if (attacker->IsPlayer())

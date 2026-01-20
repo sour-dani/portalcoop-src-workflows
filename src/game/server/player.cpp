@@ -97,8 +97,6 @@ ConVar	spec_freeze_time( "spec_freeze_time", "4.0", FCVAR_CHEAT | FCVAR_REPLICAT
 ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FCVAR_REPLICATED, "Time taken to zoom in to frame a target in observer freeze cam.", true, 0.01, false, 0 );
 #endif
 
-ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
-
 ConVar sv_chat_bucket_size_tier1( "sv_chat_bucket_size_tier1", "4", FCVAR_NONE, "The maximum size of the short term chat msg bucket." );
 ConVar sv_chat_seconds_per_msg_tier1( "sv_chat_seconds_per_msg_tier1", "3", FCVAR_NONE, "The number of seconds to accrue an additional short term chat msg." );
 ConVar sv_chat_bucket_size_tier2( "sv_chat_bucket_size_tier2", "30", FCVAR_NONE, "The maximum size of the long term chat msg bucket." );
@@ -783,23 +781,6 @@ bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, cons
 
 	return true;
 }
-
-void CBasePlayer::PauseBonusProgress( bool bPause )
-{
-	m_bPauseBonusProgress = bPause;
-}
-
-void CBasePlayer::SetBonusProgress( int iBonusProgress )
-{
-	if ( !m_bPauseBonusProgress )
-		m_iBonusProgress = iBonusProgress;
-}
-
-void CBasePlayer::SetBonusChallenge( int iBonusChallenge )
-{
-	m_iBonusChallenge = iBonusChallenge;
-}
-
 
 //-----------------------------------------------------------------------------
 // Sets the view angles

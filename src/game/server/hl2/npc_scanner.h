@@ -28,9 +28,9 @@ class CSpotlightEnd;
 //-----------------------------------------------------------------------------
 class CNPC_CScanner : public CNPC_BaseScanner
 {
-	DECLARE_CLASS( CNPC_CScanner, CNPC_BaseScanner );
-
 public:
+	DECLARE_CLASS( CNPC_CScanner, CNPC_BaseScanner );
+	DECLARE_SERVERCLASS();
 	CNPC_CScanner();
 
 	int				GetSoundInterests( void ) { return (SOUND_WORLD|SOUND_COMBAT|SOUND_PLAYER|SOUND_DANGER); }

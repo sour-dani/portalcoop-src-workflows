@@ -171,8 +171,7 @@ BEGIN_NETWORK_TABLE( CSprite, DT_Sprite )
 #endif
 END_NETWORK_TABLE()
 
-LINK_ENTITY_TO_CLASS_ALIASED( env_sprite, CSprite );
-LINK_ENTITY_TO_CLASS_ALIASED( env_sprite_oriented, CSpriteOriented );
+LINK_ENTITY_TO_CLASS_ALIASED( env_sprite, Sprite );
 
 CSprite::CSprite()
 {
@@ -848,6 +847,8 @@ IMPLEMENT_CLIENTCLASS_DT(C_SpriteOriented, DT_SpriteOriented, CSpriteOriented)
 #define CSpriteOriented C_SpriteOriented
 END_RECV_TABLE()
 #endif
+
+LINK_ENTITY_TO_CLASS_ALIASED( env_sprite_oriented, SpriteOriented );
 
 #if !defined( CLIENT_DLL )
 

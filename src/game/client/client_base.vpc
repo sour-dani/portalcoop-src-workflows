@@ -185,8 +185,6 @@ $Project
 		$File	"gameui\ModInfo.h"
 		$File	"gameui\GameUIPanel.h"
 		$File	"gameui\GameUI.h"
-		$File	"gameui\VGuiSystemModuleLoader.cpp"
-		$File	"gameui\VGuiSystemModuleLoader.h"
 		$File	"gameui\vcontrolslistpanel.cpp"
 		$File	"gameui\vcontrolslistpanel.h"
 		$File	"gameui\Sys_Utils.cpp"

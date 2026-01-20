@@ -921,12 +921,12 @@ CBaseHandle CPortalGameMovement::TestPlayerPosition( const Vector& pos, int coll
 		CPortal_Player *pPortalPlayer = (CPortal_Player *)player;
 		pPortalPlayer->SetStuckOnPortalCollisionObject();
 
-		return INVALID_EHANDLE_INDEX;
+		return INVALID_EHANDLE;
 	}
 #endif
 	else
 	{	
-		return INVALID_EHANDLE_INDEX;
+		return INVALID_EHANDLE;
 	}
 }
 

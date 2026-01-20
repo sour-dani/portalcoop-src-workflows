@@ -184,7 +184,7 @@ void C_PortalBlast::ClientThink( void )
 
 void PortalBlastCallback( const CEffectData & data )
 {
-	C_PortalBlast::Create( ( data.m_nColor == 1 ) ? ( false ) : ( true ), (PortalPlacedByType)data.m_nDamageType, data.m_vOrigin, data.m_vStart, data.m_vAngles, data.m_flScale, data.m_nHitBox, data.m_hEntity );
+	C_PortalBlast::Create( ( data.m_nColor == 1 ) ? ( false ) : ( true ), (PortalPlacedByType)data.m_nDamageType, data.m_vOrigin, data.m_vStart, data.m_vAngles, data.m_flScale, data.m_nHitBox, cl_entitylist->GetBaseEntityFromHandle( data.m_hEntity ) );
 }
 
 DECLARE_CLIENT_EFFECT( "PortalBlast", PortalBlastCallback );
