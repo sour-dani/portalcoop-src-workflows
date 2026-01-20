@@ -103,8 +103,8 @@ void CNPC_GroundTurret::Spawn( void )
 	m_vecSpread.z = 0.5;
 
 	CapabilitiesClear();
-
-	AddEFlags( EFL_NO_DISSOLVE );
+	
+	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL );
 
 	NPCInit();
 

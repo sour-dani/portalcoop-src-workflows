@@ -297,7 +297,8 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 		SetTouch( NULL );
 		SetThink( NULL );
 
-		if ( !g_pGameRules->IsMultiplayer() )
+		//This is a stupid check
+		//if ( !g_pGameRules->IsMultiplayer() )
 		{
 			UTIL_Remove( this );
 		}
