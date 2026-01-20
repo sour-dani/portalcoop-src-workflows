@@ -34,9 +34,15 @@
 #include "ai_behavior_lead.h"
 #include "gameinterface.h"
 #include "ilagcompensationmanager.h"
+#include "triggers_shared.h"
 
 #ifdef HL2_DLL
 #include "hl2_player.h"
+#endif
+
+#ifdef PORTAL
+#include "portal_shareddefs.h"
+extern ConVar pcoop_spectate_after_past_required_players;
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -102,6 +108,8 @@ BEGIN_DATADESC( CBaseTrigger )
 	DEFINE_FIELD( m_hFilter,	FIELD_EHANDLE ),
 	DEFINE_KEYFIELD( m_bDisabled,		FIELD_BOOLEAN,	"StartDisabled" ),
 	DEFINE_UTLVECTOR( m_hTouchingEntities, FIELD_EHANDLE ),
+	
+	DEFINE_UTLVECTOR( m_hTouchingPlayers, FIELD_EHANDLE ),
 
 	// Inputs	
 	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
@@ -120,8 +128,19 @@ BEGIN_DATADESC( CBaseTrigger )
 	DEFINE_OUTPUT( m_OnEndTouchAll, "OnEndTouchAll"),
 	DEFINE_OUTPUT( m_OnTouching, "OnTouching" ),
 	DEFINE_OUTPUT( m_OnNotTouching, "OnNotTouching" ),
+	
+	DEFINE_OUTPUT( m_OnAllPlayersTouching, "OnAllPlayersTouching" ),
+	DEFINE_OUTPUT( m_OnMaxPlayersTouching, "OnMaxPlayersTouching" ),
 
 END_DATADESC()
+
+IMPLEMENT_SERVERCLASS_ST( CBaseTrigger, DT_BaseTrigger )
+
+	SendPropBool( SENDINFO( m_bClientSidePredicted ) ),
+	SendPropBool( SENDINFO( m_bDisabled ) ),
+	SendPropInt( SENDINFO(m_spawnflags), -1, SPROP_NOSCALE )
+
+END_SEND_TABLE()
 
 
 LINK_ENTITY_TO_CLASS( trigger, CBaseTrigger );
@@ -130,6 +149,7 @@ LINK_ENTITY_TO_CLASS( trigger, CBaseTrigger );
 CBaseTrigger::CBaseTrigger()
 {
 	AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
+	m_bClientSidePredicted = false;
 }
 
 //------------------------------------------------------------------------------
@@ -486,14 +506,28 @@ void CBaseTrigger::StartTouch(CBaseEntity *pOther)
 		EHANDLE hOther;
 		hOther = pOther;
 		
+		//We have to be delicate since touching players is acting weird
+		CBasePlayer *pPlayer = ToBasePlayer(pOther);
+		CHandle<CBasePlayer> hPlayer = pPlayer;
+		
 		bool bAdded = false;
 		if ( m_hTouchingEntities.Find( hOther ) == m_hTouchingEntities.InvalidIndex() )
 		{
 			m_hTouchingEntities.AddToTail( hOther );
 			bAdded = true;
 		}
+		if ( m_hTouchingPlayers.Find( hPlayer ) == m_hTouchingPlayers.InvalidIndex() )
+		{
+			m_hTouchingPlayers.AddToTail( hPlayer );
+		}
 
 		m_OnStartTouch.FireOutput(pOther, this);
+		
+		if ( AllPlayersAreTouching() && pPlayer )
+			m_OnAllPlayersTouching.FireOutput( pPlayer, this );
+		
+		if ( MaxPlayersAreTouching() && pPlayer )
+			m_OnMaxPlayersTouching.FireOutput( pPlayer, this );
 
 		if ( bAdded && ( m_hTouchingEntities.Count() == 1 ) )
 		{
@@ -515,7 +549,17 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 	{
 		EHANDLE hOther;
 		hOther = pOther;
+		
+		//We have to be delicate since touching players is acting weird
+		CBasePlayer *pPlayer = dynamic_cast<CBasePlayer*>(pOther);
+		CHandle<CBasePlayer> hPlayer = pPlayer;
+
 		m_hTouchingEntities.FindAndRemove( hOther );
+		
+		if (pPlayer)
+		{
+			m_hTouchingPlayers.FindAndRemove( hPlayer );
+		}
 		
 		//FIXME: Without this, triggers fire their EndTouch outputs when they are disabled!
 		//if ( !m_bDisabled )
@@ -545,6 +589,26 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 				bFoundOtherTouchee = true;
 			}
 		}
+		int iSize = m_hTouchingPlayers.Count();
+		for ( int i = iSize-1; i >= 0; i-- )
+		{
+			EHANDLE hOther;
+			hOther = m_hTouchingPlayers[i];
+
+			if ( !hOther )
+			{
+				m_hTouchingPlayers.Remove( i );
+			}
+			else if ( !hOther->IsAlive() )
+			{
+				Assert( hOther->IsPlayer() );
+				m_hTouchingPlayers.Remove( i );
+			}
+			else
+			{
+				bFoundOtherTouchee = true;
+			}
+		}
 
 		//FIXME: Without this, triggers fire their EndTouch outputs when they are disabled!
 		// Didn't find one?
@@ -564,6 +628,52 @@ bool CBaseTrigger::IsTouching( const CBaseEntity *pOther ) const
 	EHANDLE hOther;
 	hOther = pOther;
 	return ( m_hTouchingEntities.Find( hOther ) != m_hTouchingEntities.InvalidIndex() );
+}
+
+bool CBaseTrigger::AllPlayersAreTouching(void)
+{
+	//Only test if we can
+	if (!HasSpawnFlags(SF_TRIGGER_ALLOW_CLIENTS) && !HasSpawnFlags(SF_TRIGGER_ALLOW_ALL))
+		return false;
+	
+#ifdef PORTAL
+	int nMaxPlayers = pcoop_spectate_after_past_required_players.GetBool() ? GetRequiredPlayers() : gpGlobals->maxClients;
+#else
+	int nMaxPlayers = gpGlobals->maxClients;
+#endif
+
+	int iPlayerCount = 0;
+	for (int i = 1; i <= nMaxPlayers; ++i)
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+		if (pPlayer)
+		{
+			++iPlayerCount;
+		}
+	}
+
+	if ( m_hTouchingPlayers.Count() == iPlayerCount )
+		return true;
+
+	return false;
+}
+
+bool CBaseTrigger::MaxPlayersAreTouching(void)
+{
+	//Only test if we can
+	if (!HasSpawnFlags(SF_TRIGGER_ALLOW_CLIENTS) && !HasSpawnFlags(SF_TRIGGER_ALLOW_ALL))
+		return false;
+	
+#ifdef PORTAL
+	int nMaxPlayers = pcoop_spectate_after_past_required_players.GetBool() ? GetRequiredPlayers() : gpGlobals->maxClients;
+#else
+	int nMaxPlayers = gpGlobals->maxClients;
+#endif
+
+	if ( m_hTouchingPlayers.Count() == nMaxPlayers )
+		return true;
+
+	return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -1333,6 +1443,9 @@ public:
 
 	static int ChangeList( levellist_t *pLevelList, int maxList );
 
+	bool m_bAllPlayersMustBeTouching;
+	bool m_bMaxPlayersMustBeTouching;
+
 private:
 	void TouchChangeLevel( CBaseEntity *pOther );
 	void ChangeLevelNow( CBaseEntity *pActivator );
@@ -1382,6 +1495,10 @@ BEGIN_DATADESC( CChangeLevel )
 	DEFINE_AUTO_ARRAY( m_szLandmarkName, FIELD_CHARACTER ),
 //	DEFINE_FIELD( m_touchTime, FIELD_TIME ),	// don't save
 //	DEFINE_FIELD( m_bTouched, FIELD_BOOLEAN ),
+
+	DEFINE_KEYFIELD( m_bAllPlayersMustBeTouching, FIELD_BOOLEAN, "AllPlayersMustBeTouching" ),
+	
+	DEFINE_KEYFIELD( m_bMaxPlayersMustBeTouching, FIELD_BOOLEAN, "MaxPlayersMustBeTouching" ),
 
 	// Function Pointers
 	DEFINE_FUNCTION( TouchChangeLevel ),
@@ -1434,7 +1551,7 @@ void CChangeLevel::Spawn( void )
 		Msg( "a trigger_changelevel doesn't have a map" );
 	}
 
-	if ( FStrEq( m_szLandmarkName, "" ) )
+	if ( FStrEq( m_szLandmarkName, "" ) && gpGlobals->maxClients == 1 )
 	{
 		Msg( "trigger_changelevel to %s doesn't have a landmark", m_szMapName );
 	}
@@ -1521,7 +1638,7 @@ void CChangeLevel::InputChangeLevel( inputdata_t &inputdata )
 	if ( gpGlobals->maxClients == 1 )
 	{
 		CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
-		if ( pPlayer && ( !pPlayer->IsAlive() || pPlayer->GetBonusChallenge() > 0 ) )
+		if ( pPlayer && ( !pPlayer->IsAlive() || GameRules()->GetBonusChallenge() > 0))
 			return;
 	}
 
@@ -1604,17 +1721,36 @@ void CChangeLevel::WarnAboutActiveLead( void )
 	}
 }
 
+extern ConVar sv_bonus_challenge;
+
 void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 {
-	CBaseEntity	*pLandmark;
+	if ( !AllPlayersAreTouching() && m_bAllPlayersMustBeTouching )
+		return;
+	
+	if ( !MaxPlayersAreTouching() && m_bMaxPlayersMustBeTouching )
+		return;
+	
+	CBaseEntity	*pLandmark = FindLandmark( m_szLandmarkName );
+
 	levellist_t	levels[16];
 
 	Assert(!FStrEq(m_szMapName, ""));
-
-	// Don't work in deathmatch
-	if ( g_pGameRules->IsDeathmatch() )
+	
+	// Restart the map if we're doing a bonus challenge
+	if ( g_pGameRules->GetBonusChallenge() )
+	{
+		sv_bonus_challenge.SetValue(g_pGameRules->GetBonusChallenge());
+		engine->ChangeLevel( gpGlobals->mapname.ToCStr(), NULL );
 		return;
+	}
 
+	// Don't work in multiplayer
+	if ( gpGlobals->maxClients > 1 )
+	{
+		engine->ChangeLevel( m_szMapName, NULL );
+		return;
+	}
 	// Some people are firing these multiple times in a frame, disable
 	if ( m_bTouched )
 		return;
@@ -1629,9 +1765,6 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 		DevMsg( 2, "Player isn't in the transition volume %s, aborting\n", m_szLandmarkName );
 		return;
 	}
-
-	// look for a landmark entity		
-	pLandmark = FindLandmark( m_szLandmarkName );
 
 	if ( !pLandmark )
 		return;
@@ -2445,6 +2578,16 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 #else
 		pVelocity = NULL;	//BUGBUG - This does not set the player's velocity to zero!!!
 #endif
+#ifdef PORTAL // HACK: Manually set the energy ball's velocity
+		if ( FClassnameIs( pOther, "prop_energy_ball" ) )
+		{
+			float flSpeed = pOther->GetAbsVelocity().LengthSqr();
+			Vector forward;
+			AngleVectors( *pAngles, &forward );
+
+			pOther->SetAbsVelocity( forward * flSpeed );
+		}
+#endif
 	}
 
 	tmp += vecLandmarkOffset;
@@ -2857,7 +3000,9 @@ public:
 	void Spawn( void );
 	bool KeyValue( const char *szKeyName, const char *szValue );
 	void Enable( void );
+	void EnableControlAllPlayers( void );
 	void Disable( void );
+	void DisableControlAllPlayers( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void FollowTarget( void );
 	void Move(void);
@@ -2870,6 +3015,8 @@ public:
 	// Input handlers
 	void InputEnable( inputdata_t &inputdata );
 	void InputDisable( inputdata_t &inputdata );
+	void InputEnableControlAllPlayers( inputdata_t &inputdata );
+	void InputDisableControlAllPlayers( inputdata_t &inputdata );
 
 private:
 	EHANDLE m_hPlayer;
@@ -2947,6 +3094,8 @@ BEGIN_DATADESC( CTriggerCamera )
 
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "EnableControlAllPlayers", InputEnableControlAllPlayers ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "DisableControlAllPlayers", InputDisableControlAllPlayers ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
 
 	// Function Pointers
@@ -3030,6 +3179,21 @@ void CTriggerCamera::InputEnable( inputdata_t &inputdata )
 	Enable();
 }
 
+//------------------------------------------------------------------------------
+// Purpose: Input handler to turn on this trigger.
+//------------------------------------------------------------------------------
+void CTriggerCamera::InputEnableControlAllPlayers( inputdata_t &inputdata )
+{ 
+	EnableControlAllPlayers();
+}
+
+//------------------------------------------------------------------------------
+// Purpose: Input handler to turn on this trigger.
+//------------------------------------------------------------------------------
+void CTriggerCamera::InputDisableControlAllPlayers( inputdata_t &inputdata )
+{ 
+	DisableControlAllPlayers();
+}
 
 //------------------------------------------------------------------------------
 // Purpose: Input handler to turn off this trigger.
@@ -3222,6 +3386,176 @@ void CTriggerCamera::Enable( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+void CTriggerCamera::EnableControlAllPlayers( void )
+{
+	for (int i = 1; i <= gpGlobals->maxClients; ++i)
+	{
+		m_state = USE_ON;
+
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer)
+		{
+			// if the player was already under control of a similar trigger, disable the previous trigger.
+			{
+				CBaseEntity *pPrevViewControl = pPlayer->GetViewEntity();
+				if (pPrevViewControl && pPrevViewControl != pPlayer)
+				{
+					CTriggerCamera *pOtherCamera = dynamic_cast<CTriggerCamera *>(pPrevViewControl);
+					if (pOtherCamera)
+					{
+						if (pOtherCamera == this)
+						{
+							// what the hell do you think you are doing?
+							Warning("Viewcontrol %s was enabled twice in a row!\n", GetDebugName());
+							continue;
+						}
+						else
+						{
+							pOtherCamera->Disable();
+						}
+					}
+				}
+			}
+
+
+			m_nPlayerButtons = pPlayer->m_nButtons;
+
+
+			// Make the player invulnerable while under control of the camera.  This will prevent situations where the player dies while under camera control but cannot restart their game due to disabled player inputs.
+			m_nOldTakeDamage = pPlayer->m_takedamage;
+			pPlayer->m_takedamage = DAMAGE_NO;
+
+			if (HasSpawnFlags(SF_CAMERA_PLAYER_NOT_SOLID))
+			{
+				pPlayer->AddSolidFlags(FSOLID_NOT_SOLID);
+			}
+
+			m_flReturnTime = gpGlobals->curtime + m_flWait;
+			m_flSpeed = m_initialSpeed;
+			m_targetSpeed = m_initialSpeed;
+
+			// this pertains to view angles, not translation.
+			if (HasSpawnFlags(SF_CAMERA_PLAYER_SNAP_TO))
+			{
+				m_bSnapToGoal = true;
+			}
+
+			if (HasSpawnFlags(SF_CAMERA_PLAYER_TARGET))
+			{
+				m_hTarget = pPlayer;
+			}
+			else
+			{
+				m_hTarget = GetNextTarget();
+			}
+
+			// If we don't have a target, ignore the attachment / etc
+			if (m_hTarget)
+			{
+				m_iAttachmentIndex = 0;
+				if (m_iszTargetAttachment != NULL_STRING)
+				{
+					if (!m_hTarget->GetBaseAnimating())
+					{
+						Warning("%s tried to target an attachment (%s) on target %s, which has no model.\n", GetClassname(), STRING(m_iszTargetAttachment), STRING(m_hTarget->GetEntityName()));
+					}
+					else
+					{
+						m_iAttachmentIndex = m_hTarget->GetBaseAnimating()->LookupAttachment(STRING(m_iszTargetAttachment));
+						if (m_iAttachmentIndex <= 0)
+						{
+							Warning("%s could not find attachment %s on target %s.\n", GetClassname(), STRING(m_iszTargetAttachment), STRING(m_hTarget->GetEntityName()));
+						}
+					}
+				}
+			}
+
+			if (HasSpawnFlags(SF_CAMERA_PLAYER_TAKECONTROL))
+			{
+				pPlayer->EnableControl(FALSE);
+			}
+
+			if (m_sPath != NULL_STRING)
+			{
+				m_pPath = gEntList.FindEntityByName(NULL, m_sPath, NULL, pPlayer);
+			}
+			else
+			{
+				m_pPath = NULL;
+			}
+
+			m_flStopTime = gpGlobals->curtime;
+			if (m_pPath)
+			{
+				if (m_pPath->m_flSpeed != 0)
+					m_targetSpeed = m_pPath->m_flSpeed;
+
+				m_flStopTime += m_pPath->GetDelay();
+			}
+
+
+			// copy over player information. If we're interpolating from
+			// the player position, do something more elaborate.
+#if HL2_EPISODIC
+			if (m_bInterpolatePosition)
+			{
+				// initialize the values we'll spline between
+				m_vStartPos = pPlayer->EyePosition();
+				m_vEndPos = GetAbsOrigin();
+				m_flInterpStartTime = gpGlobals->curtime;
+				UTIL_SetOrigin(this, pPlayer->EyePosition());
+				SetLocalAngles(QAngle(pPlayer->GetLocalAngles().x, pPlayer->GetLocalAngles().y, 0));
+
+				SetAbsVelocity(vec3_origin);
+			}
+			else
+#endif
+				if (HasSpawnFlags(SF_CAMERA_PLAYER_POSITION))
+				{
+					UTIL_SetOrigin(this, pPlayer->EyePosition());
+					SetLocalAngles(QAngle(pPlayer->GetLocalAngles().x, pPlayer->GetLocalAngles().y, 0));
+					SetAbsVelocity(pPlayer->GetAbsVelocity());
+				}
+				else
+				{
+					SetAbsVelocity(vec3_origin);
+				}
+
+
+			pPlayer->SetViewEntity(this);
+
+			// Hide the player's viewmodel
+			if (pPlayer->GetActiveWeapon())
+			{
+				pPlayer->GetActiveWeapon()->AddEffects(EF_NODRAW);
+			}
+			
+			// Only track if we have a target
+			if (m_hTarget)
+			{
+				// follow the player down
+				SetThink(&CTriggerCamera::FollowTarget);
+				SetNextThink(gpGlobals->curtime);
+			}
+
+			m_moveDistance = 0;
+			Move();
+
+			DispatchUpdateTransmitState();
+		}
+		else
+		{
+			DispatchUpdateTransmitState();
+			continue;
+		}
+
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 void CTriggerCamera::Disable( void )
 {
 	if ( m_hPlayer && m_hPlayer->IsAlive() )
@@ -3251,6 +3585,46 @@ void CTriggerCamera::Disable( void )
 	SetLocalAngularVelocity( vec3_angle );
 
 	DispatchUpdateTransmitState();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTriggerCamera::DisableControlAllPlayers( void )
+{
+
+	for (int i = 1; i <= gpGlobals->maxClients; ++i)
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+		if ( pPlayer )
+		{
+			if ( HasSpawnFlags( SF_CAMERA_PLAYER_NOT_SOLID ) )
+			{
+				pPlayer->RemoveSolidFlags( FSOLID_NOT_SOLID );
+			}
+
+			pPlayer->SetViewEntity( pPlayer );
+			pPlayer->EnableControl(TRUE);
+
+			// Restore the player's viewmodel
+			if ( pPlayer->GetActiveWeapon() )
+			{
+				pPlayer->GetActiveWeapon()->RemoveEffects( EF_NODRAW );
+			}
+			//return the player to previous takedamage state
+			pPlayer->m_takedamage = m_nOldTakeDamage;
+		}
+
+		m_state = USE_OFF;
+		m_flReturnTime = gpGlobals->curtime;
+		SetThink( NULL );
+
+		m_OnEndFollow.FireOutput(this, this); // dvsents2: what is the best name for this output?
+		SetLocalAngularVelocity( vec3_angle );
+
+		DispatchUpdateTransmitState();
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -4225,12 +4599,10 @@ int CTriggerImpact::DrawDebugTextOverlays(void)
 // Purpose: Disables auto movement on players that touch it
 //-----------------------------------------------------------------------------
 
-const int SF_TRIGGER_MOVE_AUTODISABLE				= 0x80;		// disable auto movement
-const int SF_TRIGGER_AUTO_DUCK						= 0x800;	// Duck automatically
-
 class CTriggerPlayerMovement : public CBaseTrigger
 {
 	DECLARE_CLASS( CTriggerPlayerMovement, CBaseTrigger );
+	DECLARE_SERVERCLASS();
 public:
 
 	void Spawn( void );
@@ -4240,6 +4612,9 @@ public:
 	DECLARE_DATADESC();
 
 };
+
+IMPLEMENT_SERVERCLASS_ST( CTriggerPlayerMovement, DT_TriggerPlayerMovement )
+END_SEND_TABLE()
 
 BEGIN_DATADESC( CTriggerPlayerMovement )
 
@@ -4264,6 +4639,14 @@ void CTriggerPlayerMovement::Spawn( void )
 	BaseClass::Spawn();
 
 	InitTrigger();
+	
+	// Bugbait 19571:  Make CTriggerPlayerMovement for AutoDuck available on client for client side prediction
+	if ( HasSpawnFlags( SF_TRIGGER_AUTO_DUCK ) ||
+		 HasSpawnFlags( SF_TRIGGER_AUTO_WALK ) )
+	{
+		m_bClientSidePredicted = true;
+		SetTransmitState( FL_EDICT_PVSCHECK );
+	}
 }
 
 
@@ -4281,7 +4664,13 @@ void CTriggerPlayerMovement::StartTouch( CBaseEntity *pOther )
 
 	if ( HasSpawnFlags( SF_TRIGGER_AUTO_DUCK ) )
 	{
+		pPlayer->m_bForceDuckedByTriggerPlayerMove = true;
 		pPlayer->ForceButtons( IN_DUCK );
+	}
+	
+	if ( HasSpawnFlags( SF_TRIGGER_AUTO_WALK ) )
+	{
+		pPlayer->ForceButtons( IN_SPEED );
 	}
 
 	// UNDONE: Currently this is the only operation this trigger can do
@@ -4303,7 +4692,13 @@ void CTriggerPlayerMovement::EndTouch( CBaseEntity *pOther )
 
 	if ( HasSpawnFlags( SF_TRIGGER_AUTO_DUCK ) )
 	{
+		pPlayer->m_bForceDuckedByTriggerPlayerMove = false;
 		pPlayer->UnforceButtons( IN_DUCK );
+	}
+	
+	if ( HasSpawnFlags( SF_TRIGGER_AUTO_WALK ) )
+	{
+		pPlayer->UnforceButtons( IN_SPEED );
 	}
 
 	if ( HasSpawnFlags(SF_TRIGGER_MOVE_AUTODISABLE) )
@@ -4327,6 +4722,11 @@ BEGIN_DATADESC( CBaseVPhysicsTrigger )
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Toggle", InputToggle ),
 END_DATADESC()
+
+
+IMPLEMENT_SERVERCLASS_ST( CBaseVPhysicsTrigger, DT_BaseVPhysicsTrigger )
+	//SendPropBool	( SENDINFO( m_bDisabled ) ),
+END_SEND_TABLE()
 
 //------------------------------------------------------------------------------
 // Spawn

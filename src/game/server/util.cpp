@@ -574,6 +574,8 @@ CBasePlayer	*UTIL_PlayerByIndex( int playerIndex )
 	return pPlayer;
 }
 
+ConVar g_debug_getlocalplayer("g_debug_getlocalplayer", "0", FCVAR_CHEAT);
+
 //
 // Return the local player.
 // If this is a multiplayer game, return NULL.
@@ -584,17 +586,55 @@ CBasePlayer *UTIL_GetLocalPlayer( void )
 	{
 		if ( developer.GetBool() )
 		{
-			Assert( !"UTIL_GetLocalPlayer" );
+		//	Assert( !"UTIL_GetLocalPlayer" );
 			
-#ifdef	DEBUG
-			Warning( "UTIL_GetLocalPlayer() called in multiplayer game.\n" );
-#endif
+			if (g_debug_getlocalplayer.GetBool())
+				Warning( "UTIL_GetLocalPlayer() called in multiplayer game.\n" );
+
 		}
 
 		return NULL;
 	}
 
 	return UTIL_PlayerByIndex( 1 );
+}
+
+//
+// Returns nearest player. 
+// Control with boolean if line of sight is needed.
+//
+CBasePlayer *UTIL_GetNearestPlayer(CBaseEntity *pLooker, bool bNeedsLOS)
+{
+	float flFinalDistance = 999999.0f;
+	CBasePlayer *pFinalPlayer = NULL;
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+		if (!pPlayer){
+			continue;
+		}
+
+		float flDistance = (pPlayer->GetAbsOrigin() - pLooker->GetAbsOrigin()).LengthSqr();
+
+		if (flDistance < flFinalDistance)
+		{
+			if (bNeedsLOS)
+			{
+				//Check if the player is visible to the entity (only brushes obstruct vision)
+				if (!pLooker->FVisible(pPlayer, MASK_SOLID_BRUSHONLY))
+				{
+					continue;
+				}
+			}
+
+			pFinalPlayer = pPlayer;
+			flFinalDistance = flDistance;
+		}
+	}
+
+	return pFinalPlayer;
 }
 
 //
@@ -605,8 +645,10 @@ CBasePlayer *UTIL_GetListenServerHost( void )
 	// no "local player" if this is a dedicated server or a single player game
 	if (engine->IsDedicatedServer())
 	{
+#if 0
 		Assert( !"UTIL_GetListenServerHost" );
 		Warning( "UTIL_GetListenServerHost() called from a dedicated server or single-player game.\n" );
+#endif
 		return NULL;
 	}
 
