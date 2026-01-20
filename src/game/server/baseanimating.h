@@ -55,6 +55,15 @@ public:
 	virtual int	 Restore( IRestore &restore );
 	virtual void OnRestore();
 
+#ifdef GLOWS_ENABLE
+	// Glows
+	void				SetGlowEffectColor(float r, float g, float b);	
+	void				SetGlowEffectColor(Color color);
+	void				AddGlowEffect(void);
+	void				RemoveGlowEffect(void);
+	bool				IsGlowEffectActive(void);
+#endif // GLOWS_ENABLE
+
 	CStudioHdr *GetModelPtr( void );
 	void InvalidateMdlCache();
 
@@ -169,6 +178,13 @@ public:
 	bool	HasPoseParameter( int iSequence, const char *szName );
 	bool	HasPoseParameter( int iSequence, int iParameter );
 	float	EdgeLimitPoseParameter( int iParameter, float flValue, float flBase = 0.0f );
+	
+#ifdef GLOWS_ENABLE
+	CNetworkVar(bool, m_bGlowEnabled);
+	CNetworkVar(float, m_flGlowR);
+	CNetworkVar(float, m_flGlowG);
+	CNetworkVar(float, m_flGlowB);
+#endif // GLOWS_ENABLE
 
 protected:
 	// The modus operandi for pose parameters is that you should not use the const char * version of the functions
@@ -281,6 +297,7 @@ public:
 	void InvalidateBoneCache();
 	void InvalidateBoneCacheIfOlderThan( float deltaTime );
 	virtual int DrawDebugTextOverlays( void );
+	virtual bool IsViewModel() const { return false; }
 	
 	// See note in code re: bandwidth usage!!!
 	void				DrawServerHitboxes( float duration = 0.0f, bool monocolor = false );
@@ -293,6 +310,13 @@ public:
 	void				UpdateModelScale();
 	virtual	void		RefreshCollisionBounds( void );
 	
+#ifdef GLOWS_ENABLE
+	void AddGlowTime( float fTime );
+	void AddGlowThink( void );
+
+	void RemoveGlowTime( float fTime );
+	void RemoveGlowThink( void );
+#endif
 	// also calculate IK on server? (always done on client)
 	void EnableServerIK();
 	void DisableServerIK();
@@ -320,6 +344,16 @@ public:
 	void InputIgniteNumHitboxFires( inputdata_t &inputdata );
 	void InputIgniteHitboxFireScale( inputdata_t &inputdata );
 	void InputBecomeRagdoll( inputdata_t &inputdata );
+	
+#ifdef GLOWS_ENABLE
+	void ReloadGlow(inputdata_t& inputdata);
+	void SetGlowEnabled(inputdata_t& inputdata);
+	void SetGlowDisabled(inputdata_t& inputdata);
+	void SetGlowColorRed(inputdata_t& inputdata);
+	void SetGlowColorGreen(inputdata_t& inputdata);
+	void SetGlowColorBlue(inputdata_t& inputdata);
+	void SetGlowColor(inputdata_t& inputdata);
+#endif
 
 	// Dissolve, returns true if the ragdoll has been created
 	bool Dissolve( const char *pMaterialName, float flStartTime, bool bNPCOnly = true, int nDissolveType = 0, Vector vDissolverOrigin = vec3_origin, int iMagnitude = 0 );
@@ -365,6 +399,9 @@ private:
 	void InputSetModel( inputdata_t &inputdata );
 	void InputSetCycle( inputdata_t &inputdata );
 	void InputSetPlaybackRate( inputdata_t &inputdata );
+	
+	void				UpdateGlowEffect( void );
+	void				DestroyGlowEffect( void );
 
 	bool CanSkipAnimation( void );
 

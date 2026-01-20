@@ -109,6 +109,9 @@ END_DATADESC()
 // ID Stamp used to uniquely identify every output
 int CEventAction::s_iNextIDStamp = 0;
 
+#if defined ( TF_DLL ) || defined ( PORTAL )
+#define USE_SERVER_TIME
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Creates an event action and assigns it an unique ID stamp.
@@ -336,7 +339,7 @@ void CBaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CBa
 			Q_snprintf( szBuffer,
 						sizeof(szBuffer),
 						"(%0.2f) output: (%s,%s) -> (%s,%s,%.1f)(%s)\n",
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 						engine->GetServerTime(),
 #else
 						gpGlobals->curtime,
@@ -357,7 +360,7 @@ void CBaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CBa
 			Q_snprintf( szBuffer,
 						sizeof(szBuffer),
 						"(%0.2f) output: (%s,%s) -> (%s,%s)(%s)\n",
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 						engine->GetServerTime(),
 #else
 						gpGlobals->curtime,
@@ -863,7 +866,7 @@ void CEventQueue::Dump( void )
 	EventQueuePrioritizedEvent_t *pe = m_Events.m_pNext;
 
 	Msg("Dumping event queue. Current time is: %.2f\n",
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 		engine->GetServerTime()
 #else
 		gpGlobals->curtime
@@ -896,7 +899,7 @@ void CEventQueue::AddEvent( const char *target, const char *targetInput, variant
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 	newEvent->m_flFireTime = engine->GetServerTime() + fireDelay;	// priority key in the priority queue
 #else
 	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay;	// priority key in the priority queue
@@ -919,7 +922,7 @@ void CEventQueue::AddEvent( CBaseEntity *target, const char *targetInput, varian
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 	newEvent->m_flFireTime = engine->GetServerTime() + fireDelay;	// primary priority key in the priority queue
 #else
 	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay;	// primary priority key in the priority queue
@@ -994,7 +997,7 @@ void CEventQueue::ServiceEvents( void )
 
 	EventQueuePrioritizedEvent_t *pe = m_Events.m_pNext;
 
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 	while ( pe != NULL && pe->m_flFireTime <= engine->GetServerTime() )
 #else
 	while ( pe != NULL && pe->m_flFireTime <= gpGlobals->curtime )
@@ -1284,7 +1287,7 @@ int CEventQueue::Restore( IRestore &restore )
 			AddEvent( tmpEvent.m_pEntTarget,
 					  STRING(tmpEvent.m_iTargetInput),
 					  tmpEvent.m_VariantValue,
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 					  tmpEvent.m_flFireTime - engine->GetServerTime(),
 #else
 					  tmpEvent.m_flFireTime - gpGlobals->curtime,
@@ -1298,7 +1301,7 @@ int CEventQueue::Restore( IRestore &restore )
 			AddEvent( STRING(tmpEvent.m_iTarget),
 					  STRING(tmpEvent.m_iTargetInput),
 					  tmpEvent.m_VariantValue,
-#ifdef TF_DLL
+#ifdef USE_SERVER_TIME
 					  tmpEvent.m_flFireTime - engine->GetServerTime(),
 #else
 					  tmpEvent.m_flFireTime - gpGlobals->curtime,

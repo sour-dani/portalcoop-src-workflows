@@ -325,6 +325,8 @@ public:
 	
 	virtual CBaseEntity* EntSelectSpawnPoint( void ) OVERRIDE;
 
+	bool					m_bInvisible;
+
 #ifdef PORTAL_MP
 public:
 	void PickTeam( void );

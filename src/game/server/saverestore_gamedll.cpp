@@ -112,7 +112,7 @@ bool ParseKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, c
 			case FIELD_MATERIALINDEX:
 			case FIELD_EDICT:
 				Warning( "Bad field in entity!!\n" );
-				Assert(0);
+				AssertMsg( 0, "Bad field in entity!!" );
 				break;
 			}
 		}
@@ -231,7 +231,7 @@ bool ExtractKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields,
 			case FIELD_MATERIALINDEX:
 			case FIELD_EDICT:
 				Warning( "Bad field in entity!!\n" );
-				Assert(0);
+				AssertMsg( 0, "Bad field in entity!!" );
 				break;
 			}
 		}

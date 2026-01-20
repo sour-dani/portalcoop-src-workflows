@@ -82,6 +82,10 @@
 #include "weapon_physcannon.h"
 #endif
 
+#ifdef PORTAL
+#include "portal_player.h"
+#endif
+
 ConVar autoaim_max_dist( "autoaim_max_dist", "2160" ); // 2160 = 180 feet
 ConVar autoaim_max_deflect( "autoaim_max_deflect", "0.99" );
 
@@ -199,7 +203,7 @@ ConVar  player_debug_print_damage( "player_debug_print_damage", "0", FCVAR_CHEAT
 
 void CC_GiveCurrentAmmo( void )
 {
-	CBasePlayer *pPlayer = UTIL_PlayerByIndex(1);
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
 
 	if( pPlayer )
 	{
@@ -280,6 +284,7 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_flVehicleViewFOV, FIELD_FLOAT ),
 
 	//DEFINE_FIELD( m_fOnTarget, FIELD_BOOLEAN ), // Don't need to restore
+	DEFINE_FIELD( m_bForceDuckedByTriggerPlayerMove, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_iObserverMode, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iObserverLastMode, FIELD_INTEGER ),
 	DEFINE_FIELD( m_hObserverTarget, FIELD_EHANDLE ),
@@ -327,9 +332,6 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_iSuitPlayNext, FIELD_INTEGER ),
 	DEFINE_AUTO_ARRAY( m_rgiSuitNoRepeat, FIELD_INTEGER ),
 	DEFINE_AUTO_ARRAY( m_rgflSuitNoRepeatTime, FIELD_TIME ),
-	DEFINE_FIELD( m_bPauseBonusProgress, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_iBonusProgress, FIELD_INTEGER ),
-	DEFINE_FIELD( m_iBonusChallenge, FIELD_INTEGER ),
 	DEFINE_FIELD( m_lastDamageAmount, FIELD_INTEGER ),
 	DEFINE_FIELD( m_tbdPrev, FIELD_TIME ),
 	DEFINE_FIELD( m_flStepSoundTime, FIELD_FLOAT ),
@@ -1968,12 +1970,12 @@ void CBasePlayer::WaterMove()
 		// not underwater
 		
 		// play 'up for air' sound
-		
+#ifndef PORTAL // This is playing when it shouldn't, this should be re-enabled much later though
 		if (m_AirFinished < gpGlobals->curtime)
 		{
 			EmitSound( "Player.DrownStart" );
 		}
-
+#endif
 		m_AirFinished = gpGlobals->curtime + AIRTIME;
 		m_nDrownDmgRate = DROWNING_DAMAGE_INITIAL;
 
@@ -2092,6 +2094,10 @@ void CBasePlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *d
 
 void CBasePlayer::PlayerDeathThink(void)
 {
+#ifdef PORTAL
+	((CPortal_Player*)this)->CPortal_Player::PlayerDeathThink();
+	return;
+#endif
 	float flForward;
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
@@ -3837,22 +3843,6 @@ void CBasePlayer::EnableButtons( int nButtons )
 	m_afButtonDisabled &= ~nButtons;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: Strips off IN_xxx flags from the player's input
-//-----------------------------------------------------------------------------
-void CBasePlayer::ForceButtons( int nButtons )
-{
-	m_afButtonForced |= nButtons;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Re-enables stripped IN_xxx flags to the player's input
-//-----------------------------------------------------------------------------
-void CBasePlayer::UnforceButtons( int nButtons )
-{
-	m_afButtonForced &= ~nButtons;
-}
-
 void CBasePlayer::HandleFuncTrain(void)
 {
 	if ( m_afPhysicsFlags & PFLAG_DIROVERRIDE )
@@ -4928,9 +4918,6 @@ USES AND SETS GLOBAL g_pLastSpawn
 CBaseEntity *CBasePlayer::EntSelectSpawnPoint()
 {
 	CBaseEntity *pSpot;
-	edict_t		*player;
-
-	player = edict();
 
 // choose a info_player_deathmatch point
 	if (g_pGameRules->IsCoOp())
@@ -4981,7 +4968,7 @@ CBaseEntity *CBasePlayer::EntSelectSpawnPoint()
 			for ( CEntitySphereQuery sphere( pSpot->GetAbsOrigin(), 128 ); (ent = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
 			{
 				// if ent is a client, kill em (unless they are ourselves)
-				if ( ent->IsPlayer() && !(ent->edict() == player) )
+				if ( ent->IsPlayer() && !(ent == this) )
 					ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 300, DMG_GENERIC ) );
 			}
 			goto ReturnSpot;
@@ -5109,9 +5096,6 @@ void CBasePlayer::Spawn( void )
 	
 	m_HackedGunPos		= Vector( 0, 32, 0 );
 
-	m_iBonusChallenge = sv_bonus_challenge.GetInt();
-	sv_bonus_challenge.SetValue( 0 );
-
 	if ( m_iPlayerSound == SOUNDLIST_EMPTY )
 	{
 		Msg( "Couldn't alloc player sound slot!\n" );
@@ -5190,6 +5174,8 @@ void CBasePlayer::Spawn( void )
 	}
 
 	m_weaponFiredTimer.Invalidate();
+
+	m_bForceDuckedByTriggerPlayerMove = false;
 }
 
 void CBasePlayer::Activate( void )
@@ -5329,6 +5315,14 @@ int CBasePlayer::Restore( IRestore &restore )
 		CBaseEntity *pSpawnSpot = EntSelectSpawnPoint();
 		SetLocalOrigin( pSpawnSpot->GetLocalOrigin() + Vector(0,0,1) );
 		SetLocalAngles( pSpawnSpot->GetLocalAngles() );
+
+#ifdef PORTAL
+		CInfoPlayerPortalCoop *pCoopSpawn = dynamic_cast<CInfoPlayerPortalCoop*>(pSpawnSpot);
+		if ( pCoopSpawn && pCoopSpawn->CanSpawnOnMe( this ) )
+		{
+			pCoopSpawn->PlayerSpawned(this);
+		}
+#endif
 	}
 
 	QAngle newViewAngles = pl.v_angle;
@@ -6956,12 +6950,12 @@ void CBasePlayer::UpdateClientData( void )
 			if ( g_pGameRules->IsMultiplayer() )
 			{
 				variant_t value;
-				g_EventQueue.AddEvent( "game_player_manager", "OnPlayerJoin", value, 0, this, this );
+				g_EventQueue.AddEvent( "game_player_manager", "PlayerJoin", value, 0, this, this );
 			}
 		}
 
 		variant_t value;
-		g_EventQueue.AddEvent( "game_player_manager", "OnPlayerSpawn", value, 0, this, this );
+		g_EventQueue.AddEvent( "game_player_manager", "PlayerSpawn", value, 0, this, this );
 	}
 
 	// HACKHACK -- send the message to display the game title
@@ -7027,12 +7021,15 @@ void CBasePlayer::UpdateClientData( void )
 	m_Local.m_bPoisoned = ( m_bitsDamageType & DMG_POISON ) 
 						&& ( m_nPoisonDmg > m_nPoisonRestored ) 
 						&& ( m_iHealth < 100 );
-
+	
+	// I am soooo happy I didn't completely delete this lol - Wonderland_War
+#if 1
 	// Check if the bonus progress HUD element should be displayed
-	if ( m_iBonusChallenge == 0 && m_iBonusProgress == 0 && !( m_Local.m_iHideHUD & HIDEHUD_BONUS_PROGRESS ) )
+	if ( g_pGameRules->GetBonusChallenge() == 0 && g_pGameRules->GetBonusProgress() == 0 && !( m_Local.m_iHideHUD & HIDEHUD_BONUS_PROGRESS ) )
 		m_Local.m_iHideHUD |= HIDEHUD_BONUS_PROGRESS;
-	if ( ( m_iBonusChallenge != 0 )&& ( m_Local.m_iHideHUD & HIDEHUD_BONUS_PROGRESS ) )
+	if ( ( g_pGameRules->GetBonusChallenge() != 0 )&& ( m_Local.m_iHideHUD & HIDEHUD_BONUS_PROGRESS ) )
 		m_Local.m_iHideHUD &= ~HIDEHUD_BONUS_PROGRESS;
+#endif
 
 	// Let any global rules update the HUD, too
 	g_pGameRules->UpdateClientData( this );
@@ -7724,20 +7721,6 @@ void CBasePlayer::UnlockPlayer( void )
 	m_iPlayerLocked = false;
 }
 
-bool CBasePlayer::ClearUseEntity()
-{
-	if ( m_hUseEntity != NULL )
-	{
-		// Stop controlling the train/object
-		// TODO: Send HUD Update
-		m_hUseEntity->Use( this, this, USE_OFF, 0 );
-		m_hUseEntity = NULL;
-		return true;
-	}
-
-	return false;
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -8177,8 +8160,6 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 		SendPropEHandle(SENDINFO(m_hUseEntity)),
 		SendPropInt		(SENDINFO(m_iHealth), -1, SPROP_VARINT | SPROP_CHANGES_OFTEN ),
 		SendPropInt		(SENDINFO(m_lifeState), 3, SPROP_UNSIGNED ),
-		SendPropInt		(SENDINFO(m_iBonusProgress), 15 ),
-		SendPropInt		(SENDINFO(m_iBonusChallenge), 4 ),
 		SendPropFloat	(SENDINFO(m_flMaxspeed), 12, SPROP_ROUNDDOWN, 0.0f, 2048.0f ),  // CL
 		SendPropInt		(SENDINFO(m_fFlags), 0, SPROP_UNSIGNED|SPROP_CHANGES_OFTEN ),
 		SendPropInt		(SENDINFO(m_iObserverMode), 3, SPROP_UNSIGNED ),
@@ -8550,40 +8531,6 @@ void CBasePlayer::VPhysicsDestroyObject()
 	}
 
 	BaseClass::VPhysicsDestroyObject();
-}
-
-
-//-----------------------------------------------------------------------------
-// Purpose:
-//-----------------------------------------------------------------------------
-void CBasePlayer::SetVCollisionState( const Vector &vecAbsOrigin, const Vector &vecAbsVelocity, int collisionState )
-{
-	m_vphysicsCollisionState = collisionState;
-	switch( collisionState )
-	{
-	case VPHYS_WALK:
- 		m_pShadowStand->SetPosition( vecAbsOrigin, vec3_angle, true );
-		m_pShadowStand->SetVelocity( &vecAbsVelocity, NULL );
-		m_pShadowCrouch->EnableCollisions( false );
-		m_pPhysicsController->SetObject( m_pShadowStand );
-		VPhysicsSwapObject( m_pShadowStand );
-		m_pShadowStand->EnableCollisions( true );
-		break;
-
-	case VPHYS_CROUCH:
-		m_pShadowCrouch->SetPosition( vecAbsOrigin, vec3_angle, true );
-		m_pShadowCrouch->SetVelocity( &vecAbsVelocity, NULL );
-		m_pShadowStand->EnableCollisions( false );
-		m_pPhysicsController->SetObject( m_pShadowCrouch );
-		VPhysicsSwapObject( m_pShadowCrouch );
-		m_pShadowCrouch->EnableCollisions( true );
-		break;
-	
-	case VPHYS_NOCLIP:
-		m_pShadowCrouch->EnableCollisions( false );
-		m_pShadowStand->EnableCollisions( false );
-		break;
-	}
 }
 
 //-----------------------------------------------------------------------------

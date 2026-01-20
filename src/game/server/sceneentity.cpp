@@ -39,6 +39,10 @@
 #include "npc_alyx_episodic.h"
 #endif // HL2_EPISODIC
 
+#ifdef PORTAL
+#include "portal_shareddefs.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1585,7 +1589,14 @@ void CSceneEntity::DispatchEndMoveTo( CChoreoScene *scene, CBaseFlex *actor, CCh
 //-----------------------------------------------------------------------------
 bool AttenuateCaption( const char *token, const Vector& listener, CUtlVector< Vector >& soundorigins )
 {
-	if ( scene_maxcaptionradius.GetFloat() <= 0.0f )
+	float radius = scene_maxcaptionradius.GetFloat();
+#ifdef PORTAL // REXAURA: Bad hack but it's quicker than going through every scene
+	if ( sv_portal_game.GetInt() == PORTAL_GAME_REXAURA )
+	{
+		radius = 0.0f;
+	}
+#endif
+	if ( radius <= 0.0f )
 	{
 		return false;
 	}
@@ -1597,7 +1608,7 @@ bool AttenuateCaption( const char *token, const Vector& listener, CUtlVector< Ve
 		return false;
 	}
 
-	float maxdistSqr = scene_maxcaptionradius.GetFloat() * scene_maxcaptionradius.GetFloat();
+	float maxdistSqr = radius * radius;
 
 	for ( int i = 0; i  < c; ++i )
 	{

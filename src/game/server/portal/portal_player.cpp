@@ -195,7 +195,10 @@ CON_COMMAND(invisible, "Makes the command user invisible")
 	if (sv_cheats->GetBool() == false)
 		return;
 	
-	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+	CPortal_Player *pPlayer = (CPortal_Player*)UTIL_GetCommandClient();
+	if ( !pPlayer )
+		return;
+
 	CBaseCombatWeapon *pWeapon = pPlayer->GetActiveWeapon();
 
 	if (pPlayer->m_bInvisible)
@@ -784,6 +787,8 @@ CPortal_Player::CPortal_Player()
 	m_flLookForUseEntityTime = 0;
 
 	m_bForceBumpWeapon = false;
+
+	m_bInvisible = false;
 }
 
 CPortal_Player::~CPortal_Player(void)
@@ -984,6 +989,8 @@ void CPortal_Player::Spawn(void)
 
 	if ( IsBot() )
 		BotSetupModelConVarValue( this );
+
+	m_bInvisible = false;
 }
 
 void CPortal_Player::Activate(void)

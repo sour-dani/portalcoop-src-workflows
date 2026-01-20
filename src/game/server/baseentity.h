@@ -99,6 +99,10 @@ class CSkyCamera;
 class CEntityMapData;
 class INextBot;
 class IHasAttributes;
+#ifdef PORTAL
+class CProp_Portal;
+enum PortalEvent_t;
+#endif
 
 typedef CUtlVector< CBaseEntity* > EntityList_t;
 
@@ -938,7 +942,7 @@ private:
 public:
 
 	// Returns a CBaseAnimating if the entity is derived from CBaseAnimating.
-	virtual CBaseAnimating*	GetBaseAnimating() { return 0; }
+	virtual CBaseAnimating*	GetBaseAnimating() { return NULL; }
 
 	virtual IResponseSystem *GetResponseSystem();
 	virtual void	DispatchResponse( const char *conceptName );
@@ -1940,6 +1944,10 @@ public:
 
 	// So it can get at the physics methods
 	friend class CCollisionEvent;
+	
+	void SetPingIcon(PINGICON iPingIcon) { m_iPingIcon = iPingIcon; }
+
+	CNetworkVar(PINGICON, m_iPingIcon);
 
 // Methods shared by client and server
 public:
@@ -2022,6 +2030,11 @@ public:
 #endif // TF_DLL
 
 	virtual bool BCanCallVote() { return true; }
+	
+public:
+#ifdef PORTAL
+	virtual void NotifyPortalEvent( PortalEvent_t nEventType, CProp_Portal *pNotifier ) { /*Do nothing*/ }
+#endif // PORTAL
 
 private:
 	CThreadFastMutex m_CalcAbsolutePositionMutex;

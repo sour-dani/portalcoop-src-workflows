@@ -123,6 +123,8 @@ extern ConVar tf_mm_servermode;
 #ifdef PORTAL
 #include "prop_portal_shared.h"
 #include "portal_player.h"
+#include "portal_shareddefs.h"
+#include "portal_gamerules.h"
 #endif
 
 #if defined( REPLAY_ENABLED )
@@ -747,7 +749,34 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 
 	return true;
 }
+#ifdef PORTAL
+unsigned int g_fInstalledGames = 0;
+void SetupGameInstallBits()
+{
+	int nInstallBits = 0;
+		
+	// Check to see if Portal is mounted, this may be unnecessary since there's already an engine crash if Portal isn't installed
+	int index = CBaseEntity::PrecacheScriptSound( "UpdateItem.Dinosaur01" );
+	if ( index != -1 )
+	{
+		nInstallBits |= INSTALL_BITS_PORTAL;
+	}
 
+	// Check to see if Rexaura is mounted
+	index = CBaseEntity::PrecacheScriptSound( "ball_mod_ai.destroyer_01" );
+	if ( index != -1 )
+	{
+		nInstallBits |= INSTALL_BITS_REXAURA;
+	}
+	
+	g_fInstalledGames = nInstallBits;
+}
+
+CON_COMMAND_F( pcoop_server_install_bits, "", FCVAR_HIDDEN )
+{
+	Msg( "Install Bits: %i", g_fInstalledGames );
+}
+#endif
 void CServerGameDLL::PostInit()
 {
 	IGameSystem::PostInitAllSystems();
@@ -951,12 +980,48 @@ bool CServerGameDLL::IsRestoring()
 	return g_InRestore;
 }
 
+#ifdef PORTAL
+ConVar pcoop_ignore_installed_games_check( "pcoop_ignore_installed_games_check", "0", FCVAR_NONE, "Ignores the game install check for maps that depend on another mod being mounted" );
+void UpdatePortalGameType( const char *pMapName )
+{
+	/*if ( V_stristr( pMapName, "p2coop_" ) || V_stristr( pMapName, "p3coop_" ) )
+	{
+		sv_portal_game.SetValue( PORTAL_GAME_PORTAL );
+	}
+	else*/ if ( V_stristr( pMapName, "rex2c_" ) || V_stristr( pMapName, "rex3c_" ) || V_stristr( pMapName, "rex_" ) )
+	{
+		if ( !pcoop_ignore_installed_games_check.GetBool() && (g_fInstalledGames & INSTALL_BITS_REXAURA) == 0 )
+		{
+			if ( engine->IsDedicatedServer() )
+			{
+				Error( "Rexaura must be mounted to open this map" );
+			}
+		}
+		sv_portal_game.SetValue( PORTAL_GAME_REXAURA );
+	}
+	else // Use Portal by default
+	{
+		sv_portal_game.SetValue( PORTAL_GAME_PORTAL );
+	}
+}
+#endif
+#ifdef PORTAL
+bool g_bFirstFrameSimulated = false;
+#endif
 float g_flServerCurTime = 0.0f;
 
 // Called any time a new level is started (after GameInit() also on level transitions within a game)
 bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, char const *pOldLevel, char const *pLandmarkName, bool loadGame, bool background )
 {
 	VPROF("CServerGameDLL::LevelInit");
+	
+#ifdef PORTAL
+	if ( g_fInstalledGames == 0 )
+	{
+		SetupGameInstallBits();
+	}
+	g_bFirstFrameSimulated = false;
+#endif
 
 	g_flServerCurTime = gpGlobals->curtime;
 
@@ -1034,6 +1099,9 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	}
 	else
 	{
+#ifdef PORTAL
+		UpdatePortalGameType( pMapName );
+#endif
 		if ( background )
 		{
 			gpGlobals->eLoadType = MapLoad_Background;
@@ -1075,6 +1143,9 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	// clear any pending autosavedangerous
 	m_fAutoSaveDangerousTime = 0.0f;
 	m_fAutoSaveDangerousMinHealthToCommit = 0.0f;
+#ifdef PORTAL
+	PortalGameRules()->CheckShouldPause();
+#endif
 	return true;
 }
 
@@ -1213,7 +1284,15 @@ void CServerGameDLL::GameFrame( bool simulating )
 		// If we're skipping frames, then the frametime is 2x the normal tick
 		gpGlobals->frametime *= 2.0f;
 	}
-
+	
+	bool bSimulateEntities = true;
+#ifdef PORTAL
+	if ( PortalGameRules()->ShouldPauseGame() || !g_bFirstFrameSimulated )
+	{
+		bSimulateEntities = false;
+		g_bFirstFrameSimulated = true; // The first frame was simulated
+	}
+#endif
 	g_flServerCurTime = gpGlobals->curtime;
 	float oldframetime = gpGlobals->frametime;
 
@@ -1229,10 +1308,11 @@ void CServerGameDLL::GameFrame( bool simulating )
 	// Delete anything that was marked for deletion
 	//  outside of server frameloop (e.g., in response to concommand)
 	gEntList.CleanupDeleteList();
-
-	IGameSystem::FrameUpdatePreEntityThinkAllSystems();
-	GameStartFrame();
-
+	if ( bSimulateEntities )
+	{
+		IGameSystem::FrameUpdatePreEntityThinkAllSystems();
+		GameStartFrame();
+	}
 #ifndef _XBOX
 #ifdef USE_NAV_MESH
 	TheNavMesh->Update();
@@ -1247,22 +1327,48 @@ void CServerGameDLL::GameFrame( bool simulating )
 
 	UpdateQueryCache();
 	g_pServerBenchmark->UpdateBenchmark();
-
-	Physics_RunThinkFunctions( simulating );
 	
+	if ( bSimulateEntities )
+	{
+		Physics_RunThinkFunctions( simulating );
+	}
+#ifdef PORTAL
+	else
+	{
+		//float flOldFrameTime = gpGlobals->frametime;
+		//gpGlobals->frametime = 0.0;
+		for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+			if ( !pPlayer )
+				continue;
+
+			// Simulating the player is very important
+			// 1. Commands should still be ran
+			// 2. Only running fake commands will cause problems with the portalgun projectile (and maybe other things)
+
+			// The portal gamerules freezes players, so it should be ok to fully simulate players since they can't move or do anything.
+			pPlayer->PhysicsSimulate();
+		}
+
+		//gpGlobals->frametime = flOldFrameTime;
+	}
+#endif
 	IGameSystem::FrameUpdatePostEntityThinkAllSystems();
 
 	// UNDONE: Make these systems IGameSystems and move these calls into FrameUpdatePostEntityThink()
 	// service event queue, firing off any actions whos time has come
-	ServiceEventQueue();
-
+	if ( bSimulateEntities )
+	{
+		ServiceEventQueue();
+	}
 	// free all ents marked in think functions
 	gEntList.CleanupDeleteList();
 
 	// FIXME:  Should this only occur on the final tick?
 	UpdateAllClientData();
 
-	if ( g_pGameRules )
+	if ( bSimulateEntities && g_pGameRules )
 	{
 		g_pGameRules->EndGameFrame();
 	}
@@ -2874,12 +2980,12 @@ int TestAreaPortalVisibilityThroughPortals ( CFuncAreaPortalBase* pAreaPortal, e
 	for ( int i = 0; i != iPortalCount; ++i )
 	{
 		CProp_Portal* pLocalPortal = pPortals[ i ];
-		if ( pLocalPortal && pLocalPortal->m_bActivated )
+		if ( pLocalPortal && pLocalPortal->IsActive() )
 		{
 			CProp_Portal* pRemotePortal = pLocalPortal->m_hLinkedPortal.Get();
 
 			// Make sure this portal's linked portal is in the PVS before we add what it can see
-			if ( pRemotePortal && pRemotePortal->m_bActivated && pRemotePortal->NetworkProp() && 
+			if ( pRemotePortal && pRemotePortal->IsActive() && pRemotePortal->NetworkProp() && 
 				pRemotePortal->NetworkProp()->IsInPVS( pViewEntity, pvs, pvssize ) )
 			{
 				bool bIsOpenOnClient = true;
@@ -3003,7 +3109,7 @@ void CServerGameClients::ClientSetupVisibility( edict_t *pViewEntity, edict_t *p
 
 #ifdef PORTAL 
 		// *After* the player's view has updated its area bits, add on any other areas seen by portals
-		CPortal_Player* pPortalPlayer = dynamic_cast<CPortal_Player*>( pPlayer );
+		CPortal_Player* pPortalPlayer = static_cast<CPortal_Player*>( pPlayer );
 		if ( pPortalPlayer )
 		{
 			pPortalPlayer->UpdatePortalViewAreaBits( pvs, pvssize );

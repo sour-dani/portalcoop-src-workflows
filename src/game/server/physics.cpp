@@ -469,6 +469,16 @@ int CCollisionEvent::ShouldCollide_2( IPhysicsObject *pObj0, IPhysicsObject *pOb
 
 	if ( !pEntity0 || !pEntity1 )
 		return 1;
+	
+	// Sometimes pEntity is plain garbage, -17891602 seems to be a value set for all values for the garbage pointer. Let's just hope GetCollisionGroup won't crash this crap.
+	// We use GetCollisionGroup() because get collision group should never be lower than 0!
+	// PCOOP_PORT: This is a crappy hack that doesn't always work, the root cause should be addressed instead
+
+	if (pEntity0->GetCollisionGroup() < 0)
+		return 1;
+
+	if (pEntity1->GetCollisionGroup() < 0)
+		return 1;
 
 	unsigned short gameFlags0 = pObj0->GetGameFlags();
 	unsigned short gameFlags1 = pObj1->GetGameFlags();
@@ -2233,7 +2243,11 @@ void CCollisionEvent::RestoreDamageInflictorState( IPhysicsObject *pInflictor )
 		if ( !state.restored )
 		{
 			float velocityBlend = 1.0;
-			float inflictorMass = state.pInflictorPhysics->GetMass();
+			float inflictorMass = 0;
+
+			if (state.pInflictorPhysics)
+				inflictorMass = state.pInflictorPhysics->GetMass();
+
 			if ( inflictorMass < VPHYSICS_LARGE_OBJECT_MASS && !(state.pInflictorPhysics->GetGameFlags() & FVPHYSICS_DMG_SLICE) )
 			{
 				float otherMass = state.otherMassMax > 0 ? state.otherMassMax : 1;

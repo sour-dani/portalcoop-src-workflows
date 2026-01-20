@@ -249,6 +249,27 @@ bool CEnvMicrophone::CanHearSound(CSound *pSound, float &flVolume)
 	{
 		return false;
 	}
+	
+	CBaseEntity *pSoundOwner = pSound->m_hOwner.Get();
+	
+#ifdef PORTAL
+	CBaseCombatWeapon *pWeapon = dynamic_cast<CBaseCombatWeapon*>(pSoundOwner);
+
+	if (pWeapon && pWeapon->GetOwner() && pWeapon->GetOwner()->IsPlayer())
+	{
+		return false;
+	}
+
+	//if ( FClassnameIs( pSoundOwner, "trigger_ball_destroyer" ) )
+	//	return false;
+
+	// Don't hear portals, it will play the sound twice since the portal sounds are predicted
+	if ( pSoundOwner && FClassnameIs( pSoundOwner, "prop_portal" ) )
+		return false;
+#endif
+
+	if (pSoundOwner && ( pSoundOwner->IsPlayer() ) )
+		return false;
 
 	// Cull out sounds except from specific entities
 	CBaseFilter *pFilter = m_hListenFilter.Get();
@@ -307,6 +328,22 @@ bool CEnvMicrophone::CanHearSound( int entindex, soundlevel_t soundlevel, float 
 	{
 		pEntity = CBaseEntity::Instance( engine->PEntityOfEntIndex(entindex) );
 	}
+	
+#ifdef PORTAL
+	CBaseCombatWeapon *pWeapon = dynamic_cast<CBaseCombatWeapon*>(pEntity);
+
+	if (pWeapon && pWeapon->GetOwner() && pWeapon->GetOwner()->IsPlayer())
+	{
+		return false;
+	}
+	
+	// Don't hear portals, it will play the sound twice since the portal sounds are predicted
+	if ( pEntity && FClassnameIs( pEntity, "prop_portal" ) )
+		return false;
+#endif
+
+	if (pEntity && pEntity->IsPlayer() )
+			return false;
 			    
 	// Cull out sounds except from specific entities
 	CBaseFilter *pFilter = m_hListenFilter.Get();
@@ -450,6 +487,40 @@ MicrophoneResult_t CEnvMicrophone::SoundPlayed( int entindex, const char *soundn
 
 	if ( !CanHearSound( entindex, soundlevel, flVolume, pOrigin ) )
 		return MicrophoneResult_Ok;
+	
+#ifdef PORTAL
+	// Music hack fix
+	if ( V_stristr( soundname, "music" ) || V_stristr( soundname, "song" ) )
+	{
+		return MicrophoneResult_Ok;
+	}
+
+	// 1st character
+	if ( strlen(soundname) > 0 && soundname[0] == '#' )
+	{
+		return MicrophoneResult_Ok;
+	}
+	// 2nd character
+	if ( strlen(soundname) > 1 && soundname[1] == '#' )
+	{
+		return MicrophoneResult_Ok;
+	}
+
+#if 0 // Doesn't work; the soundlevel isn't accurate
+	// Now silence sounds that are too loud
+	CBaseEntity *pOwnerEntity = GetOwnerEntity();
+	if ( pOwnerEntity && FClassnameIs( pOwnerEntity, "prop_portal" ) )
+	{
+		if ( soundlevel >= SNDLVL_80dB )
+		{
+			return MicrophoneResult_Ok;
+		}
+	}
+
+	Msg( "soundname %s\n", soundname );
+	Msg( "soundlevel %i\n", soundlevel );
+#endif
+#endif
 
 	// We've heard it. Play it out our speaker. If our speaker's gone away, we're done.
 	if ( !m_hSpeaker )
@@ -482,8 +553,23 @@ MicrophoneResult_t CEnvMicrophone::SoundPlayed( int entindex, const char *soundn
 	EmitSound_t ep;
 	ep.m_nChannel = CHAN_STATIC;
 	ep.m_pSoundName = soundname;
-	ep.m_flVolume = flVolume;
-	ep.m_SoundLevel = soundlevel;
+#if 0
+#ifdef PORTAL // Super super hacky
+	CBaseEntity *pOwnerEntity = GetOwnerEntity();
+	bool bTestSilence = ( pOwnerEntity && FClassnameIs( pOwnerEntity, "prop_portal" ) );
+
+	if ( bTestSilence && soundlevel > SNDLVL_20dB )
+	{
+		ep.m_flVolume = flVolume * 0.2;
+		ep.m_SoundLevel = SNDLVL_20dB;
+	}
+	else
+#endif // PORTAL
+#endif // if 0
+	{
+		ep.m_flVolume = flVolume;
+		ep.m_SoundLevel = soundlevel;
+	}
 	ep.m_nFlags = iFlags;
 	ep.m_nPitch = iPitch;
 	ep.m_pOrigin = &m_hSpeaker->GetAbsOrigin();

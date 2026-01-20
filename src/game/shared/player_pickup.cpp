@@ -7,25 +7,27 @@
 //=============================================================================//
 #include "cbase.h"
 #include "player_pickup.h"
+#include "weapon_physcannon.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern CGrabController *GetGrabControllerForPlayer(CBasePlayer *pPlayer);
+
 // player pickup utility routine
-void Pickup_ForcePlayerToDropThisObject( CBaseEntity *pTarget )
+void Pickup_ForcePlayerToDropThisObject( CBaseEntity *pTarget)
 {
 	if ( pTarget == NULL )
 		return;
 
+	CPortal_Player *pHoldingPlayer = (CPortal_Player *)GetPlayerHoldingEntity( pTarget );
 	IPhysicsObject *pPhysics = pTarget->VPhysicsGetObject();
 	
 	if ( pPhysics == NULL )
 		return;
-
-	if ( pPhysics->GetGameFlags() & FVPHYSICS_PLAYER_HELD )
+	if ( pPhysics->GetGameFlags() & FVPHYSICS_PLAYER_HELD && pHoldingPlayer)
 	{
-		CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
-		pPlayer->ForceDropOfCarriedPhysObjects( pTarget );
+		pHoldingPlayer->ForceDropOfCarriedPhysObjects(pTarget);
 	}
 }
 

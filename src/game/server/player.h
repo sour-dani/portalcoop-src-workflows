@@ -161,13 +161,6 @@ enum PlayerPhysFlag_e
 #define DOT_25DEGREE  0.9063077870367
 #define DOT_30DEGREE  0.866025403784
 #define DOT_45DEGREE  0.707106781187
-enum
-{
-	VPHYS_WALK = 0,
-	VPHYS_CROUCH,
-	VPHYS_NOCLIP,
-};
-
 
 enum PlayerConnectedState
 {
@@ -332,13 +325,6 @@ public:
 	virtual void			DamageEffect(float flDamage, int fDamageType);
 
 	virtual void			OnDamagedByExplosion( const CTakeDamageInfo &info );
-
-	void					PauseBonusProgress( bool bPause = true );
-	void					SetBonusProgress( int iBonusProgress );
-	void					SetBonusChallenge( int iBonusChallenge );
-
-	int						GetBonusProgress() const { return m_iBonusProgress; }
-	int						GetBonusChallenge() const { return m_iBonusChallenge; }
 
 	virtual Vector			EyePosition( );			// position of eyes
 	const QAngle			&EyeAngles( );
@@ -553,7 +539,7 @@ public:
 	bool					IsPlayerUnderwater( void ) { return m_bPlayerUnderwater; }
 
 	virtual bool			CanBreatheUnderwater() const { return false; }
-	virtual void			PlayerUse( void );
+	virtual bool			PlayerUse( void );
 	virtual void			PlayUseDenySound() {}
 
 	virtual CBaseEntity		*FindUseEntity( void );
@@ -955,10 +941,6 @@ protected:
 	int						m_iVehicleAnalogBias;
 
 	void					UpdateButtonState( int nUserCmdButtonMask );
-
-	bool	m_bPauseBonusProgress;
-	CNetworkVar( int, m_iBonusProgress );
-	CNetworkVar( int, m_iBonusChallenge );
 
 	int						m_lastDamageAmount;		// Last damage taken
 

@@ -760,18 +760,22 @@ void kill_helper( const CCommand &args, bool bExplode )
 	}
 }
 
+ConVar sv_allow_suicide_commands("sv_allow_suicide_commands", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "\nSets if players can use the kill or explode commands (Disabled by default because they can cause crashes)");
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 CON_COMMAND( kill, "Kills the player with generic damage" )
 {
-	kill_helper( args, false );
+	if (sv_allow_suicide_commands.GetBool())
+		kill_helper( args, false );
 }
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 CON_COMMAND( explode, "Kills the player with explosive damage" )
 {
-	kill_helper( args, true );
+	if (sv_allow_suicide_commands.GetBool())
+		kill_helper( args, true );
 }
 
 //------------------------------------------------------------------------------
@@ -1238,8 +1242,10 @@ void CC_God_f (void)
 		   return;
    }
 #else
+#ifndef PORTAL
 	if ( gpGlobals->deathmatch )
 		return;
+#endif
 #endif
 
 	pPlayer->ToggleFlag( FL_GODMODE );
@@ -1406,10 +1412,10 @@ void CC_Notarget_f (void)
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
 	if ( !pPlayer )
 		return;
-
+#ifndef PORTAL
 	if ( gpGlobals->deathmatch )
 		return;
-
+#endif
 	pPlayer->ToggleFlag( FL_NOTARGET );
 	if ( !(pPlayer->GetFlags() & FL_NOTARGET ) )
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "notarget OFF\n");

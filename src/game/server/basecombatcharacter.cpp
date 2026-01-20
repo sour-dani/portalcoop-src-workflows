@@ -194,9 +194,6 @@ END_SEND_TABLE();
 // This table encodes the CBaseCombatCharacter
 //-----------------------------------------------------------------------------
 IMPLEMENT_SERVERCLASS_ST(CBaseCombatCharacter, DT_BaseCombatCharacter)
-#ifdef GLOWS_ENABLE
-	SendPropBool( SENDINFO( m_bGlowEnabled ) ),
-#endif // GLOWS_ENABLE
 	// Data that only gets sent to the local player.
 	SendPropDataTable( "bcc_localdata", 0, &REFERENCE_SEND_TABLE(DT_BCCLocalPlayerExclusive), SendProxy_SendBaseCombatCharacterLocalDataTable ),
 
@@ -584,11 +581,11 @@ CProp_Portal* CBaseCombatCharacter::FInViewConeThroughPortal( const Vector &vecS
 			Vector facingDir = pPortal->GetAbsOrigin() - ptEyePosition;
 
 			// If the portal isn't facing the eye, bail
-			if ( facingDir.Dot( pPortal->m_plane_Origin.normal ) > 0.0f )
+			if ( facingDir.Dot( pPortal->m_plane_Origin.AsVector3D() ) > 0.0f )
 				continue;
 
 			// If the point is behind the linked portal, bail
-			if ( ( vecSpot - pPortal->m_hLinkedPortal->GetAbsOrigin() ).Dot( pPortal->m_hLinkedPortal->m_plane_Origin.normal ) < 0.0f )
+			if ( ( vecSpot - pPortal->m_hLinkedPortal->GetAbsOrigin() ).Dot( pPortal->m_hLinkedPortal->m_plane_Origin.AsVector3D() ) < 0.0f )
 				continue;
 
 			// Remove height from the equation
@@ -747,10 +744,6 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 	m_impactEnergyScale = 1.0f;
 
 	m_bForceServerRagdoll = ai_force_serverside_ragdoll.GetBool();
-
-#ifdef GLOWS_ENABLE
-	m_bGlowEnabled.Set( false );
-#endif // GLOWS_ENABLE
 }
 
 //------------------------------------------------------------------------------
@@ -1233,8 +1226,11 @@ CBaseEntity *CBaseCombatCharacter::CheckTraceHullAttack( const Vector &vStart, c
 	ray.Init( vStart, vEnd, mins, maxs );
 
 	trace_t tr;
+#ifdef PORTAL
+	UTIL_Portal_TraceRay( ray, MASK_SHOT_HULL, &traceFilter, &tr );
+#else
 	enginetrace->TraceRay( ray, MASK_SHOT_HULL, &traceFilter, &tr );
-
+#endif
 	CBaseEntity *pEntity = traceFilter.m_pHit;
 	
 	if ( pEntity == NULL )
@@ -1252,8 +1248,11 @@ CBaseEntity *CBaseCombatCharacter::CheckTraceHullAttack( const Vector &vStart, c
 		vecEnd.z += 2.0f;
 		
 		ray.Init( vecTopCenter, vEnd, mins, maxs );
+#ifdef PORTAL
+		UTIL_Portal_TraceRay( ray, MASK_SHOT_HULL, &traceFilter, &tr );
+#else
 		enginetrace->TraceRay( ray, MASK_SHOT_HULL, &traceFilter, &tr );
-
+#endif
 		pEntity = traceFilter.m_pHit;
 	}
 
@@ -1550,6 +1549,10 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 #if !defined( HL2MP )
 	bMegaPhyscannonActive = HL2GameRules()->MegaPhyscannonActive();
 #endif // !HL2MP
+	
+#ifdef PORTAL
+	bMegaPhyscannonActive = PortalGameRules()->MegaPhyscannonActive();
+#endif
 
 	// Mega physgun requires everything to be a server-side ragdoll
 	if ( m_bForceServerRagdoll == true || ( ( bMegaPhyscannonActive == true ) && !IsPlayer() && Classify() != CLASS_PLAYER_ALLY_VITAL && Classify() != CLASS_PLAYER_ALLY ) )
@@ -3131,8 +3134,13 @@ void CBaseCombatCharacter::VPhysicsShadowCollision( int index, gamevcollisioneve
 	// which can occur owing to ordering issues it appears.
 	float flOtherAttackerTime = 0.0f;
 
-#if defined( HL2_DLL ) && !defined( HL2MP )
+#if defined( HL2_DLL ) && !defined( HL2MP ) && !defined(PORTAL)
 	if ( HL2GameRules()->MegaPhyscannonActive() == true )
+	{
+		flOtherAttackerTime = 1.0f;
+	}
+#elif defined ( PORTAL )
+	if (PortalGameRules()->MegaPhyscannonActive() == true)
 	{
 		flOtherAttackerTime = 1.0f;
 	}
@@ -3258,33 +3266,6 @@ float CBaseCombatCharacter::GetSpreadBias( CBaseCombatWeapon *pWeapon, CBaseEnti
 		return pWeapon->GetSpreadBias(GetCurrentWeaponProficiency());
 	return 1.0;
 }
-
-#ifdef GLOWS_ENABLE
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CBaseCombatCharacter::AddGlowEffect( void )
-{
-	SetTransmitState( FL_EDICT_ALWAYS );
-	m_bGlowEnabled.Set( true );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CBaseCombatCharacter::RemoveGlowEffect( void )
-{
-	m_bGlowEnabled.Set( false );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-bool CBaseCombatCharacter::IsGlowEffectActive( void )
-{
-	return m_bGlowEnabled;
-}
-#endif // GLOWS_ENABLE
 
 //-----------------------------------------------------------------------------
 // Assume everyone is average with every weapon. Override this to make exceptions.
