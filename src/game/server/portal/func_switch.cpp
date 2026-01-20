@@ -63,6 +63,8 @@ CFuncSwitch::CFuncSwitch()
 
 	m_bPressable = true;
 	m_flLockTime = 1.0f;
+
+	m_bSet1 = true;
 }
 
 void CFuncSwitch::Spawn( void )
@@ -119,5 +121,6 @@ void CFuncSwitch::UnlockThink( void )
 
 void CFuncSwitch::TimerEndThink( void )
 {
+	m_bSet1 = true;
 	m_OnTimerEnded.FireOutput( this, this ); // Technically, the activator should be the one who pressed the button.
 }
