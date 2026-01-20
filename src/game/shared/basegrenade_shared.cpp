@@ -54,13 +54,9 @@ BEGIN_DATADESC( CBaseGrenade )
 
 END_DATADESC()
 
-void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const void *pStruct, const void *pVarData, DVariant *pOut, int iElement, int objectID);
-
 #endif
 
 IMPLEMENT_NETWORKCLASS_ALIASED( BaseGrenade, DT_BaseGrenade )
-
-LINK_ENTITY_TO_CLASS_ALIASED( grenade, BaseGrenade );
 
 BEGIN_NETWORK_TABLE( CBaseGrenade, DT_BaseGrenade )
 #if !defined( CLIENT_DLL )
@@ -72,7 +68,7 @@ BEGIN_NETWORK_TABLE( CBaseGrenade, DT_BaseGrenade )
 
 	SendPropVector( SENDINFO( m_vecVelocity ), 0, SPROP_NOSCALE ), 
 	// HACK: Use same flag bits as player for now
-	SendPropInt			( SENDINFO(m_fFlags), PLAYER_FLAG_BITS, SPROP_UNSIGNED, SendProxy_CropFlagsToPlayerFlagBitsLength ),
+	SendPropInt			( SENDINFO(m_fFlags), 0, SPROP_UNSIGNED ),
 #else
 	RecvPropFloat( RECVINFO( m_flDamage ) ),
 	RecvPropFloat( RECVINFO( m_DmgRadius ) ),
@@ -87,6 +83,7 @@ BEGIN_NETWORK_TABLE( CBaseGrenade, DT_BaseGrenade )
 #endif
 END_NETWORK_TABLE()
 
+LINK_ENTITY_TO_CLASS( grenade, CBaseGrenade );
 
 #if defined( CLIENT_DLL )
 

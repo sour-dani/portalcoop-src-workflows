@@ -41,6 +41,10 @@
 #include "inetchannelinfo.h"
 #include "proto_version.h"
 
+#ifdef TF_CLIENT_DLL
+#include "c_tf_player.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -76,7 +80,7 @@ void cc_cl_interp_all_changed( IConVar *pConVar, const char *pOldString, float f
 static ConVar  cl_extrapolate( "cl_extrapolate", "1", FCVAR_CHEAT, "Enable/disable extrapolation if interpolation history runs out." );
 static ConVar  cl_interp_npcs( "cl_interp_npcs", "0.0", FCVAR_USERINFO, "Interpolate NPC positions starting this many seconds in past (or cl_interp, if greater)" );  
 static ConVar  cl_interp_all( "cl_interp_all", "0", 0, "Disable interpolation list optimizations.", 0, 0, 0, 0, cc_cl_interp_all_changed );
-ConVar  r_drawmodeldecals( "r_drawmodeldecals", "1" );
+ConVar  r_drawmodeldecals( "r_drawmodeldecals", "1", FCVAR_ALLOWED_IN_COMPETITIVE );
 extern ConVar	cl_showerror;
 int C_BaseEntity::m_nPredictionRandomSeed = -1;
 C_BasePlayer *C_BaseEntity::m_pPredictionPlayer = NULL;
@@ -96,7 +100,6 @@ static CUtlLinkedList<C_BaseEntity*, unsigned short> g_InterpolationList;
 static CUtlLinkedList<C_BaseEntity*, unsigned short> g_TeleportList;
 
 #if !defined( NO_ENTITY_PREDICTION )
-
 //-----------------------------------------------------------------------------
 // Purpose: Maintains a list of predicted or client created entities
 //-----------------------------------------------------------------------------
@@ -454,6 +457,7 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt(RECVINFO(m_clrRender)),
 	RecvPropInt(RECVINFO(m_iTeamNum)),
 	RecvPropInt(RECVINFO(m_CollisionGroup)),
+	RecvPropFloat(RECVINFO(m_flGravity)),
 	RecvPropFloat(RECVINFO(m_flElasticity)),
 	RecvPropFloat(RECVINFO(m_flShadowCastDistance)),
 	RecvPropEHandle( RECVINFO(m_hOwnerEntity) ),
@@ -476,10 +480,6 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 
 #ifdef TF_CLIENT_DLL
 	RecvPropArray3( RECVINFO_ARRAY(m_nModelIndexOverrides),	RecvPropInt( RECVINFO(m_nModelIndexOverrides[0]) ) ),
-#endif
-	
-#ifdef PORTAL
-	RecvPropInt( RECVINFO( m_iPingIcon ) ),
 #endif
 
 END_RECV_TABLE()
@@ -540,7 +540,7 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 //	DEFINE_FIELD( m_flLastMessageTime, FIELD_FLOAT ),
 	DEFINE_FIELD( m_vecBaseVelocity, FIELD_VECTOR ),
 	DEFINE_FIELD( m_iEFlags, FIELD_INTEGER ),
-	DEFINE_FIELD( m_flGravity, FIELD_FLOAT ),
+	DEFINE_PRED_FIELD( m_flGravity, FIELD_FLOAT, FTYPEDESC_INSENDTABLE | FTYPEDESC_NOERRORCHECK ),
 //	DEFINE_FIELD( m_ModelInstance, FIELD_SHORT ),
 	DEFINE_FIELD( m_flProxyRandomValue, FIELD_FLOAT ),
 
@@ -1091,6 +1091,28 @@ bool C_BaseEntity::Init( int entnum, int iSerialNum )
 
 	index = entnum;
 
+	if ( this->IsPlayer() )
+	{
+		// Josh: If we ever have a player that could ever cause us
+		// an out of bounds access to any player sized arrays.
+		// Just get out now!
+		//
+		// All these issues should be bounds checked now anyway,
+		// but I'd much rather be safe than sorry here.
+		//
+		// Additionally, make sure we aren't 0 or negative,
+		// the player CANNOT be worldspawn.
+		// Someone is going to try that to get an extra player and frog something up!
+		// 
+		// Player index is entindex - 1.
+		// MAX_PLAYERS_ARRAY_SAFE is MAX_PLAYERS + 1.
+		if ( index <= 0 || index >= MAX_PLAYERS_ARRAY_SAFE )
+		{
+			Warning("Player with out of bounds entindex! Got: %d Expected to be in inclusive range: %d - %d\n", index, 1, MAX_PLAYERS );
+			return false;
+		}
+	}
+
 	cl_entitylist->AddNetworkableEntity( GetIClientUnknown(), entnum, iSerialNum );
 
 	CollisionProp()->CreatePartitionHandle();
@@ -1317,32 +1339,6 @@ bool C_BaseEntity::VPhysicsIsFlesh( void )
 }
 
 
-//------------------------------------------------------------------------------
-// Purpose : Returns velcocity of base entity.  If physically simulated gets
-//			 velocity from physics object
-// Input   :
-// Output  :
-//------------------------------------------------------------------------------
-void C_BaseEntity::GetVelocity(Vector *vVelocity, AngularImpulse *vAngVelocity)
-{
-	if (GetMoveType() == MOVETYPE_VPHYSICS && m_pPhysicsObject)
-	{
-		m_pPhysicsObject->GetVelocity(vVelocity, vAngVelocity);
-	}
-	else
-	{
-		if (vVelocity != NULL)
-		{
-			*vVelocity = GetAbsVelocity();
-		}
-		if (vAngVelocity != NULL)
-		{
-			QAngle tmp = GetLocalAngularVelocity();
-			QAngleToAngularImpulse(tmp, *vAngVelocity);
-		}
-	}
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: Retrieves the coordinate frame for this entity.
 // Input  : forward - Receives the entity's forward vector.
@@ -1542,12 +1538,12 @@ void C_BaseEntity::SetShadowUseOtherEntity( C_BaseEntity *pEntity )
 	m_ShadowDirUseOtherEntity = pEntity;
 }
 
-CDiscontinuousInterpolatedVar< QAngle >& C_BaseEntity::GetRotationInterpolator()
+CInterpolatedVar< QAngle >& C_BaseEntity::GetRotationInterpolator()
 {
 	return m_iv_angRotation;
 }
 
-CDiscontinuousInterpolatedVar< Vector >& C_BaseEntity::GetOriginInterpolator()
+CInterpolatedVar< Vector >& C_BaseEntity::GetOriginInterpolator()
 {
 	return m_iv_vecOrigin;
 }
@@ -1776,9 +1772,9 @@ void C_BaseEntity::SetNetworkAngles( const QAngle& ang )
 // Purpose: 
 // Input  : index - 
 //-----------------------------------------------------------------------------
-void C_BaseEntity::SetModelIndex( int index )
+void C_BaseEntity::SetModelIndex( int index_ )
 {
-	m_nModelIndex = index;
+	m_nModelIndex = index_;
 	const model_t *pModel = modelinfo->GetModel( m_nModelIndex );
 	SetModelPointer( pModel );
 }
@@ -2070,7 +2066,7 @@ void C_BaseEntity::UpdatePartitionListEntry()
 		list |= PARTITION_CLIENT_RESPONSIVE_EDICTS;
 
 	// add the entity to the KD tree so we will collide against it
-	partition->RemoveAndInsert( PARTITION_CLIENT_SOLID_EDICTS | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS, list, CollisionProp()->GetPartitionHandle() );
+	::partition->RemoveAndInsert( PARTITION_CLIENT_SOLID_EDICTS | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS, list, CollisionProp()->GetPartitionHandle() );
 }
 
 
@@ -2126,7 +2122,7 @@ void C_BaseEntity::NotifyShouldTransmit( ShouldTransmitState_t state )
 			SetDormant( true );
 			
 			// remove the entity from the KD tree so we won't collide against it
-			partition->Remove( PARTITION_CLIENT_SOLID_EDICTS | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS, CollisionProp()->GetPartitionHandle() );
+			::partition->Remove( PARTITION_CLIENT_SOLID_EDICTS | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS, CollisionProp()->GetPartitionHandle() );
 		
 		}
 		break;
@@ -2200,6 +2196,7 @@ void C_BaseEntity::PreDataUpdate( DataUpdateType_t updateType )
 	}
 
 	m_ubOldInterpolationFrame = m_ubInterpolationFrame;
+	m_bOldShouldDraw = ShouldDraw();
 }
 
 const Vector& C_BaseEntity::GetOldOrigin()
@@ -2651,6 +2648,12 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		UpdateVisibility();
 	}
+
+	// if ShouldDraw state changes, recalculate visibility
+	if ( m_bOldShouldDraw != ShouldDraw() )
+	{
+		UpdateVisibility();
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -2702,14 +2705,6 @@ void C_BaseEntity::CheckInitPredictable( const char *context )
 
 	if ( IsIntermediateDataAllocated() )
 		return;
-	
-	// Msg( "Predicting init %s at %s\n", GetClassname(), context );
-
-	// It's either a player, a weapon or a view model
-	C_BasePlayer *pOwner = GetPredictionOwner();
-	Assert( pOwner );
-	if ( !pOwner )
-		return;
 
 	// Msg( "Predicting init %s at %s\n", GetClassname(), context );
 
@@ -2722,46 +2717,6 @@ bool C_BaseEntity::IsSelfAnimating()
 	return true;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: See if a predictable should stop predicting
-// Input  : *context - 
-//-----------------------------------------------------------------------------
-void C_BaseEntity::CheckShutdownPredictable( const char *context )
-{
-	if ( IsClientCreated() )
-		return;
-
-	if ( !ShouldPredict() || 
-		!GetPredictionEligible() ||
-		(GetPredictionOwner() == NULL) )
-	{
-		if( IsIntermediateDataAllocated() )
-		{
-			ShutdownPredictable();
-		}
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Return the player who will predict this entity
-//-----------------------------------------------------------------------------
-C_BasePlayer* C_BaseEntity::GetPredictionOwner()
-{
-	C_BasePlayer *pOwner = ToBasePlayer( this );
-	if ( !pOwner )
-	{
-		pOwner = ToBasePlayer( GetOwnerEntity() );
-		if ( !pOwner )
-		{
-			C_BaseViewModel *vm = ToBaseViewModel(this);
-			if ( vm )
-			{
-				pOwner = ToBasePlayer( vm->GetOwner() );
-			}
-		}
-	}
-	return pOwner;
-}
 
 //-----------------------------------------------------------------------------
 // EFlags.. 
@@ -2878,22 +2833,6 @@ void C_BaseEntity::OnLatchInterpolatedVariables( int flags )
 	{
 		AddToInterpolationList();
 	}
-}
-
-float CBaseEntity::GetEffectiveInterpolationCurTime( float currentTime )
-{
-	if ( GetPredictable() || IsClientCreated() )
-	{
-		C_BasePlayer *localplayer = C_BasePlayer::GetLocalPlayer();
-		if ( localplayer )
-		{
-			currentTime = localplayer->GetFinalPredictedTime();
-			currentTime -= TICK_INTERVAL;
-			currentTime += ( gpGlobals->interpolation_amount * TICK_INTERVAL );
-		}
-	}
-
-	return currentTime;
 }
 
 int CBaseEntity::BaseInterpolatePart1( float &currentTime, Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int &bNoMoreChanges )
@@ -3407,7 +3346,6 @@ void C_BaseEntity::ComputeFxBlend( void )
 	if ( m_nFXComputeFrame == gpGlobals->framecount )
 		return;
 
-	MDLCACHE_CRITICAL_SECTION();
 	int blend=0;
 	float offset;
 
@@ -3944,7 +3882,7 @@ void C_BaseEntity::operator delete( void *pMem )
 //========================================================================================
 // TEAM HANDLING
 //========================================================================================
-C_Team *C_BaseEntity::GetTeam( void )
+C_Team *C_BaseEntity::GetTeam( void ) const
 {
 	return GetGlobalTeam( m_iTeamNum );
 }
@@ -3969,7 +3907,7 @@ int	C_BaseEntity::GetRenderTeamNumber( void )
 //-----------------------------------------------------------------------------
 // Purpose: Returns true if these entities are both in at least one team together
 //-----------------------------------------------------------------------------
-bool C_BaseEntity::InSameTeam( C_BaseEntity *pEntity )
+bool C_BaseEntity::InSameTeam( const C_BaseEntity *pEntity ) const
 {
 	if ( !pEntity )
 		return false;
@@ -4333,30 +4271,6 @@ void C_BaseEntity::SetLocalAngularVelocity( const QAngle &vecAngVelocity )
 //		InvalidatePhysicsRecursive( ANG_VELOCITY_CHANGED );
 		m_vecAngVelocity = vecAngVelocity;
 	}
-}
-
-
-void C_BaseEntity::Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
-{
-	//TODO: Beef this up to work more like the server version.
-	Assert( GetPredictable() ); //does this even make sense unless we're predicting the teleportation?
-	int iEffects = GetEffects();
-	if( newPosition )
-	{
-		SetNetworkOrigin( *newPosition );
-		iEffects |= EF_NOINTERP;
-	}
-	if( newAngles )
-	{
-		SetNetworkAngles( *newAngles );
-		iEffects |= EF_NOINTERP;
-	}
-	if( newVelocity )
-	{
-		SetLocalVelocity( *newVelocity );
-		iEffects |= EF_NOINTERP;
-	}
-	SetEffects( iEffects );
 }
 
 
@@ -4808,11 +4722,6 @@ void C_BaseEntity::SetSize( const Vector &vecMin, const Vector &vecMax )
 	SetCollisionBounds( vecMin, vecMax );
 }
 
-void C_BaseEntity::HandlePredictionError( bool bErrorInThisEntity )
-{
-
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: Just look up index
 // Input  : *name - 
@@ -4873,7 +4782,7 @@ C_BaseEntity *C_BaseEntity::Instance( int iEnt )
 	return ClientEntityList().GetBaseEntity( iEnt );
 }
 
-#ifdef WIN32
+#if defined( WIN32 ) && _MSC_VER <= 1920
 #pragma warning( push )
 #include <typeinfo.h>
 #pragma warning( pop )
@@ -4883,15 +4792,11 @@ C_BaseEntity *C_BaseEntity::Instance( int iEnt )
 // Purpose: 
 // Output : char const
 //-----------------------------------------------------------------------------
-char const *C_BaseEntity::GetClassname( void )
+const char *C_BaseEntity::GetClassname( void )
 {
 	static char outstr[ 256 ];
 	outstr[ 0 ] = 0;
 	bool gotname = false;
-	ClientClass *pClientClass = GetClientClass();
-	if ( pClientClass && pClientClass->m_pMapClassname )
-		return pClientClass->m_pMapClassname;
-
 #ifndef NO_ENTITY_PREDICTION
 	if ( GetPredDescMap() )
 	{
@@ -5322,10 +5227,6 @@ void C_BaseEntity::DestroyIntermediateData( void )
 void C_BaseEntity::ShiftIntermediateDataForward( int slots_to_remove, int number_of_commands_run )
 {
 #if !defined( NO_ENTITY_PREDICTION )
-	Assert( m_pIntermediateData );
-	if ( !m_pIntermediateData )
-		return;
-
 	Assert( number_of_commands_run >= slots_to_remove );
 
 	// Just moving pointers, yeah
@@ -5484,7 +5385,7 @@ int C_BaseEntity::ComputePackedSize_R( datamap_t *map )
 {
 	if ( !map )
 	{
-//		Assert( 0 );
+		Assert( 0 );
 		return 0;
 	}
 
@@ -5531,8 +5432,8 @@ int C_BaseEntity::ComputePackedSize_R( datamap_t *map )
 		case FIELD_EDICT:
 		case FIELD_POSITION_VECTOR:
 		case FIELD_FUNCTION:
-		//	Assert( 0 );
-		//	break;
+			Assert( 0 );
+			break;
 
 		case FIELD_EMBEDDED:
 			{
@@ -5548,7 +5449,6 @@ int C_BaseEntity::ComputePackedSize_R( datamap_t *map )
 
 		case FIELD_FLOAT:
 		case FIELD_VECTOR:
-		case FIELD_VMATRIX:
 		case FIELD_QUATERNION:
 		case FIELD_INTEGER:
 		case FIELD_EHANDLE:
@@ -5717,16 +5617,22 @@ void C_BaseEntity::DrawBBoxVisualizations( void )
 {
 	if ( m_fBBoxVisFlags & VISUALIZE_COLLISION_BOUNDS )
 	{
-		debugoverlay->AddBoxOverlay( CollisionProp()->GetCollisionOrigin(), CollisionProp()->OBBMins(),
-			CollisionProp()->OBBMaxs(), CollisionProp()->GetCollisionAngles(), 190, 190, 0, 0, 0.01 );
+		if ( debugoverlay )
+		{
+			debugoverlay->AddBoxOverlay( CollisionProp()->GetCollisionOrigin(), CollisionProp()->OBBMins(),
+				CollisionProp()->OBBMaxs(), CollisionProp()->GetCollisionAngles(), 190, 190, 0, 0, 0.01 );
+		}
 	}
 
 	if ( m_fBBoxVisFlags & VISUALIZE_SURROUNDING_BOUNDS )
 	{
 		Vector vecSurroundMins, vecSurroundMaxs;
 		CollisionProp()->WorldSpaceSurroundingBounds( &vecSurroundMins, &vecSurroundMaxs );
-		debugoverlay->AddBoxOverlay( vec3_origin, vecSurroundMins,
-			vecSurroundMaxs, vec3_angle, 0, 255, 255, 0, 0.01 );
+		if ( debugoverlay )
+		{
+			debugoverlay->AddBoxOverlay( vec3_origin, vecSurroundMins,
+				vecSurroundMaxs, vec3_angle, 0, 255, 255, 0, 0.01 );
+		}
 	}
 
 	if ( m_fBBoxVisFlags & VISUALIZE_RENDER_BOUNDS || r_drawrenderboxes.GetInt() )
@@ -5757,13 +5663,6 @@ RenderGroup_t C_BaseEntity::GetRenderGroup()
 	// Don't sort things that don't need rendering
 	if ( m_nRenderMode == kRenderNone )
 		return RENDER_GROUP_OPAQUE_ENTITY;
-
-	// When an entity has a material proxy, we have to recompute
-	// translucency here because the proxy may have changed it.
-	if (modelinfo->ModelHasMaterialProxy( GetModel() ))
-	{
-		modelinfo->RecomputeTranslucency( const_cast<model_t*>(GetModel()), GetSkin(), GetBody(), GetClientRenderable() );
-	}
 
 	// NOTE: Bypassing the GetFXBlend protection logic because we want this to
 	// be able to be called from AddToLeafSystem.
@@ -5973,7 +5872,7 @@ void C_BaseEntity::Interp_Reset( VarMapping_t *map )
 		VarMapEntry_t *e = &map->m_Entries[ i ];
 		IInterpolatedVar *watcher = e->watcher;
 
-		watcher->Reset( gpGlobals->curtime );
+		watcher->Reset();
 	}
 }
 
@@ -6422,10 +6321,14 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 		return true;
 
 	// Some wearables parent to the view model
-	C_BasePlayer *pPlayer = ToBasePlayer( pParent );
-	if ( pPlayer && pPlayer->GetViewModel() == this )
+	C_TFPlayer *pPlayer = ToTFPlayer( pParent );
+	if ( pPlayer )
 	{
-		return true;
+		if ( pPlayer->GetViewModel() == this )
+			return true;
+
+		if ( pPlayer->HasItem() && ( pPlayer->GetItem()->GetItemID() == TF_ITEM_CAPTURE_FLAG ) && ( pPlayer->GetItem() == this ) )
+			return true;
 	}
 
 	// always allow the briefcase model
@@ -6434,15 +6337,12 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 	{
 		if ( FStrEq( pszModel, "models/flag/briefcase.mdl" ) )
 			return true;
-
-		if ( FStrEq( pszModel, "models/passtime/ball/passtime_ball.mdl" ) )
-			return true;
-
+				
 		if ( FStrEq( pszModel, "models/props_doomsday/australium_container.mdl" ) )
 			return true;
 
 		// Temp for MVM testing
-		if ( FStrEq( pszModel, "models/buildables/sapper_placement_sentry1.mdl" ) )
+		if ( FStrEq( pszModel, "models/buildables/sapper_placement.mdl" ) )
 			return true;
 
 		if ( FStrEq( pszModel, "models/props_td/atom_bomb.mdl" ) )

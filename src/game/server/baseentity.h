@@ -20,6 +20,8 @@
 #include "ServerNetworkProperty.h"
 #include "shareddefs.h"
 #include "engine/ivmodelinfo.h"
+#include "vscript/ivscript.h"
+#include "vscript_server.h"
 
 class CDamageModifier;
 class CDmgAccumulator;
@@ -31,6 +33,19 @@ class IResponseSystem;
 class IEntitySaveUtils;
 class CRecipientFilter;
 class CStudioHdr;
+
+template<typename T, typename U>
+struct IsSame
+{
+    static const bool Value = false;
+};
+
+template<typename T>
+struct IsSame<T, T>
+{
+    static const bool Value = true;
+};
+
 
 // Matching the high level concept is significantly better than other criteria
 // FIXME:  Could do this in the script file by making it required and bumping up weighting there instead...
@@ -84,12 +99,6 @@ class CSkyCamera;
 class CEntityMapData;
 class INextBot;
 class IHasAttributes;
-class CGrabController;
-class CWeaponPhysCannon;
-#ifdef PORTAL
-class CProp_Portal;
-enum PortalEvent_t;
-#endif
 
 typedef CUtlVector< CBaseEntity* > EntityList_t;
 
@@ -316,12 +325,13 @@ a list of all CBaseEntitys is kept in gEntList
 // invalid or there is already an edict using that index, it will error out.
 CBaseEntity *CreateEntityByName( const char *className, int iForceEdictIndex = -1 );
 CBaseNetworkable *CreateNetworkableByName( const char *className );
+CBaseEntity *ToEnt( HSCRIPT hScript );
 
 // creates an entity and calls all the necessary spawn functions
 extern void SpawnEntityByName( const char *className, CEntityMapData *mapData = NULL );
 
 // calls the spawn functions for an entity
-extern int DispatchSpawn( CBaseEntity *pEntity );
+extern int DispatchSpawn( CBaseEntity *pEntity, bool bRunVScripts = true );
 
 inline CBaseEntity *GetContainingEntity( edict_t *pent );
 
@@ -385,6 +395,8 @@ public:
 	DECLARE_SERVERCLASS();
 	// data description
 	DECLARE_DATADESC();
+	// script description
+	DECLARE_ENT_SCRIPTDESC();
 	
 	// memory handling
     void *operator new( size_t stAllocateBlock );
@@ -410,6 +422,7 @@ public:
 	virtual void			SetModelIndex( int index );
 	virtual int				GetModelIndex( void ) const;
  	virtual string_t		GetModelName( void ) const;
+	const char				*ScriptGetModelName( void ) const;
 
 	void					ClearModelIndexOverrides( void );
 	virtual void			SetModelIndexOverride( int index, int nValue );
@@ -499,6 +512,9 @@ public:
 	virtual void			SetOwnerEntity( CBaseEntity* pOwner );
 	void					SetEffectEntity( CBaseEntity *pEffectEnt );
 	CBaseEntity				*GetEffectEntity() const;
+	HSCRIPT					GetScriptOwnerEntity();
+	virtual void			SetScriptOwnerEntity( HSCRIPT pOwner );
+
 
 	// Only CBaseEntity implements these. CheckTransmit calls the virtual ShouldTransmit to see if the
 	// entity wants to be sent. If so, it calls SetTransmit, which will mark any dependents for transmission too.
@@ -569,9 +585,14 @@ public:
 	virtual bool KeyValue( const char *szKeyName, float flValue );
 	virtual bool KeyValue( const char *szKeyName, const Vector &vecValue );
 	virtual bool GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen );
+	bool KeyValueFromString( const char *szKeyName, const char *szValue )		{ return KeyValue( szKeyName, szValue ); }
+	bool KeyValueFromFloat( const char *szKeyName, float flValue )				{ return KeyValue( szKeyName, flValue ); }
+	bool KeyValueFromInt( const char *szKeyName, int nValue )					{ return KeyValue( szKeyName, nValue ); }
+	bool KeyValueFromVector( const char *szKeyName, const Vector &vecValue )	{ return KeyValue( szKeyName, vecValue ); }
 
 	void ValidateEntityConnections();
 	void FireNamedOutput( const char *pszOutput, variant_t variant, CBaseEntity *pActivator, CBaseEntity *pCaller, float flDelay = 0.0f );
+	CBaseEntityOutput *FindNamedOutput( const char *pszOutput );
 
 	// Activate - called for each entity after each load game and level load
 	virtual void Activate( void );
@@ -594,6 +615,8 @@ public:
 	int			GetParentAttachment();
 
 	string_t	GetEntityName();
+	const char *GetEntityNameAsCStr();	// This method is temporary for VSCRIPT functionality until we figure out what to do with string_t (sjb)
+	const char *GetPreTemplateName(); // Not threadsafe. Get the name stripped of template unique decoration
 
 	bool		NameMatches( const char *pszNameOrWildcard );
 	bool		ClassMatches( const char *pszClassOrWildcard );
@@ -607,8 +630,11 @@ private:
 	void		TransformStepData_ParentToParent( CBaseEntity *pOldParent, CBaseEntity *pNewParent );
 	void		TransformStepData_ParentToWorld( CBaseEntity *pParent );
 
-
 public:
+	void		MarkNeedsNamePurge();
+
+	EHANDLE		ScriptGetEHandle( void );
+
 	int			GetSpawnFlags( void ) const;
 	void		AddSpawnFlags( int nFlags );
 	void		RemoveSpawnFlags( int nFlags );
@@ -673,6 +699,39 @@ public:
 	void InputFireUser2( inputdata_t &inputdata );
 	void InputFireUser3( inputdata_t &inputdata );
 	void InputFireUser4( inputdata_t &inputdata );
+	void InputRunScript( inputdata_t &inputdata );
+	void RunScriptCodeInput( inputdata_t &inputdata, const char *pszCode );
+	void InputRunScriptFile( inputdata_t &inputdata );
+	void InputCallScriptFunction( inputdata_t &inputdata );
+	void TerminateScriptScope();
+	void InputTerminateScriptScope( inputdata_t &inputdata );
+
+	inline void ScriptDisableDraw()
+	{
+		AddEffects( EF_NODRAW );
+	}
+
+	inline void ScriptEnableDraw()
+	{
+		RemoveEffects( EF_NODRAW );
+	}
+
+	inline void ScriptSetDrawEnabled( bool bEnable )
+	{
+		if ( bEnable )
+			ScriptEnableDraw();
+		else
+			ScriptDisableDraw();
+	}
+
+	inline void ScriptDispatchSpawn()
+	{
+		::DispatchSpawn( this, false );
+	}
+
+	bool RunScriptFile( const char *pScriptFile, bool bUseRootScope = false );
+	bool RunScript( const char *pScriptText, const char *pDebugFilename = "CBaseEntity::RunScript" );
+	void ScriptInputKill( void );
 
 	// Returns the origin at which to play an inputted dispatcheffect 
 	virtual void GetInputDispatchEffectPosition( const char *sInputString, Vector &pOrigin, QAngle &pAngles );
@@ -879,7 +938,7 @@ private:
 public:
 
 	// Returns a CBaseAnimating if the entity is derived from CBaseAnimating.
-	virtual CBaseAnimating*	GetBaseAnimating() { return NULL; }
+	virtual CBaseAnimating*	GetBaseAnimating() { return 0; }
 
 	virtual IResponseSystem *GetResponseSystem();
 	virtual void	DispatchResponse( const char *conceptName );
@@ -911,6 +970,13 @@ public:
 
 	// This is what you should call to apply damage to an entity.
 	int TakeDamage( const CTakeDamageInfo &info );
+	void ScriptTakeDamage( float flDamage, int nDamageType, HSCRIPT hAttacker );
+	void ScriptTakeDamageEx( HSCRIPT hInflictor, HSCRIPT hAttacker, HSCRIPT hWeapon, const Vector damageForce, const Vector damagePosition, float flDamage, int ndamageType );
+	void ScriptTakeDamageCustom( HSCRIPT hInflictor, HSCRIPT hAttacker, HSCRIPT hWeapon, const Vector damageForce, const Vector damagePosition, float flDamage, int ndamageType, int nCustomDamageType );
+	Vector GetPhysVelocity() const;
+	void SetPhysVelocity( const Vector &velocity );
+	Vector GetPhysAngularVelocity() const;
+	void SetPhysAngularVelocity( const Vector &angularImpulse );
 	virtual void AdjustDamageDirection( const CTakeDamageInfo &info, Vector &dir, CBaseEntity *pEnt ) {}
 
 	virtual int		TakeHealth( float flHealth, int bitsDamageType );
@@ -930,6 +996,9 @@ public:
 	void					TraceBleed( float flDamage, const Vector &vecDir, trace_t *ptr, int bitsDamageType );
 	virtual bool			IsTriggered( CBaseEntity *pActivator ) {return true;}
 	virtual bool			IsNPC( void ) const { return false; }
+#ifdef NEXT_BOT
+	virtual bool			IsNextBot(void) const { return false; }
+#endif
 	CAI_BaseNPC				*MyNPCPointer( void ); 
 	virtual CBaseCombatCharacter *MyCombatCharacterPointer( void ) { return NULL; }
 	virtual INextBot		*MyNextBotPointer( void ) { return NULL; }
@@ -955,6 +1024,11 @@ public:
 	bool			IsCombatCharacter() { return MyCombatCharacterPointer() == NULL ? false : true; }
 	bool			IsInWorld( void ) const;
 	virtual bool	IsCombatItem( void ) const { return false; }
+#ifdef TF_DLL
+	virtual bool	IsProjectileCollisionTarget( void ) const { return false; }	
+	virtual bool	IsFuncLOD( void ) const { return false; }
+	virtual bool	IsBaseProjectile( void ) const { return false; }
+#endif // TF_DLL
 
 	virtual bool	IsBaseCombatWeapon( void ) const { return false; }
 	virtual bool	IsWearable( void ) const { return false; }
@@ -971,7 +1045,7 @@ public:
 	int				GetTeamNumber( void ) const;		// Get the Team number of the team this entity is on
 	virtual void	ChangeTeam( int iTeamNum );			// Assign this entity to a team.
 	bool			IsInTeam( CTeam *pTeam ) const;		// Returns true if this entity's in the specified team
-	bool			InSameTeam( CBaseEntity *pEntity ) const;	// Returns true if the specified entity is on the same team as this one
+	bool			InSameTeam( const CBaseEntity *pEntity ) const;	// Returns true if the specified entity is on the same team as this one
 	bool			IsInAnyTeam( void ) const;			// Returns true if this entity is in any team
 	const char		*TeamID( void ) const;				// Returns the name of the team this entity is on.
 
@@ -1098,11 +1172,15 @@ public:
 	// Ugly code to lookup all functions to make sure they are in the table when set.
 #ifdef _DEBUG
 
-#ifdef GNUC
-#define ENTITYFUNCPTR_SIZE	8
-#else
-#define ENTITYFUNCPTR_SIZE	4
-#endif
+#if defined( PLATFORM_64BITS )
+	#if defined( COMPILER_GCC ) || defined( GNUC ) 
+		#define ENTITYFUNCPTR_SIZE	16
+	#else
+		#define ENTITYFUNCPTR_SIZE	8
+	#endif
+#else // PLATFORM_64BITS
+	#define ENTITYFUNCPTR_SIZE	4
+#endif // !PLATFORM_64BITS
 
 	void FunctionCheck( void *pFunction, const char *name );
 	ENTITYFUNCPTR TouchSet( ENTITYFUNCPTR func, char *name ) 
@@ -1125,6 +1203,13 @@ public:
 		m_pfnBlocked = func; 
 		FunctionCheck( *(reinterpret_cast<void **>(&m_pfnBlocked)), name ); 
 		return func;
+	}
+	template <typename T>
+	void			SetMoveDone( T func )
+	{
+		//COMPILE_TIME_ASSERT( IsSame<T, std::nullptr_t>::value || sizeof(func) == ENTITYFUNCPTR_SIZE );
+		m_pfnMoveDone = static_cast<BASEPTR>(func);
+		FunctionCheck( *(reinterpret_cast<void **>(&m_pfnMoveDone)), "BaseMoveFunc" );
 	}
 
 #endif // _DEBUG
@@ -1161,11 +1246,113 @@ public:
 	string_t	m_iszDamageFilterName;	// The name of the entity to use as our damage filter.
 	EHANDLE		m_hDamageFilter;		// The entity that controls who can damage us.
 
-	int m_iHackEntIndex;
-
 	// Debugging / devolopment fields
 	int				m_debugOverlays;	// For debug only (bitfields)
 	TimedOverlay_t*	m_pTimedOverlay;	// For debug only
+
+	// VSCRIPT
+	HSCRIPT GetScriptInstance();
+	bool ValidateScriptScope();
+	virtual void RunVScripts();
+	bool CallScriptFunction( const char *pFunctionName, ScriptVariant_t *pFunctionReturn, bool bNoDelegation = false );
+	void ConnectOutputToScript( const char *pszOutput, const char *pszScriptFunc );
+	void DisconnectOutputFromScript( const char *pszOutput, const char *pszScriptFunc );
+	void ScriptThink( );
+	const char *GetScriptId();
+	const char *GetScriptThinkFunc();
+	HSCRIPT GetScriptScope();
+	void RunPrecacheScripts( void );
+	void RunOnPostSpawnScripts( void );
+
+	HSCRIPT ScriptGetMoveParent( void );
+	HSCRIPT ScriptGetRootMoveParent();
+	HSCRIPT ScriptFirstMoveChild( void );
+	HSCRIPT ScriptNextMovePeer( void );
+	
+	void ScriptSetSize( const Vector &mins, const Vector &maxs ) { UTIL_SetSize( this, mins, maxs ); }
+	void ScriptUtilRemove( void ) { UTIL_Remove( this ); }
+	void ScriptSetOwner( HSCRIPT hEntity ) { this->SetOwnerEntity( ToEnt( hEntity ) ); }
+	void ScriptSetOrigin( const Vector &v ) { this->Teleport( &v, NULL, NULL ); }
+	void ScriptSetForward( const Vector &v ) { QAngle angles; VectorAngles( v, angles ); this->Teleport( NULL, &angles, NULL ); }
+	const Vector &ScriptGetForward( void ) { static Vector vecForward; this->GetVectors( &vecForward, NULL, NULL ); return vecForward; }
+	const Vector &ScriptGetRight( void ) { static Vector vecRight; this->GetVectors( NULL, &vecRight, NULL ); return vecRight; }
+	const Vector &ScriptGetLeft( void )
+	{
+		DevMsg("Using legacy GetLeftVector, which actually returns the RIGHT vector for compatibility. Do not use me! Move to GetRightVector please!\n");
+		return this->ScriptGetRight();
+	}
+	const Vector &ScriptGetUp( void ) { static Vector vecUp; this->GetVectors( NULL, NULL, &vecUp ); return vecUp; }
+
+	void ScriptSetAngles( float fPitch, float fYaw, float fRoll )
+	{
+		DevMsg("Using legacy SetAngles.\nDo not use me! Move to SetAbsAngles or SetLocalAngles please!\n");
+		QAngle angles(fPitch,fYaw,fRoll); this->Teleport(NULL, &angles, NULL);
+	}
+    const Vector &ScriptGetAngles( void )
+	{
+		DevMsg("Using legacy GetAngles.\nDo not use me! Do not use me! Move to GetAbsAngles or GetLocalAngles please!\n");
+		static Vector vec; QAngle qa = this->GetAbsAngles(); vec.x = qa.x; vec.y = qa.y; vec.z = qa.z; return vec;
+	}
+
+	void ScriptSetVelocity( const Vector &vecAbsVelocity )
+	{
+		DevMsg("Using legacy SetVelocity.\nDo not use me! Move to SetAbsVelocity please!\n");
+		this->SetAbsVelocity( vecAbsVelocity );
+	}
+    const Vector &ScriptGetVelocity( void )
+	{
+		DevMsg("Using legacy GetVelocity.\nDo not use me! Do not use me! Move to GetAbsVelocity please!\n");
+		return this->GetAbsVelocity();
+	}
+
+	const QAngle &ScriptEyeAngles( void )
+	{
+		return this->EyeAngles();
+	}
+
+	const QAngle &ScriptLocalEyeAngles( void )
+	{
+		return this->EyeAngles();
+	}
+
+	void ScriptTeleport( bool bSetPosition, const Vector &newPosition, bool bSetAngle, const QAngle &newAngle, bool bSetVelocity, const Vector &newVelocity )
+	{
+		this->Teleport( bSetPosition ? &newPosition : nullptr, bSetAngle ? &newAngle : nullptr, bSetVelocity ? &newVelocity : nullptr );
+	}
+
+	int ScriptGetMoveType( void )
+	{
+		return (int)GetMoveType();
+	}
+
+	void ScriptSetMoveType( int nMoveType, int nMoveCollide )
+	{
+		SetMoveType( (MoveType_t) nMoveType, (MoveCollide_t) nMoveCollide );
+	}
+
+	void ScriptSetSolid( int nSolidType )
+	{
+		SetSolid( (SolidType_t) nSolidType );
+	}
+
+	int ScriptGetSolid( void )
+	{
+		return (int)GetSolid();
+	}
+
+	HSCRIPT ScriptGetModelKeyValues( void );
+
+	void ScriptPrecacheModel( const char *name );
+	void ScriptPrecacheScriptSound( const char *name );
+
+	bool ScriptAcceptInput( const char *pInputName, const char *pValue, HSCRIPT hActivator, HSCRIPT hCaller );
+
+	string_t		m_iszVScripts;
+	string_t		m_iszScriptThinkFunction;
+	CScriptScope	m_ScriptScope;
+	HSCRIPT			m_hScriptInstance;
+	string_t		m_iszScriptId;
+	CScriptKeyValues *m_pScriptModelKeyValues;
 
 	// virtual functions used by a few classes
 	
@@ -1177,16 +1364,6 @@ public:
 	int				GetCollisionGroup() const;
 	void			SetCollisionGroup( int collisionGroup );
 	void			CollisionRulesChanged();
-	
-	//Grab Controller
-	CGrabController *m_pGrabController;
-	CGrabController *GetGrabController() { return m_pGrabController; }
-	void SetGrabController(CGrabController *pGrabController) { m_pGrabController = pGrabController; }
-	
-	//Physgun
-	CWeaponPhysCannon *m_pPhysgun;
-	CWeaponPhysCannon *GetPhysgun() { return m_pPhysgun; }
-	void SetPhysgun(CWeaponPhysCannon *pPhysgun) { m_pPhysgun = pPhysgun; }
 
 	// Damage accessors
 	virtual int		GetDamageType() const;
@@ -1194,6 +1371,7 @@ public:
 	virtual void	SetDamage(float flDamage) {}
 
 	virtual Vector	EyePosition( void );			// position of eyes
+	inline Vector ScriptEyePosition() { return EyePosition(); }
 	virtual const QAngle &EyeAngles( void );		// Direction of eyes in world space
 	virtual const QAngle &LocalEyeAngles( void );	// Direction of eyes
 	virtual Vector	EarPosition( void );			// position of ears
@@ -1217,6 +1395,8 @@ public:
 	void			SetAbsVelocity( const Vector &vecVelocity );
 	void			ApplyAbsVelocityImpulse( const Vector &vecImpulse );
 	void			ApplyLocalAngularVelocityImpulse( const AngularImpulse &angImpulse );
+	const Vector&	ScriptGetLocalAngularVelocity( void );
+	void			ScriptSetLocalAngularVelocity( float pitchVel, float yawVel, float rollVel );
 
 	const Vector&	GetLocalVelocity( ) const;
 	const Vector&	GetAbsVelocity( ) const;
@@ -1295,6 +1475,10 @@ public:
 
 	// This defines collision bounds in OBB space
 	void					SetCollisionBounds( const Vector& mins, const Vector &maxs );
+	Vector					ScriptGetBoundingMins( void );
+	Vector					ScriptGetBoundingMaxs( void );
+	Vector					ScriptGetBoundingMinsOriented( void );
+	Vector					ScriptGetBoundingMaxsOriented( void );
 
 	// NOTE: The world space center *may* move when the entity rotates.
 	virtual const Vector&	WorldSpaceCenter( ) const;
@@ -1350,6 +1534,9 @@ public:
 	// See CSoundEmitterSystem
 	void					EmitSound( const char *soundname, float soundtime = 0.0f, float *duration = NULL );  // Override for doing the general case of CPASAttenuationFilter filter( this ), and EmitSound( filter, entindex(), etc. );
 	void					EmitSound( const char *soundname, HSOUNDSCRIPTHANDLE& handle, float soundtime = 0.0f, float *duration = NULL );  // Override for doing the general case of CPASAttenuationFilter filter( this ), and EmitSound( filter, entindex(), etc. );
+	void					ScriptEmitSound( const char *soundname );
+	void					ScriptStopSound( const char *soundname );
+	float					ScriptSoundDuration( const char *soundname, const char *actormodel );
 	void					StopSound( const char *soundname );
 	void					StopSound( const char *soundname, HSOUNDSCRIPTHANDLE& handle );
 	void					GenderExpandString( char const *in, char *out, int maxlen );
@@ -1377,6 +1564,8 @@ public:
 	// These files need to be listed in scripts/game_sounds_manifest.txt
 	static HSOUNDSCRIPTHANDLE PrecacheScriptSound( const char *soundname );
 	static void PrefetchScriptSound( const char *soundname );
+	void VScriptPrecacheScriptSound( const char *soundname );
+
 
 	// For each client who appears to be a valid recipient, checks the client has disabled CC and if so, removes them from 
 	//  the recipient list.
@@ -1686,7 +1875,7 @@ private:
 	EHANDLE			m_pBlocker;
 
 	// was pev->gravity;
-	float			m_flGravity;  // rename to m_flGravityScale;
+	CNetworkVar( float, m_flGravity );  // rename to m_flGravityScale;
 	// was pev->friction
 	CNetworkVarForDerived( float, m_flFriction );
 	CNetworkVar( float, m_flElasticity );
@@ -1751,10 +1940,6 @@ public:
 
 	// So it can get at the physics methods
 	friend class CCollisionEvent;
-	
-	void SetPingIcon(PINGICON iPingIcon) { m_iPingIcon = iPingIcon; }
-
-	CNetworkVar(PINGICON, m_iPingIcon);
 
 // Methods shared by client and server
 public:
@@ -1781,6 +1966,8 @@ private:
 	friend void UnlinkAllChildren( CBaseEntity *pParent );
 	friend void UnlinkFromParent( CBaseEntity *pRemove );
 	friend void TransferChildren( CBaseEntity *pOldParent, CBaseEntity *pNewParent );
+
+	bool m_bForcePurgeFixedupStrings; // For template entites so we don't leak strings.
 	
 public:
 	// Accessors for above
@@ -1824,11 +2011,22 @@ public:
 	}
 
 	virtual bool ShouldBlockNav() const { return true; }
-	
-public:
-#ifdef PORTAL
-	virtual void NotifyPortalEvent( PortalEvent_t nEventType, CProp_Portal *pNotifier ) { /*Do nothing*/ }
-#endif // PORTAL
+
+	virtual bool ShouldForceTransmitsForTeam( int iTeam ) { return false; }
+
+	void 			SetTruceValidForEnt( bool bTruceValidForEnt ) { m_bTruceValidForEnt = bTruceValidForEnt; }
+	virtual bool	IsTruceValidForEnt( void ) const { return m_bTruceValidForEnt; }
+
+#ifdef TF_DLL
+	virtual float GetDefaultItemChargeMeterValue( void ) const { return 100.f; }
+#endif // TF_DLL
+
+	virtual bool BCanCallVote() { return true; }
+
+private:
+	CThreadFastMutex m_CalcAbsolutePositionMutex;
+
+	bool	m_bTruceValidForEnt;
 };
 
 // Send tables exposed in this module.
@@ -1957,6 +2155,21 @@ inline string_t CBaseEntity::GetEntityName()
 	return m_iName; 
 }
 
+inline const char *CBaseEntity::GetEntityNameAsCStr()
+{
+	return STRING( m_iName );
+}
+
+inline const char *CBaseEntity::GetPreTemplateName()
+{
+	const char *pszDelimiter = V_strrchr( STRING( m_iName ), '&' );
+	if ( !pszDelimiter )
+		return STRING( m_iName );
+	static char szStrippedName[128];
+	V_strncpy( szStrippedName, STRING( m_iName ), MIN( (intp)(ARRAYSIZE(szStrippedName)), (intp)(pszDelimiter - STRING( m_iName ) + 1 )) );
+	return szStrippedName;
+}
+
 inline void CBaseEntity::SetName( string_t newName )
 {
 	m_iName = newName;
@@ -1977,6 +2190,11 @@ inline bool CBaseEntity::NameMatches( string_t nameStr )
 	return NameMatchesComplex( STRING(nameStr) );
 }
 
+inline void CBaseEntity::MarkNeedsNamePurge()
+{
+	m_bForcePurgeFixedupStrings = true;
+}
+
 inline bool CBaseEntity::ClassMatches( const char *pszClassOrWildcard )
 {
 	if ( IDENT_STRINGS(m_iClassname, pszClassOrWildcard ) )
@@ -1995,6 +2213,11 @@ inline bool CBaseEntity::ClassMatches( string_t nameStr )
 	if ( IDENT_STRINGS(m_iClassname, nameStr ) )
 		return true;
 	return ClassMatchesComplex( STRING(nameStr) );
+}
+
+inline EHANDLE CBaseEntity::ScriptGetEHandle( void )
+{
+	return EHANDLE( this );
 }
 
 inline int CBaseEntity::GetSpawnFlags( void ) const
@@ -2491,6 +2714,11 @@ inline string_t CBaseEntity::GetModelName( void ) const
 	return m_ModelName;
 }
 
+inline const char*CBaseEntity::ScriptGetModelName( void ) const
+{
+	return STRING( m_ModelName );
+}
+
 inline int CBaseEntity::GetModelIndex( void ) const
 {
 	return m_nModelIndex;
@@ -2642,14 +2870,7 @@ inline void CBaseEntity::FireBullets( int cShots, const Vector &vecSrc,
 #define SetThink( a ) ThinkSet( static_cast <void (CBaseEntity::*)(void)> (a), 0, NULL )
 #define SetContextThink( a, b, context ) ThinkSet( static_cast <void (CBaseEntity::*)(void)> (a), (b), context )
 
-#ifdef _DEBUG
-#define SetMoveDone( a ) \
-	do \
-	{ \
-		m_pfnMoveDone = static_cast <void (CBaseEntity::*)(void)> (a); \
-		FunctionCheck( (void *)*((int *)((char *)this + ( offsetof(CBaseEntity,m_pfnMoveDone)))), "BaseMoveFunc" ); \
-	} while ( 0 )
-#else
+#ifndef _DEBUG
 #define SetMoveDone( a ) \
 		(void)(m_pfnMoveDone = static_cast <void (CBaseEntity::*)(void)> (a))
 #endif

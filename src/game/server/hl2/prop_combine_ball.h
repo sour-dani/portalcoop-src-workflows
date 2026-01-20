@@ -47,7 +47,6 @@ public:
 	CFuncCombineBallSpawner *GetSpawner();
 
 	virtual void ExplodeThink( void );
-	virtual void DoExplodeThink( void );
 
 	// Override of IPlayerPickupVPhysics;
 	virtual bool ShouldPuntUseLaunchForces( PhysGunForce_t reason ) { return ( reason == PHYSGUN_FORCE_PUNTED ); }
@@ -162,7 +161,7 @@ private:
 		return ( m_nState == STATE_LAUNCHED && m_nMaxBounces != 0 && m_nBounceCount >= m_nMaxBounces );
 	}
 
-protected:
+private:
 
 	int		m_nBounceCount;
 	int		m_nMaxBounces;
@@ -172,7 +171,7 @@ protected:
 
 	bool	m_bFiredGrabbedOutput;
 	bool	m_bStruckEntity;		// Has hit an entity already (control accuracy)
-	CNetworkVar(bool, m_bWeaponLaunched);		// Means this was fired from the AR2
+	bool	m_bWeaponLaunched;		// Means this was fired from the AR2
 	bool	m_bForward;				// Movement direction in ball spawner
 
 	unsigned char m_nState;

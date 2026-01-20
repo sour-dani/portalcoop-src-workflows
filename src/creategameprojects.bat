@@ -1,2 +1,1 @@
-devtools\bin\vpc.exe /portal +game /mksln games.sln
-pause
+devtools\bin\vpc.exe /portal /define:SOURCESDK +game /mksln game.sln

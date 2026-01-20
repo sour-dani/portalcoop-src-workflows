@@ -59,6 +59,7 @@ class CFuncTrackTrain : public CBaseEntity
 {
 	DECLARE_CLASS( CFuncTrackTrain, CBaseEntity );
 	DECLARE_SERVERCLASS();
+	DECLARE_ENT_SCRIPTDESC();
 
 public:
 	CFuncTrackTrain();
@@ -132,6 +133,7 @@ public:
 	float GetDesiredSpeed() const { return m_flDesiredSpeed;}
 
 	virtual bool IsBaseTrain( void ) const { return true; }
+	Vector ScriptGetFuturePosition( float flSeconds, float flMinSpeed );
 
 	void SetSpeedForwardModifier( float flModifier );
 	void SetBlockDamage( float flDamage ) { m_flBlockDamage = flDamage; }
@@ -204,9 +206,9 @@ private:
 	float		m_flAccelSpeed;
 	float		m_flDecelSpeed;
 	bool		m_bAccelToSpeed;
-#ifndef PORTAL
+
 	float		m_flNextMPSoundTime;
-#endif
+	
 	float		m_flSpeedForwardModifier;
 	float		m_flUnmodifiedDesiredSpeed;
 

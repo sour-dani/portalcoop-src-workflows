@@ -235,7 +235,6 @@ IMPLEMENT_SERVERCLASS_ST( CPropCombineBall, DT_PropCombineBall )
 	SendPropFloat( SENDINFO( m_flRadius ), 0, SPROP_NOSCALE ),
 	SendPropBool( SENDINFO( m_bHeld ) ),
 	SendPropBool( SENDINFO( m_bLaunched ) ),
-	SendPropBool( SENDINFO( m_bWeaponLaunched ) ),
 END_SEND_TABLE()
 
 //-----------------------------------------------------------------------------
@@ -630,11 +629,6 @@ void CPropCombineBall::UpdateOnRemove()
 void CPropCombineBall::ExplodeThink( void )
 {
 	DoExplosion();	
-}
-
-void CPropCombineBall::DoExplodeThink( void )
-{
-	SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, s_pExplodeTimerContext );
 }
 
 //-----------------------------------------------------------------------------

@@ -14,6 +14,7 @@
 #include "physics_npc_solver.h"
 #include "vphysics/friction.h"
 #include "hierarchy.h"
+#include "vscript_shared.h"
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1161,7 +1162,7 @@ void CFuncTrain::Stop( void )
 		}
 
 		//Do not teleport to our final move destination
-		SetMoveDone( NULL );
+		SetMoveDone( nullptr );
 		SetMoveDoneTime( -1 );
 	}
 }
@@ -1229,6 +1230,10 @@ BEGIN_DATADESC( CFuncTrackTrain )
 	DEFINE_FUNCTION( DeadEnd ),
 
 END_DATADESC()
+
+BEGIN_ENT_SCRIPTDESC( CFuncTrackTrain, CBaseEntity, "func_train" )
+DEFINE_SCRIPTFUNC_NAMED( ScriptGetFuturePosition, "GetFuturePosition", "Get a position on the track x seconds in the future" )
+END_SCRIPTDESC()
 
 LINK_ENTITY_TO_CLASS( func_tracktrain, CFuncTrackTrain );
 
@@ -1788,7 +1793,7 @@ void CFuncTrackTrain::SoundUpdate( void )
 	{
 		return;
 	}
-#ifndef PORTAL
+
 	// In multiplayer, only update the sound once a second
 	if ( g_pGameRules->IsMultiplayer() && m_bSoundPlaying )
 	{
@@ -1797,7 +1802,7 @@ void CFuncTrackTrain::SoundUpdate( void )
 
 		m_flNextMPSoundTime = gpGlobals->curtime + 1.0;
 	}
-#endif
+
 	float flSpeedRatio = 0;
 	if ( HasSpawnFlags( SF_TRACKTRAIN_USE_MAXSPEED_FOR_PITCH ) )
 	{
@@ -2089,7 +2094,7 @@ void CFuncTrackTrain::UpdateOrientationAtPathTracks( CPathTrack *pPrev, CPathTra
 	}
 	QAngle angles;
 	VectorAngles( vecFaceDir, angles );
-	// !!!  All of this crap has to be done to make the angles not wrap around, revisit this.
+	// !!!  All of this stuff has to be done to make the angles not wrap around, revisit this.
 	FixupAngles( angles );
 
 	// Wrapped with this bool so we don't affect old trains
@@ -2370,7 +2375,7 @@ void CFuncTrackTrain::Next( void )
 		SetThink( &CFuncTrackTrain::Next );
 		SetMoveDoneTime( 0.5 );
 		SetNextThink( gpGlobals->curtime );
-		SetMoveDone( NULL );
+		SetMoveDone( nullptr );
 	}
 	else
 	{
@@ -2402,6 +2407,33 @@ void CFuncTrackTrain::Next( void )
 			DeadEnd();
 		}
 	}
+}
+
+
+Vector CFuncTrackTrain::ScriptGetFuturePosition( float flSeconds, float flMinSpeed )
+{
+	//
+	// Based on our current position and speed, look ahead along our path and see
+	// where we should be in flSeconds seconds.
+	//
+	Vector nextPos = GetLocalOrigin();
+	float flSpeed = flMinSpeed;
+
+	nextPos.z -= m_height;
+	CPathTrack *pNextNext = NULL; 
+	CPathTrack *pNext = m_ppath->LookAhead( nextPos, flSpeed * flSeconds, 1, &pNextNext );
+
+	// If we're moving towards a dead end, but our desired speed goes in the opposite direction
+	// this fixes us from stalling
+	if ( m_bManualSpeedChanges && ( ( flSpeed < 0 ) != ( m_flDesiredSpeed < 0 ) ) )
+	{
+		if ( !pNext )
+			pNext = m_ppath;
+	}
+
+//	NDebugOverlay::Box( nextPos, Vector( -8, -8, -8 ), Vector( 8, 8, 8 ), 0, 255, 0, 0, 0.1 );
+
+	return nextPos;
 }
 
 
@@ -2466,10 +2498,6 @@ void CFuncTrackTrain::DeadEnd( void )
 		DevMsg( 2, "at %s\n", pTrack->GetDebugName() );
 		variant_t emptyVariant;
 		pTrack->AcceptInput( "InPass", this, this, emptyVariant, 0 );
-#ifdef PORTAL
-		// hacky but it'll do
-		Teleport( &pTrack->GetLocalOrigin(), NULL, NULL );
-#endif
 	}
 	else
 	{
@@ -3212,7 +3240,7 @@ void CFuncTrackChange::HitBottom( void )
 //		UpdateTrain();
 		m_train->SetTrack( m_trackBottom );
 	}
-	SetMoveDone( NULL );
+	SetMoveDone( nullptr );
 	SetMoveDoneTime( -1 );
 
 	UpdateAutoTargets( m_toggle_state );
@@ -3234,7 +3262,7 @@ void CFuncTrackChange::HitTop( void )
 	}
 	
 	// Don't let the plat go back down
-	SetMoveDone( NULL );
+	SetMoveDone( nullptr );
 	SetMoveDoneTime( -1 );
 	UpdateAutoTargets( m_toggle_state );
 	EnableUse();
