@@ -14,6 +14,7 @@
 
 #include "interface.h"
 #include "physics_shared.h"
+#include "positionwatcher.h"
 
 class CCollisionEvent : public IPhysicsCollisionEvent, public IPhysicsCollisionSolver, public IPhysicsObjectEvent
 {

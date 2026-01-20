@@ -148,9 +148,6 @@ public:
 	virtual bool	IsPlayer( void ) const { return true; }
 	virtual int		GetHealth() const { return m_iHealth; }
 
-	int		GetBonusProgress() const { return m_iBonusProgress; }
-	int		GetBonusChallenge() const { return m_iBonusChallenge; }
-
 	// observer mode
 	virtual int			GetObserverMode() const;
 	void				SetObserverMode ( int iNewMode );
