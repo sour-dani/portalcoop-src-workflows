@@ -661,4 +661,34 @@ void C_BaseHLPlayer::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quatern
 	BaseClass::BuildTransformations( hdr, pos, q, cameraTransform, boneMask, boneComputed );
 	BuildFirstPersonMeathookTransformations( hdr, pos, q, cameraTransform, boneMask, boneComputed, "ValveBiped.Bip01_Head1" );
 }
+//-----------------------------------------------------------------------------
+// Purpose: Force the player to drop any physics objects he's carrying
+//-----------------------------------------------------------------------------
+void C_BaseHLPlayer::ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldingThis )
+{
+	/*
+	if ( PhysIsInCallback() )
+	{
+		variant_t value;
+		g_EventQueue.AddEvent( this, "ForceDropPhysObjects", value, 0.01f, pOnlyIfHoldingThis, this );
+		return;
+	}
 
+#ifdef HL2_EPISODIC
+	if ( hl2_episodic.GetBool() )
+	{
+		CBaseEntity *pHeldEntity = PhysCannonGetHeldEntity( GetActiveWeapon() );
+		if( pHeldEntity && pHeldEntity->ClassMatches( "grenade_helicopter" ) )
+		{
+			return;
+		}
+	}
+#endif
+
+
+	// Then force the physcannon to drop anything it's holding, if it's our active weapon
+	PhysCannonForceDrop( GetActiveWeapon(), NULL );
+	*/
+	// Drop any objects being handheld.
+	SetUseEntity(NULL);
+}

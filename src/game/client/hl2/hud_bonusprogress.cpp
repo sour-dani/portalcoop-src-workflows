@@ -30,6 +30,9 @@ using namespace vgui;
 #include "hud_numericdisplay.h"
 
 #include "convar.h"
+#ifdef PORTAL
+#include "portal_gamerules.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -88,8 +91,11 @@ void CHudBonusProgress::Reset()
 
 	C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
 	if ( local )
+#ifdef PORTAL
+		m_iLastChallenge = 0;//local->GetBonusChallenge();
+#else
 		m_iLastChallenge = local->GetBonusChallenge();
-
+#endif
 	SetChallengeLabel();
 
 	SetDisplayValue(m_iBonusProgress);
@@ -108,7 +114,11 @@ void CHudBonusProgress::VidInit()
 //-----------------------------------------------------------------------------
 void CHudBonusProgress::OnThink()
 {
+#ifndef PORTAL
 	C_GameRules *pGameRules = GameRules();
+#else	
+	CPortalGameRules *pGameRules = PortalGameRules();
+#endif
 
 	if ( !pGameRules )
 	{
@@ -127,9 +137,13 @@ void CHudBonusProgress::OnThink()
 	}
 
 	// Never below zero
+#ifdef PORTAL
+	newBonusProgress = MAX( pGameRules->GetBonusProgress(), 0 );
+	iBonusChallenge = pGameRules->GetBonusChallenge();
+#else
 	newBonusProgress = MAX( local->GetBonusProgress(), 0 );
 	iBonusChallenge = local->GetBonusChallenge();
-
+#endif
 	// Only update the fade if we've changed bonusProgress
 	if ( newBonusProgress == m_iBonusProgress && m_iLastChallenge == iBonusChallenge )
 	{
