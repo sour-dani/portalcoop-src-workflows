@@ -1360,13 +1360,12 @@ $Project
 		$Lib		tier3
 		$Lib		vgui_controls
 		$Lib		vtf
-		$Lib  	"$LIBCOMMON/libjpeg"		[!$DEDICATED]
 
 		$ImpLibexternal steam_api	[!$WIN64]
 		$ImpLibexternal steam_api64	[$WIN64]
 
-		$Lib libpng [!$VS2015&&!$DEDICATED]
-		$Lib $LIBCOMMON/libpng [$VS2015&&!$DEDICATED]
+		$Lib "$LIBCOMMON/jpeglib"
+		$Lib "$LIBCOMMON/libspng"
 		
 		$Libexternal $LIBCOMMON/libcrypto [$OSXALL]
 		$Libexternal "$SRCDIR\lib\common\$CRYPTOPPDIR\libcryptopp" [$LINUXALL&&!$SOURCESDK]
