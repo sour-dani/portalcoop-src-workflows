@@ -28,6 +28,7 @@
 #include "tier1/convar_serverbounded.h"
 #include "cam_thirdperson.h"
 #include "inputsystem/iinputsystem.h"
+#include "hud_macros.h"
 
 #if defined( _X360 )
 #include "xbox/xbox_win32stubs.h"
@@ -825,3 +826,25 @@ void CInput::ClearStates (void)
 	int rawX, rawY;
 	inputsystem->GetRawMouseAccumulators(rawX, rawY);
 }
+
+#ifdef PORTAL
+void __MsgFunc_SetMouseAngle( bf_read &msg )
+{
+	float x = msg.ReadFloat();
+	float y = msg.ReadFloat();
+	float z = msg.ReadFloat();
+
+	engine->SetViewAngles( QAngle( x, y, z ) );
+}
+
+class CSetViewAnglesHook : public CAutoGameSystem
+{
+	virtual bool Init()
+	{
+		HOOK_MESSAGE( SetMouseAngle );
+		return true;
+	}
+};
+
+static CSetViewAnglesHook s_SetViewAnglesHook;
+#endif
