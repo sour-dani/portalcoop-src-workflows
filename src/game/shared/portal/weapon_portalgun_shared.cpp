@@ -1283,6 +1283,7 @@ bool CWeaponPortalgun::PreThink( void )
 
 void CWeaponPortalgun::Think( void )
 {
+	return;
 	//Allow descended classes a chance to do something before the think function
 	if ( PreThink() )
 		return;
@@ -1389,11 +1390,13 @@ void CWeaponPortalgun::Think( void )
 #endif
 }
 
-ConVar funcyou("func_you_bll", "");
-
 float CWeaponPortalgun::GetPortal1Placablity(void)
 {
 #ifdef CLIENT_DLL
+	// Spectators need to use the networked value
+	if ( GetOwner() != C_BasePlayer::GetLocalPlayer() )
+		return m_fCanPlacePortal2OnThisSurfaceNetworked;
+
 	if (use_server_portal_crosshair_test.GetBool())
 		m_fCanPlacePortal1OnThisSurface = m_fCanPlacePortal1OnThisSurfaceNetworked;
 #endif
@@ -1403,6 +1406,10 @@ float CWeaponPortalgun::GetPortal1Placablity(void)
 float CWeaponPortalgun::GetPortal2Placablity(void)
 {
 #ifdef CLIENT_DLL
+	// Spectators need to use the networked value
+	if ( GetOwner() != C_BasePlayer::GetLocalPlayer() )
+		return m_fCanPlacePortal2OnThisSurfaceNetworked;
+
 	if (use_server_portal_crosshair_test.GetBool())
 		m_fCanPlacePortal2OnThisSurface = m_fCanPlacePortal2OnThisSurfaceNetworked;
 #endif
