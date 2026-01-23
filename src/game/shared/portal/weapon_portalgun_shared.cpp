@@ -1283,7 +1283,6 @@ bool CWeaponPortalgun::PreThink( void )
 
 void CWeaponPortalgun::Think( void )
 {
-	return;
 	//Allow descended classes a chance to do something before the think function
 	if ( PreThink() )
 		return;
