@@ -694,7 +694,8 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 	Assert( pPortal );
 	if (!pPortal)
 		return PORTAL_ANALOG_SUCCESS_INVALID_VOLUME;
-	if (pPortal)
+
+	if (pPortal && !bTest)
 	{
 		pPortal->SetFiredByPlayer(pPlayer);
 		pPortal->m_nPlacementAttemptParity = (pPortal->m_nPlacementAttemptParity + 1) & EF_PARITY_MASK; //no matter what, prod the network state so we can detect prediction errors
