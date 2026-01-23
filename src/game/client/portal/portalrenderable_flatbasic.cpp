@@ -1178,7 +1178,7 @@ void CPortalRenderable_FlatBasic::DrawPortal( void )
 	if( (view->GetDrawFlags() & DF_RENDER_REFLECTION) != 0 )
 		return;
 
-	int iPortalColorSet = 0;
+	int iPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE;
 
 	C_Prop_Portal *pPropPortal = GetPropPortal();
 
@@ -1198,11 +1198,11 @@ void CPortalRenderable_FlatBasic::DrawPortal( void )
 				}
 			}
 			
-			if (iPortalColorSet == 1)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li1[((m_bIsPortal2)?(1):(0))] );
-			else if (iPortalColorSet == 2)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li2[((m_bIsPortal2)?(1):(0))] );
-			else if (iPortalColorSet == 3)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li3[((m_bIsPortal2)?(1):(0))] );
 			else
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay[((m_bIsPortal2)?(1):(0))] );
@@ -1227,11 +1227,11 @@ void CPortalRenderable_FlatBasic::DrawPortal( void )
 			}
 			else
 			{
-				if (iPortalColorSet == 1)
+				if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 					DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li1[((m_bIsPortal2)?(1):(0))] );
-				else if (iPortalColorSet == 2)
+				else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 					DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li2[((m_bIsPortal2)?(1):(0))] );
-				else if (iPortalColorSet == 3)
+				else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 					DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li3[((m_bIsPortal2)?(1):(0))] );
 				else
 					DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay[((m_bIsPortal2)?(1):(0))] );
@@ -1259,11 +1259,11 @@ void CPortalRenderable_FlatBasic::DrawPortal( void )
 			{
 				DrawSimplePortalMesh( m_Materials.m_Portal_Refract[ ( ( m_bIsPortal2 ) ? ( 1 ) : ( 0 ) ) ] );
 			}
-			if (iPortalColorSet == 1)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li1[((m_bIsPortal2)?(1):(0))] );
-			else if (iPortalColorSet == 2)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li2[((m_bIsPortal2)?(1):(0))] );
-			else if (iPortalColorSet == 3)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay_li3[((m_bIsPortal2)?(1):(0))] );
 			else
 				DrawSimplePortalMesh( m_Materials.m_PortalStaticOverlay[((m_bIsPortal2)?(1):(0))] );

@@ -247,7 +247,7 @@ public:
 	CProp_Portal *m_pPrimaryPortal;
 	CProp_Portal *m_pSecondaryPortal;
 
-	CNetworkVar(int, m_iCustomPortalColorSet);
+	CNetworkVar(PortalColorSet_t, m_iCustomPortalColorSet);
 
 	PortalGunSpawnInfo_t m_PortalGunSpawnInfo;
 

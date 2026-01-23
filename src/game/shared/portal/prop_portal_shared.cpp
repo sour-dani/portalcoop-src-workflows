@@ -1029,10 +1029,10 @@ bool CProp_Portal::ShouldTeleportTouchingEntity( CBaseEntity *pOther )
 
 void CProp_Portal::SetupPortalColorSet( void )
 {
-	if (m_iCustomPortalColorSet && sv_allow_customized_portal_colors.GetBool())
-		m_iPortalColorSet = m_iCustomPortalColorSet - 1;
+	if (m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID && sv_allow_customized_portal_colors.GetBool())
+		m_iPortalColorSet = m_iCustomPortalColorSet;
 	else
-		m_iPortalColorSet = m_iLinkageGroupID;
+		m_iPortalColorSet = ConvertLinkageIDToColorSet( m_iLinkageGroupID );
 }
 
 

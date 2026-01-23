@@ -81,7 +81,7 @@ CWeaponPortalgun::CWeaponPortalgun( void )
 
 #ifdef CLIENT_DLL
 	m_iOldPortalLinkageGroupID = 255; // This has to be done so that m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID for OnDataChanged
-	m_iOldPortalColorSet = 255; // This has to be done so that m_iOldPortalColorSet != m_iPortalColorSet for OnDataChanged
+	m_iOldPortalColorSet = PORTAL_COLOR_SET_INVALID; // This has to be done so that m_iOldPortalColorSet != m_iPortalColorSet for OnDataChanged
 #endif
 
 	m_fMinRange1	= 0.0f;
@@ -539,7 +539,7 @@ void CWeaponPortalgun::UpdateOnRemove(void)
 	BaseClass::UpdateOnRemove();
 }
 
-void CWeaponPortalgun::DoEffectBlast(CBaseEntity *pOwner, bool bPortal2, int iPlacedBy, const Vector &ptStart, const Vector &ptFinalPos, const QAngle &qStartAngles, float fDelay, int iPortalLinkageGroup)
+void CWeaponPortalgun::DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iPlacedBy, const Vector &ptStart, const Vector &ptFinalPos, const QAngle &qStartAngles, float fDelay, PortalColorSet_t iPortalColorSet )
 {
 #ifdef CLIENT_DLL
 	if ( !prediction->IsFirstTimePredicted() )
@@ -561,7 +561,7 @@ void CWeaponPortalgun::DoEffectBlast(CBaseEntity *pOwner, bool bPortal2, int iPl
 	fxData.m_vAngles = qStartAngles;
 	fxData.m_nColor = ( ( bPortal2 ) ? ( 2 ) : ( 1 ) );
 	fxData.m_nDamageType = iPlacedBy;
-	fxData.m_nHitBox = iPortalLinkageGroup; //Use m_nHitBox as a dummy var
+	fxData.m_nHitBox = iPortalColorSet; //Use m_nHitBox as a dummy var
 #ifdef CLIENT_DLL
 	AssertMsg( GetOwner() == C_BasePlayer::GetLocalPlayer(), "This should only run in prediction, and the owner should be the local player!" );
 	fxData.m_hEntity = GetOwner();
@@ -1297,10 +1297,10 @@ void CWeaponPortalgun::Think( void )
 	
 		if (m_iCustomPortalColorSet && sv_allow_customized_portal_colors.GetBool())
 		{
-			m_iPortalColorSet = m_iCustomPortalColorSet - 1;
+			m_iPortalColorSet = m_iCustomPortalColorSet;
 		}
 		else
-			m_iPortalColorSet = m_iPortalLinkageGroupID;
+			m_iPortalColorSet = ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID );
 
 	}
 
@@ -1347,7 +1347,7 @@ void CWeaponPortalgun::Think( void )
 		m_fCanPlacePortal2OnThisSurfaceNetworked = m_fCanPlacePortal2OnThisSurface;
 	}
 #else
-	if (!use_server_portal_crosshair_test.GetBool() && prediction->InPrediction() ) // Use client crosshair test
+	if (!use_server_portal_crosshair_test.GetBool() ) // Use client crosshair test
 	{
 		m_fCanPlacePortal1OnThisSurface = ( ( m_bCanFirePortal1 ) ? ( FirePortal( false, 0, 1 ) ) : ( 0.0f ) );
 		m_fCanPlacePortal2OnThisSurface = ( ( m_bCanFirePortal2 ) ? ( FirePortal( true, 0, 2 ) ) : ( 0.0f ) );
@@ -1358,7 +1358,7 @@ void CWeaponPortalgun::Think( void )
 		m_fCanPlacePortal2OnThisSurface = m_fCanPlacePortal2OnThisSurfaceNetworked;
 	}
 #endif
-
+#ifdef GAME_DLL
 	// Draw obtained portal color chips
 	int iSlot1State = ( ( m_bCanFirePortal1 ) ? ( 0 ) : ( 1 ) ); // FIXME: Portal gun might have only red but not blue;
 	int iSlot2State = ( ( m_bCanFirePortal2 ) ? ( 0 ) : ( 1 ) );
@@ -1386,7 +1386,10 @@ void CWeaponPortalgun::Think( void )
 		if ( m_fEffectsMaxSize2 < 4.0f )
 			m_fEffectsMaxSize2 = 4.0f;
 	}
+#endif
 }
+
+ConVar funcyou("func_you_bll", "");
 
 float CWeaponPortalgun::GetPortal1Placablity(void)
 {

@@ -19,6 +19,7 @@
 #include "portal_shareddefs.h"
 #include "effect_color_tables.h"
 #include "prediction.h"
+#include "portal_shareddefs.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -30,9 +31,9 @@ class C_PortalBlast : public C_BaseEntity
 
 public:
 
-	static void		Create( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, int iLinkageGroupID, EHANDLE hEntity );
+	static void		Create( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, PortalColorSet_t iPortalColorSet, EHANDLE hEntity );
 
-	void			Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, int iLinkageGroupID, EHANDLE hEntity );
+	void			Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, PortalColorSet_t iPortalColorSet, EHANDLE hEntity );
 
 	virtual void	ClientThink( void );
 
@@ -49,14 +50,14 @@ private:
 };
 
 
-void C_PortalBlast::Create( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, int iLinkageGroupID, EHANDLE hEntity )
+void C_PortalBlast::Create( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, PortalColorSet_t iPortalColorSet, EHANDLE hEntity )
 {
 	C_PortalBlast *pPortalBlast = new C_PortalBlast;
-	pPortalBlast->Init( bIsPortal2, ePlacedBy, vStart, vEnd, qAngles, fDeathTime, iLinkageGroupID, hEntity );
+	pPortalBlast->Init( bIsPortal2, ePlacedBy, vStart, vEnd, qAngles, fDeathTime, iPortalColorSet, hEntity );
 }
 
 
-void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, int iLinkageGroupID, EHANDLE hEntity )
+void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const Vector &vStart, const Vector &vEnd, const QAngle &qAngles, float fDeathTime, PortalColorSet_t iPortalColorSet, EHANDLE hEntity )
 {
 	ClientEntityList().AddNonNetworkableEntity( this );
 	ClientThinkList()->SetNextClientThink( GetClientHandle(), CLIENT_THINK_ALWAYS );
@@ -116,15 +117,15 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 
 	if ( ePlacedBy == PORTAL_PLACED_BY_PLAYER )
 	{
-		if (iLinkageGroupID == 1)
+		if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			ParticleProp()->Create( ( ( bIsPortal2 ) ? ( "portal_purple_projectile_stream" ) : ( "portal_lightblue_projectile_stream" ) ), PATTACH_ABSORIGIN_FOLLOW );		
 		}
-		else if (iLinkageGroupID == 2)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			ParticleProp()->Create( ( ( bIsPortal2 ) ? ( "portal_red_projectile_stream" ) : ( "portal_yellow_projectile_stream" ) ), PATTACH_ABSORIGIN_FOLLOW );		
 		}
-		else if (iLinkageGroupID == 3)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			ParticleProp()->Create( ( ( bIsPortal2 ) ? ( "portal_pink_projectile_stream" ) : ( "portal_green_projectile_stream" ) ), PATTACH_ABSORIGIN_FOLLOW );		
 		}
@@ -135,15 +136,15 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 	}
 	else
 	{
-		if (iLinkageGroupID == 1)
+		if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			ParticleProp()->Create( ( ( bIsPortal2 ) ? ( "portal_purple_projectile_stream_pedestal" ) : ( "portal_lightblue_projectile_stream_pedestal" ) ), PATTACH_ABSORIGIN_FOLLOW );		
 		}
-		else if (iLinkageGroupID == 2)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			ParticleProp()->Create( ( ( bIsPortal2 ) ? ( "portal_red_projectile_stream_pedestal" ) : ( "portal_yellow_projectile_stream_pedestal" ) ), PATTACH_ABSORIGIN_FOLLOW );		
 		}
-		else if (iLinkageGroupID == 3)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			ParticleProp()->Create( ( ( bIsPortal2 ) ? ( "portal_pink_projectile_stream_pedestal" ) : ( "portal_green_projectile_stream_pedestal" ) ), PATTACH_ABSORIGIN_FOLLOW );		
 		}
@@ -184,7 +185,7 @@ void C_PortalBlast::ClientThink( void )
 
 void PortalBlastCallback( const CEffectData & data )
 {
-	C_PortalBlast::Create( ( data.m_nColor == 1 ) ? ( false ) : ( true ), (PortalPlacedByType)data.m_nDamageType, data.m_vOrigin, data.m_vStart, data.m_vAngles, data.m_flScale, data.m_nHitBox, cl_entitylist->GetBaseEntityFromHandle( data.m_hEntity ) );
+	C_PortalBlast::Create( ( data.m_nColor == 1 ) ? ( false ) : ( true ), (PortalPlacedByType)data.m_nDamageType, data.m_vOrigin, data.m_vStart, data.m_vAngles, data.m_flScale, (PortalColorSet_t)data.m_nHitBox, cl_entitylist->GetBaseEntityFromHandle( data.m_hEntity ) );
 }
 
 DECLARE_CLIENT_EFFECT( "PortalBlast", PortalBlastCallback );

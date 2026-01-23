@@ -2738,10 +2738,10 @@ void C_BaseEntity::CheckInitPredictable( const char *context )
 	// PCOOP_PORT: This check doesn't seem right
 	{
 		// It's either a player, a weapon or a view model
-		C_BasePlayer *pOwner = GetPredictionOwner();
-		Assert( pOwner );
-		if ( !pOwner )
-			return;
+		//C_BasePlayer *pOwner = GetPredictionOwner();
+		//Assert( pOwner );
+		//if ( !pOwner )
+		//	return;
 	}
 
 	// Msg( "Predicting init %s at %s\n", GetClassname(), context );

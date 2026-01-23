@@ -81,7 +81,7 @@ public:
 	void					CreateAttachedParticles( void );
 	void					DestroyAttachedParticles( void );
 	
-	void					DoFizzleEffect( int iEffect, int iLinkageGroupID = 0, bool bDelayedPos = true ); //display cool visual effect
+	void					DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE, bool bDelayedPos = true ); //display cool visual effect
 	void					Fizzle( void ); //display cool visual effect
 
 	void					PlacePortal( const Vector &vOrigin, const QAngle &qAngles, float fPlacementSuccess, bool bDelay = false );
@@ -178,9 +178,9 @@ public:
 	//C_Prop_Portal			*m_pHitPortal;
 	//C_Prop_Portal			*m_pPortalReplacingMe;
 
-	int	m_iCustomPortalColorSet;
-	int	m_iOldPortalColorSet;
-	int	m_iPortalColorSet;
+	PortalColorSet_t m_iCustomPortalColorSet;
+	PortalColorSet_t m_iOldPortalColorSet;
+	PortalColorSet_t m_iPortalColorSet;
 	
 	virtual float GetMinimumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity ); //return -FLT_MAX for no minimum
 	virtual float GetMaximumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity ); //return FLT_MAX for no maximum

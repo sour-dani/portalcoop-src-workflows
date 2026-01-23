@@ -193,8 +193,8 @@ const Color C_PlayerResource::GetPortalgunColor(int iIndex)
 {
 	C_Portal_Player *pPlayer = ToPortalPlayer(ClientEntityList().GetEnt(iIndex));
 
-	int iPortalColorSet = 0;
-	Color color = Color(255, 160, 32, 255);
+	PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_ID;
+	Color color = PORTAL_COLOR_DEFAULT;
 	
 	if (!pPlayer)
 	{
@@ -209,13 +209,13 @@ const Color C_PlayerResource::GetPortalgunColor(int iIndex)
 		{
 			iPortalColorSet = pPortalgun->m_iPortalColorSet;
 		}
-		else if ( pPlayer->m_iCustomPortalColorSet != 0 ) // This means the player is not letting the Portal ID decide what the color set is
+		else if ( pPlayer->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID ) // This means the player is not letting the Portal ID decide what the color set is
 		{
-			iPortalColorSet = pPlayer->m_iCustomPortalColorSet - 1; // Use this for consistency
+			iPortalColorSet = pPlayer->m_iCustomPortalColorSet; // Use this for consistency
 		}
 		else
 		{
-			iPortalColorSet = pPlayer->entindex();
+			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() );
 		}
 	}
 	else
@@ -226,15 +226,15 @@ const Color C_PlayerResource::GetPortalgunColor(int iIndex)
 		}
 		else // We don't have a portalgun, but this should theoretically accurately get our colors
 		{
-			iPortalColorSet = pPlayer->entindex(); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
+			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
 		}
 	}
 	
-	if (iPortalColorSet == 1)
+	if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		color = Color(128, 0, 255, 255);
-	else if ( iPortalColorSet == 2 )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
 		color = Color(255, 0, 0, 255);
-	else if ( iPortalColorSet == 3 )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 		color = Color(0, 255, 0, 255);
 
 	return color;
@@ -248,21 +248,21 @@ const Color C_PlayerResource::GetPortalColor(int iIndex)
 		return COLOR_GREY;
 				
 	
-	if (pPortal->m_iPortalColorSet == 1)
+	if (pPortal->m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 	{
 		if (pPortal->m_bIsPortal2)
 			return Color(128, 0, 255, 255); // purple
 
 		return Color(0, 255, 255, 255); // light blue
 	}
-	else if (pPortal->m_iPortalColorSet == 2)
+	else if (pPortal->m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 	{
 		if (pPortal->m_bIsPortal2)
 			return Color(255, 0, 0, 255); //red
 
 		return Color(255, 255, 0, 255); //yellow
 	}
-	else if (pPortal->m_iPortalColorSet == 3)
+	else if (pPortal->m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 	{
 		if (pPortal->m_bIsPortal2)
 			return Color(255, 0, 255, 255); //pink
@@ -274,7 +274,7 @@ const Color C_PlayerResource::GetPortalColor(int iIndex)
 	if (!pPortal->m_bIsPortal2)
 		return Color(64, 160, 255, 255); // Default Blue
 
-	return Color(255, 160, 32, 255);
+	return PORTAL_COLOR_DEFAULT;
 
 }
 #endif

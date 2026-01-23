@@ -220,7 +220,7 @@ public:
 
 	bool IsSuppressingCrosshair( void ) { return m_bSuppressingCrosshair; }
 	
-	int m_iCustomPortalColorSet;
+	PortalColorSet_t m_iCustomPortalColorSet;
 	
 	float GetLatestServerTeleport() { return m_fLatestServerTeleport; }
 

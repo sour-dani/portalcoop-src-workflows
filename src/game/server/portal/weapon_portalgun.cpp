@@ -111,7 +111,7 @@ void CWeaponPortalgun::Spawn( void )
 		}	
 	}
 
-	m_iPortalColorSet = m_iPortalLinkageGroupID;
+	m_iPortalColorSet = ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID );
 
 	CPortal_Player *pPlayer = ToPortalPlayer(GetOwner());
 

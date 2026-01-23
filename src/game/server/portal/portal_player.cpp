@@ -1107,9 +1107,9 @@ void CPortal_Player::SetupSkin( void )
 	int iPortalColorSet;
 	UTIL_Ping_Color( this, Color(), iPortalColorSet );
 
-	if (iPortalColorSet == 1)
+	if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 		m_nSkin = 1;
-	else if (iPortalColorSet == 3)
+	else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		m_nSkin = 2;
 	else
 		m_nSkin = 0;
@@ -1406,11 +1406,11 @@ void CPortal_Player::PlayCoopPingEffect( void )
 
 		if (bShouldCreateCrosshair)
 		{
-			if (iPortalColorSet == 1)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_PURPLE, tr.endpos, angNormal, this );
-			else if (iPortalColorSet == 2)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_RED, tr.endpos, angNormal, this );
-			else if (iPortalColorSet == 3)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_GREEN, tr.endpos, angNormal, this );
 			else
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_ORANGE, tr.endpos, angNormal, this );

@@ -331,7 +331,7 @@ void CHUDQuickInfo::Paint()
 	if ( pPortalgun->IsHoldingObject() )
 	{
 		// Change the middle to orange 
-		portal1Color = portal2Color = UTIL_Portal_Color(0, pPortalgun->m_iPortalLinkageGroupID);
+		portal1Color = portal2Color = UTIL_Portal_Color(0, pPortalgun->m_iPortalColorSet );
 		bPortalPlacability[0] = bPortalPlacability[1] = false;
 	}
 	

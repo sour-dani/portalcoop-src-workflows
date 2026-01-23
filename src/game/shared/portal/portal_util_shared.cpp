@@ -146,7 +146,7 @@ const matrix3x4_t* CTransformedCollideable::GetRootParentToWorldTransform() cons
 	return &m_ReferencedVars.m_matRootParentToWorldTransform;
 }
 
-Color UTIL_Portal_Color( int iPortal, int iLinkageGroupID )
+Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet )
 {
 	switch ( iPortal )
 	{
@@ -156,22 +156,22 @@ Color UTIL_Portal_Color( int iPortal, int iLinkageGroupID )
 		
 		case 1:
 			// PORTAL 1
-			if (iLinkageGroupID == 1)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				return Color(128, 244, 255, 255); //light blue
-			if (iLinkageGroupID == 2)
+			if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				return Color( 255, 255, 0, 255 ); //yellow
-			if (iLinkageGroupID == 3)
+			if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				return Color( 0, 255, 0, 255 ); //green
 			else
 				return Color( 64, 160, 255, 255 ); // Default Blue
 
 		case 2:
 			// PORTAL 2
-			if (iLinkageGroupID == 1)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				return Color(128, 0, 255, 255); //purple
-			if (iLinkageGroupID == 2)
+			if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				return Color( 255, 0, 0, 255 ); //red
-			if (iLinkageGroupID == 3)
+			if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				return Color( 255, 0, 255, 255 ); //pink
 			else
 				return Color( 255, 160, 32, 255 ); //default orange
@@ -207,7 +207,7 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColor
 		}
 		else
 		{
-			iPortalColorSet = pPlayer->entindex();
+			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() );
 		}
 	}
 	else
@@ -218,16 +218,16 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColor
 		}
 		else // We don't have a portalgun, but this should theoretically accurately get our colors
 		{
-			iPortalColorSet = pPlayer->entindex(); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
+			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
 		}
 	}
 		
-	if ( iPortalColorSet == 1 )
+	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 		vColor = Vector(0.6, 0, 1.0); // 153 0 255
-	else if ( iPortalColorSet == 2 )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
 		vColor = Vector(1.0, 0, 0); // 255 0 0
-	else if ( iPortalColorSet == 3 )
-		vColor = Vector(0.0, 255, 0); // 0 255 0
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
+		vColor = Vector(0.0, 1.0, 0); // 0 255 0
 
 }
 
@@ -253,7 +253,7 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSe
 			iPortalColorSet = pPortalgun->m_iPortalColorSet.m_Value;
 #endif
 		}
-		else if ( pPlayer->m_iCustomPortalColorSet != 0 ) // This means the player is not letting the Portal ID decide what the color set is
+		else if ( pPlayer->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID ) // This means the player is not letting the Portal ID decide what the color set is
 		{
 			// Use this for consistency
 #ifdef CLIENT_DLL
@@ -264,7 +264,7 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSe
 		}
 		else
 		{
-			iPortalColorSet = pPlayer->entindex();
+			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() );
 		}
 	}
 	else
@@ -279,15 +279,15 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSe
 		}
 		else // We don't have a portalgun, but this should theoretically accurately get our colors
 		{
-			iPortalColorSet = pPlayer->entindex(); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
+			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
 		}
 	}
 	
-	if ( iPortalColorSet == 1 )
+	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 		color = Color(128, 0, 255);
-	else if ( iPortalColorSet == 2 )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
 		color = Color(255, 0, 0);
-	else if ( iPortalColorSet == 3 )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 		color = Color(0, 255, 0);
 }
 
@@ -301,28 +301,28 @@ void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Vector &vColor )
 		return;
 	}
 		
-	if ( pPortalgun->m_iPortalColorSet == 1 )
+	if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 		vColor = Vector(0.6, 0, 1.0); // 153 0 255
-	else if ( pPortalgun->m_iPortalColorSet == 2 )
+	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
 		vColor = Vector(1.0, 0, 0); // 255 0 0
-	else if ( pPortalgun->m_iPortalColorSet == 3 )
+	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 		vColor = Vector(0.0, 1.0, 0); // 0 255 0
 }
 
 void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Color &color )
 {
-	color = Color(255, 160, 32, 255);
+	color = PORTAL_COLOR_DEFAULT;
 	
 	if (!pPortalgun)
 	{
 		return;
 	}
 	
-	if ( pPortalgun->m_iPortalColorSet == 1 )
+	if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 		color = Color(128, 0, 255, 255);
-	else if ( pPortalgun->m_iPortalColorSet == 2 )
+	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
 		color = Color(255, 0, 0, 255);
-	else if ( pPortalgun->m_iPortalColorSet == 3 )
+	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 		color = Color(0, 255, 0, 255);
 }
 

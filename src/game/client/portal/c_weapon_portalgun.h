@@ -136,7 +136,7 @@ public:
 
 	virtual void OnRestore( void );
 	virtual void UpdateOnRemove(void);
-	void DoEffectBlast(CBaseEntity *pOwner, bool bPortal2, int iPlacedBy, const Vector &ptStart, const Vector &ptFinalPos, const QAngle &qStartAngles, float fDelay, int iPortalLinkageGroup);
+	void DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iPlacedBy, const Vector &ptStart, const Vector &ptFinalPos, const QAngle &qStartAngles, float fDelay, PortalColorSet_t iPortalColorSet );
 	void Spawn( void );
 	void DoEffectCreate( Vector &vDir, Vector &ptStart, Vector &ptEnd, bool bPortal1, bool bPlayer );
 
@@ -188,9 +188,9 @@ public:
 
 	Vector m_vFirstPredictedShotPos;
 
-	int m_iCustomPortalColorSet;
-	int	m_iOldPortalColorSet;
-	int m_iPortalColorSet;
+	PortalColorSet_t m_iCustomPortalColorSet;
+	PortalColorSet_t m_iOldPortalColorSet;
+	PortalColorSet_t m_iPortalColorSet;
 	int m_iValidPlayer;
 	bool m_bCanAttack;
 

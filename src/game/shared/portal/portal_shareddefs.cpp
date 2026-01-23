@@ -24,6 +24,28 @@ char *g_ppszPortalPassThroughMaterials[] =
 	NULL,
 };
 
+PortalColorSet_t ConvertLinkageIDToColorSet( int iPortalLinkageID )
+{
+	switch ( iPortalLinkageID )
+	{
+		case 1:
+		{
+			return PORTAL_COLOR_SET_LIGHTBLUE_PURPLE;
+		}
+		case 2:
+		{
+			return PORTAL_COLOR_SET_YELLOW_RED;
+		}
+		case 3:
+		{
+			return PORTAL_COLOR_SET_GREEN_PINK;
+		}
+	}
+
+	// Use the default color
+	return PORTAL_COLOR_SET_BLUE_ORANGE;
+}
+
 KeyValues *LoadRadioData()
 {	
 	KeyValues *radios = new KeyValues( "radios.txt" );
