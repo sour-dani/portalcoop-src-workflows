@@ -76,6 +76,7 @@ const char *pRocketTurretFollowerBoneNames[] =
 	"panel",
 };
 
+#define ROCKET_TURRET_LASER_ATTACHMENT 2
 
 class CNPC_RocketTurret : public CAI_BaseNPC
 {
@@ -214,7 +215,6 @@ protected:
 	CNetworkVar( int, m_nSiteHalo );
 
 	// Target indicator sprite info
-	int		m_iMuzzleAttachment;
 	int		m_iLightAttachment;
 
 	COutputEvent m_OnFoundTarget;
@@ -248,7 +248,6 @@ BEGIN_DATADESC( CNPC_RocketTurret )
 	DEFINE_FIELD( m_iPosePitch,					FIELD_INTEGER ),
 	DEFINE_FIELD( m_iPoseYaw,					FIELD_INTEGER ),
 	DEFINE_FIELD( m_hCurRocket,					FIELD_EHANDLE ),
-	DEFINE_FIELD( m_iMuzzleAttachment,			FIELD_INTEGER ),
 	DEFINE_FIELD( m_iLightAttachment,			FIELD_INTEGER ),
 	DEFINE_FIELD( m_muzzleToWorldTick,			FIELD_INTEGER ),
 	DEFINE_FIELD( m_muzzleToWorld,				FIELD_MATRIX3X4_WORLDSPACE ),
@@ -343,7 +342,7 @@ CNPC_RocketTurret::CNPC_RocketTurret( void )
 
 	m_flTimeLastFired = m_flTimeLocking = m_flDistToEnemy = m_flTimeSpentDying	= 0.0f;
 	
-	m_iLightAttachment = m_iMuzzleAttachment = m_nSiteHalo = 0;
+	m_iLightAttachment = m_nSiteHalo = 0;
 	
 	m_flTimeSpentPaused = m_flPauseLength = m_flTotalDivergenceX = m_flTotalDivergenceY = 0.0f;
 
@@ -393,7 +392,6 @@ void CNPC_RocketTurret::Spawn( void )
 	SetModel( ROCKET_TURRET_MODEL_NAME );
 	SetSolid( SOLID_VPHYSICS );
 
-	m_iMuzzleAttachment = LookupAttachment ( "barrel" );
 	m_iLightAttachment = LookupAttachment ( "eye" );
 
 	m_iPosePitch = LookupPoseParameter( "aim_pitch" );
@@ -434,7 +432,7 @@ void CNPC_RocketTurret::Spawn( void )
 Vector CNPC_RocketTurret::GetMuzzlePos()
 {
 	Vector vMuzzlePos;
-	GetAttachment( m_iMuzzleAttachment, vMuzzlePos, NULL, NULL, NULL );
+	GetAttachment( ROCKET_TURRET_LASER_ATTACHMENT, vMuzzlePos, NULL, NULL, NULL );
 	return vMuzzlePos;
 }
 
@@ -894,7 +892,7 @@ void CNPC_RocketTurret::UpdateMuzzleMatrix()
 	if ( gpGlobals->tickcount != m_muzzleToWorldTick )
 	{
 		m_muzzleToWorldTick = gpGlobals->tickcount;
-		GetAttachment( m_iMuzzleAttachment, m_muzzleToWorld );
+		GetAttachment( ROCKET_TURRET_LASER_ATTACHMENT, m_muzzleToWorld );
 	}
 }
 
