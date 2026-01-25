@@ -1234,6 +1234,22 @@ void C_Portal_Player::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 	m_PlayerAnimState->DoAnimationEvent( event, nData );
 }
 
+bool C_Portal_Player::ShouldDrawThroughPortals( void )
+{
+	if( IsLocalPlayer() )
+	{
+		if ( !C_BasePlayer::ShouldDrawThisPlayer() )
+		{
+			if ( !g_pPortalRender->IsRenderingPortal() )
+				return false;
+
+			if( (g_pPortalRender->GetViewRecursionLevel() == 1) && (m_iForceNoDrawInPortalSurface != -1) ) //CPortalRender::s_iRenderingPortalView )
+				return false;
+		}
+	}
+
+	return true;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1247,17 +1263,8 @@ int C_Portal_Player::DrawModel( int flags )
 	if ( pLocalPlayer && pLocalPlayer->GetObserverTarget() == this && pLocalPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
 		return 0;
 
-	if( IsLocalPlayer() )
-	{
-		if ( !C_BasePlayer::ShouldDrawThisPlayer() )
-		{
-			if ( !g_pPortalRender->IsRenderingPortal() )
-				return 0;
-
-			if( (g_pPortalRender->GetViewRecursionLevel() == 1) && (m_iForceNoDrawInPortalSurface != -1) ) //CPortalRender::s_iRenderingPortalView )
-				return 0;
-		}
-	}
+	if ( !ShouldDrawThroughPortals() )
+		return 0;
 
 	return BaseClass::DrawModel(flags);
 }
@@ -2026,8 +2033,6 @@ void C_Portal_Player::PlayerPortalled( C_Prop_Portal *pEnteredPortal, float fTim
 	if ( pEnteredPortal )
 	{
 		C_Prop_Portal *pRemotePortal = pEnteredPortal->m_hLinkedPortal;
-
-		m_PendingPortalMatrix = pEnteredPortal->MatrixThisToLinked();
 
 		if( IsLocalPlayer() && pRemotePortal )
 		{

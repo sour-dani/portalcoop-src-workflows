@@ -768,11 +768,6 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 				pOtherAsPlayer->SetBaseVelocity( vNewVelocity );				
 
 			}
-	
-	
-			
-			//pOtherAsPlayer->m_bWantsToStoreAngles = true;
-			pOtherAsPlayer->m_PendingPortalMatrix = MatrixThisToLinked();
 #endif
 		}
 		else
