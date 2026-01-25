@@ -80,6 +80,8 @@ void C_BaseCombatWeapon::NotifyShouldTransmit( ShouldTransmitState_t state )
 //-----------------------------------------------------------------------------
 static inline bool ShouldDrawLocalPlayerViewModel( void )
 {
+	// PCOOP: This is what causes a lot of the weapon prediction errors
+	// The weapon index doesn't get properly set, which is problematic for animations
 #if defined( PORTAL )
 	return false;
 #else
