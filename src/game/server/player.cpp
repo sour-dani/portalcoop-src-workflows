@@ -7003,14 +7003,11 @@ void CBasePlayer::UpdateClientData( void )
 						&& ( m_nPoisonDmg > m_nPoisonRestored ) 
 						&& ( m_iHealth < 100 );
 	
-	// I am soooo happy I didn't completely delete this lol - Wonderland_War
-#if 1
 	// Check if the bonus progress HUD element should be displayed
 	if ( g_pGameRules->GetBonusChallenge() == 0 && g_pGameRules->GetBonusProgress() == 0 && !( m_Local.m_iHideHUD & HIDEHUD_BONUS_PROGRESS ) )
 		m_Local.m_iHideHUD |= HIDEHUD_BONUS_PROGRESS;
 	if ( ( g_pGameRules->GetBonusChallenge() != 0 )&& ( m_Local.m_iHideHUD & HIDEHUD_BONUS_PROGRESS ) )
 		m_Local.m_iHideHUD &= ~HIDEHUD_BONUS_PROGRESS;
-#endif
 
 	// Let any global rules update the HUD, too
 	g_pGameRules->UpdateClientData( this );

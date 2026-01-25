@@ -303,14 +303,6 @@ END_SEND_TABLE()
 
 extern void SendProxy_Origin( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
 
-// specific to the local player
-BEGIN_SEND_TABLE_NOBASE( CPortal_Player, DT_PortalLocalPlayerExclusive )
-	//a message buffer for entity teleportations that's guaranteed to be in sync with the post-teleport updates for said entities
-	SendPropUtlVector( SENDINFO_UTLVECTOR( m_EntityPortalledNetworkMessages ), CPortal_Player::MAX_ENTITY_PORTALLED_NETWORK_MESSAGES, SendPropDataTable( NULL, 0, &REFERENCE_SEND_TABLE( DT_EntityPortalledNetworkMessage ) ) ),
-	SendPropInt( SENDINFO( m_iEntityPortalledNetworkMessageCount ) ),
-	//SendPropBool( SENDINFO( m_bPaused ) ),
-END_SEND_TABLE()
-
 enum
 {
 	MODEL_CHELL,
@@ -334,15 +326,42 @@ void BotSetupModelConVarValue( CPortal_Player *pBot )
 	engine->SetFakeClientConVarValue( pBot->edict(), "cl_playermodel", pszModel );
 }
 
+// specific to the local player
+BEGIN_SEND_TABLE_NOBASE( CPortal_Player, DT_PortalLocalPlayerExclusive )
+	// send a hi-res origin to the local player for use in prediction
+	SendPropVectorXY(SENDINFO(m_vecOrigin),               -1, SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginXY ),
+	SendPropFloat   (SENDINFO_VECTORELEM(m_vecOrigin, 2), -1, SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginZ ),
+
+	SendPropFloat( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f ),
+	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 10, SPROP_CHANGES_OFTEN ),
+
+	//a message buffer for entity teleportations that's guaranteed to be in sync with the post-teleport updates for said entities
+	SendPropUtlVector( SENDINFO_UTLVECTOR( m_EntityPortalledNetworkMessages ), CPortal_Player::MAX_ENTITY_PORTALLED_NETWORK_MESSAGES, SendPropDataTable( NULL, 0, &REFERENCE_SEND_TABLE( DT_EntityPortalledNetworkMessage ) ) ),
+	SendPropInt( SENDINFO( m_iEntityPortalledNetworkMessageCount ) ),
+	//SendPropBool( SENDINFO( m_bPaused ) ),
+END_SEND_TABLE()
+
+// all players except the local player
+BEGIN_SEND_TABLE_NOBASE( CPortal_Player, DT_PortalNonLocalPlayerExclusive )
+	// send a lo-res origin to other players
+	SendPropVectorXY(SENDINFO(m_vecOrigin),               -1, SPROP_COORD_MP_LOWPRECISION|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginXY ),
+	SendPropFloat   (SENDINFO_VECTORELEM(m_vecOrigin, 2), -1, SPROP_COORD_MP_LOWPRECISION|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginZ ),
+
+	SendPropFloat( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f ),
+	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 10, SPROP_CHANGES_OFTEN ),
+
+END_SEND_TABLE()
+
 LINK_ENTITY_TO_CLASS(player, CPortal_Player);
 
 IMPLEMENT_SERVERCLASS_ST(CPortal_Player, DT_Portal_Player)
-	/*
-	SendPropExclude("DT_BaseAnimating", "m_flPlaybackRate"),
-	SendPropExclude("DT_BaseAnimating", "m_nSequence"),
-	SendPropExclude("DT_BaseAnimating", "m_nNewSequenceParity"),
-	SendPropExclude("DT_BaseAnimating", "m_nResetEventsParity"),
-	*/
+SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),
+
+// Data that only gets sent to the local player
+SendPropDataTable( "portallocaldata", 0, &REFERENCE_SEND_TABLE( DT_PortalLocalPlayerExclusive ), SendProxy_SendLocalDataTable ),
+
+// Data that gets sent to all other players
+SendPropDataTable( "portalnonlocaldata", 0, &REFERENCE_SEND_TABLE( DT_PortalNonLocalPlayerExclusive ), SendProxy_SendNonLocalDataTable ),
 
 	SendPropExclude("DT_BaseEntity", "m_angRotation"),
 	SendPropExclude("DT_BaseAnimatingOverlay", "overlay_vars"),
@@ -356,8 +375,6 @@ IMPLEMENT_SERVERCLASS_ST(CPortal_Player, DT_Portal_Player)
 	//SendPropExclude("DT_AnimTimeMustBeFirst", "m_flAnimTime"),
 
 
-	SendPropAngle(SENDINFO_VECTORELEM(m_angEyeAngles, 0), 11, SPROP_CHANGES_OFTEN),
-	SendPropAngle(SENDINFO_VECTORELEM(m_angEyeAngles, 1), 11, SPROP_CHANGES_OFTEN),
 	SendPropEHandle(SENDINFO(m_hRagdoll)),
 	SendPropInt(SENDINFO(m_iSpawnInterpCounter), 4),
 	SendPropBool(SENDINFO(m_bPitchReorientation)),

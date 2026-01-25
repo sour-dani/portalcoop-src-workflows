@@ -2572,22 +2572,9 @@ bool CBaseEntity::IsToolRecording() const
 
 void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 {
-#if defined( CLIENT_DLL )
-#if defined( FAST_TRIGGER_TOUCH )
-	{
-		Assert( !pPrevAbsOrigin );
-		TouchTriggerPlayerMovement( this );
-		return;
-	}
-#endif // FAST_TRIGGER_TOUCH
-#endif // CLIENT_DLL
 #ifdef GAME_DLL
 	edict_t *pEdict = edict();
-
 	if ( pEdict && !IsWorld() )
-#else
-	if ( !IsWorld() )
-#endif
 	{
 		Assert(CollisionProp());
 		bool isTriggerCheckSolids = IsSolidFlagSet( FSOLID_TRIGGER );
@@ -2606,9 +2593,6 @@ void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 		}
 
 		SetCheckUntouch( true );
-
-		// Damn it, we're locked by engine code...
-#ifdef GAME_DLL
 		if ( isSolidCheckTriggers )
 		{
 			engine->SolidMoved( pEdict, CollisionProp(), pPrevAbsOrigin, sm_bAccurateTriggerBboxChecks );
@@ -2617,6 +2601,6 @@ void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 		{
 			engine->TriggerMoved( pEdict, sm_bAccurateTriggerBboxChecks );
 		}
-#endif
 	}
+#endif
 }

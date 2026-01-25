@@ -80,8 +80,11 @@
 			if ( dynamic_cast<CC4*>( pEntity ) )
 				return false;
 #endif // CSTRIKE_DLL
-
-			return true;//g_pGameRules->CanEntityBeUsePushed( pEntity );
+#ifdef GAME_DLL
+			return g_pGameRules->CanEntityBeUsePushed( pEntity );
+#else
+			return true;
+#endif
 		}
 	};
 #if defined(GAME_DLL) && !defined(_XBOX)

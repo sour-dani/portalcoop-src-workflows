@@ -293,14 +293,29 @@ END_RECV_TABLE()
 
 // specific to the local player
 BEGIN_RECV_TABLE_NOBASE( C_Portal_Player, DT_PortalLocalPlayerExclusive )
+	RecvPropVectorXY( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
+	RecvPropFloat( RECVINFO_NAME( m_vecNetworkOrigin[2], m_vecOrigin[2] ) ),
+
+	RecvPropFloat( RECVINFO( m_angEyeAngles[0] ) ),
+	RecvPropFloat( RECVINFO( m_angEyeAngles[1] ) ),
 
 	RecvPropUtlVector( RECVINFO_UTLVECTOR( m_EntityPortalledNetworkMessages ), C_Portal_Player::MAX_ENTITY_PORTALLED_NETWORK_MESSAGES, RecvPropDataTable(NULL, 0, 0, &REFERENCE_RECV_TABLE( DT_EntityPortalledNetworkMessage ) ) ),
 	RecvPropInt( RECVINFO( m_iEntityPortalledNetworkMessageCount ) ),
 END_RECV_TABLE()
 
-IMPLEMENT_CLIENTCLASS_DT(C_Portal_Player, DT_Portal_Player, CPortal_Player)
+// all players except the local player
+BEGIN_RECV_TABLE_NOBASE( C_Portal_Player, DT_PortalNonLocalPlayerExclusive )
+	RecvPropVectorXY( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
+	RecvPropFloat( RECVINFO_NAME( m_vecNetworkOrigin[2], m_vecOrigin[2] ) ),
+
 	RecvPropFloat( RECVINFO( m_angEyeAngles[0] ) ),
 	RecvPropFloat( RECVINFO( m_angEyeAngles[1] ) ),
+END_RECV_TABLE()
+
+IMPLEMENT_CLIENTCLASS_DT(C_Portal_Player, DT_Portal_Player, CPortal_Player)
+	RecvPropDataTable( "portallocaldata", 0, 0, &REFERENCE_RECV_TABLE( DT_PortalLocalPlayerExclusive ) ),
+	RecvPropDataTable( "portalnonlocaldata", 0, 0, &REFERENCE_RECV_TABLE( DT_PortalNonLocalPlayerExclusive ) ),
+
 	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
 	RecvPropInt( RECVINFO( m_iSpawnInterpCounter ) ),
 	RecvPropBool( RECVINFO( m_bPitchReorientation ) ),
