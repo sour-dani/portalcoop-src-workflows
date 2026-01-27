@@ -1757,25 +1757,6 @@ void C_Portal_Player::AvoidPlayers( CUserCmd *pCmd )
 	//Msg( "Pforwardmove=%f, sidemove=%f\n", pCmd->forwardmove, pCmd->sidemove );
 }
 
-CON_COMMAND(portalenvironmentresponse, "Let's use know if we have a portal environment\n")
-{
-	C_Portal_Player *pPlayer = C_Portal_Player::GetLocalPortalPlayer();
-
-	if (!pPlayer)
-		return;
-
-	C_Prop_Portal *pPortalEnv = pPlayer->m_hPortalEnvironment.Get();
-
-	if (pPortalEnv)
-	{
-		Msg("m_hPortalEnvironment: Portal %i, ID %i\n", pPortalEnv->m_bIsPortal2 ? 2 : 1, pPortalEnv->m_iLinkageGroupID);
-	}
-	else
-	{
-		Msg("m_hPortalEnvironment == NULL\n");
-	}
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : flInputSampleTime - 
