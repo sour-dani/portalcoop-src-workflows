@@ -246,6 +246,16 @@ CFuncCombineBallSpawner *CPropCombineBall::GetSpawner()
 	return m_hSpawner;
 }
 
+CPropCombineBall::CPropCombineBall()
+{
+	AddToPauseList( this );
+}
+
+CPropCombineBall::~CPropCombineBall()
+{
+	RemoveFromPauseList( this );
+}
+
 //-----------------------------------------------------------------------------
 // Precache 
 //-----------------------------------------------------------------------------
@@ -956,8 +966,16 @@ void CPropCombineBall::StopLoopingSounds()
 		m_pHoldingSound = NULL;
 	}
 }
+#ifdef PORTAL
+void CPropCombineBall::OnUnPause( float flAddedTime )
+{
+	m_flLastBounceTime += flAddedTime;
+	m_flNextDamageTime += flAddedTime;
+	m_flLastCaptureTime += flAddedTime;
 
-
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //------------------------------------------------------------------------------
 // Pow!
 //------------------------------------------------------------------------------
@@ -1728,8 +1746,17 @@ CFuncCombineBallSpawner::CFuncCombineBallSpawner()
 	m_flBallRadius = 20.0f;
 	m_flDisableTime = 0.0f;
 	m_bShooter = false;
+
+	AddToPauseList( this );
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Deconstructor
+//-----------------------------------------------------------------------------
+CFuncCombineBallSpawner::~CFuncCombineBallSpawner()
+{
+	RemoveFromPauseList( this );
+}
 
 //-----------------------------------------------------------------------------
 // Spawn a ball
@@ -1768,7 +1795,17 @@ void CFuncCombineBallSpawner::Precache()
 
 	UTIL_PrecacheOther( "prop_combine_ball" );
 }
+#ifdef PORTAL
+void CFuncCombineBallSpawner::OnUnPause( float flAddedTime )
+{
+	for ( int i = 0; i < m_BallRespawnTime.Count(); ++i )
+	{
+		m_BallRespawnTime[i] += flAddedTime;
+	}
 
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //-----------------------------------------------------------------------------
 // Spawn
 //-----------------------------------------------------------------------------

@@ -34,7 +34,9 @@ public:
 	virtual void StopLoopingSounds( void );
 	virtual void Spawn();
 	virtual void Activate( void );
-
+#ifdef PORTAL
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 	// Overload for unlimited bounces and predictable movement
 	virtual void VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
 	// Overload for less sound, no shake.
@@ -165,7 +167,14 @@ void CPropEnergyBall::Activate( void )
 
 	CreateSounds();
 }
+#ifdef PORTAL
+void CPropEnergyBall::OnUnPause( float flAddedTime )
+{
+	m_fTimeTillDeath += flAddedTime;
 
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Keep a constant velocity despite collisions, make impact sounds and effects
 //-----------------------------------------------------------------------------
