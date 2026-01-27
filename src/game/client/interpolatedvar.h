@@ -1293,7 +1293,7 @@ inline void	CInterpolatedVarArrayBase<Type, IS_ARRAY>::SetMaxCount( float flCurr
 		m_LastNetworkedValue = new Type[m_nMaxCount];
 		memset( m_bLooping, 0, sizeof(byte) * m_nMaxCount);
 		memset( m_LastNetworkedValue, 0, sizeof(Type) * m_nMaxCount);
-
+		
 		Reset( flCurrentTime );
 	}
 }
@@ -1564,7 +1564,7 @@ class CInterpolatedVarArray : public CInterpolatedVarArrayBase<Type, true >
 {
 public:
 	CInterpolatedVarArray( const char *pDebugName = "no debug name" )
-		: CInterpolatedVarArrayBase< Type, true>( pDebugName )
+		: CInterpolatedVarArrayBase<Type, true>( pDebugName )
 	{
 		CInterpolatedVarArrayBase< Type, true >::SetMaxCount( 0.0f, COUNT );
 	}

@@ -390,15 +390,15 @@ void CPortalGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 	const char *szColorSet = engine->GetClientConVarValue( iPlayerIndex, "cl_portal_color_set");
 	
 	if (!strcmp(szColorSet, "0"))
-		pPortalPlayer->m_iCustomPortalColorSet = 0;
+		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_ID;
 	else if (!strcmp(szColorSet, "1"))
-		pPortalPlayer->m_iCustomPortalColorSet = 1;
+		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE;
 	else if (!strcmp(szColorSet, "2"))
-		pPortalPlayer->m_iCustomPortalColorSet = 2;
+		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_LIGHTBLUE_PURPLE;
 	else if (!strcmp(szColorSet, "3"))
-		pPortalPlayer->m_iCustomPortalColorSet = 3;
+		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_YELLOW_RED;
 	else if (!strcmp(szColorSet, "4"))
-		pPortalPlayer->m_iCustomPortalColorSet = 4;
+		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_GREEN_PINK;
 
 	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPortalPlayer->Weapon_OwnsThisType("weapon_portalgun"));
 	if (pPortalgun)
@@ -412,16 +412,22 @@ void CPortalGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		pPortalgun->m_iCustomPortalColorSet = pPortalPlayer->m_iCustomPortalColorSet;
 		
 		// HACK: Do this so that the SetupSkin function will work!!!
-		if (pPortalgun->m_iCustomPortalColorSet && sv_allow_customized_portal_colors.GetBool())
+		if (pPortalgun->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID && sv_allow_customized_portal_colors.GetBool())
 		{
-			pPortalgun->m_iPortalColorSet = pPortalgun->m_iCustomPortalColorSet - 1;
+			pPortalgun->m_iPortalColorSet = pPortalgun->m_iCustomPortalColorSet;
 		}
 		else
-			pPortalgun->m_iPortalColorSet = pPortalgun->m_iPortalLinkageGroupID;
+			pPortalgun->m_iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 			
 	}
 
 	pPortalPlayer->SetupSkin();
+	
+	const char *pszFov = engine->GetClientConVarValue( pPlayer->entindex(), "fov_desired" );
+	int iFov = atoi(pszFov);
+	iFov = clamp( iFov, 75, MAX_FOV );
+
+	pPlayer->SetDefaultFOV( iFov );
 
 	BaseClass::ClientSettingsChanged(pPlayer);
 #endif
@@ -1517,10 +1523,10 @@ const char *CPortalGameRules::GetGameDescription( void )
 				{
 					pPortalgun->m_iCustomPortalColorSet = pPlayer->m_iCustomPortalColorSet;
 	
-					if (pPortalgun->m_iCustomPortalColorSet && sv_allow_customized_portal_colors.GetBool())
-						pPortalgun->m_iPortalColorSet = pPortalgun->m_iCustomPortalColorSet - 1;
+					if (pPortalgun->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID && sv_allow_customized_portal_colors.GetBool())
+						pPortalgun->m_iPortalColorSet = pPortalgun->m_iCustomPortalColorSet;
 					else
-						pPortalgun->m_iPortalColorSet = pPortalgun->m_iPortalLinkageGroupID;
+						pPortalgun->m_iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 				}			
 			
 				pPlayer->SetupSkin();

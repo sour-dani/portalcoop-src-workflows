@@ -45,6 +45,10 @@
 #include "portal_player.h"
 #endif
 
+#ifdef TF_DLL
+#include "nav_mesh/tf_nav_mesh.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -175,10 +179,8 @@ float GetBreakableDamage( const CTakeDamageInfo &inputInfo, IBreakableWithPropDa
 //=============================================================================================================
 // BASE PROP
 //=============================================================================================================
-
 IMPLEMENT_SERVERCLASS_ST( CBaseProp, DT_BaseProp)
 END_SEND_TABLE()
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -737,10 +739,8 @@ static ConCommand prop_debug("prop_debug", CC_Prop_Debug, "Toggle prop debug mod
 // BREAKABLE PROPS
 //=============================================================================================================
 IMPLEMENT_SERVERCLASS_ST(CBreakableProp, DT_BreakableProp)
-
 	SendPropBool( SENDINFO( m_bHasPreferredCarryAngles ) ),
 	SendPropQAngles( SENDINFO( m_preferredCarryAngles ) ),
-
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CBreakableProp )
@@ -812,7 +812,7 @@ BEGIN_DATADESC( CBreakableProp )
 	// Damage
 	DEFINE_FIELD( m_hLastAttacker, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_hFlareEnt,	FIELD_EHANDLE ),
-
+	
 	DEFINE_FIELD( m_bHasPreferredCarryAngles, FIELD_BOOLEAN ),
 
 END_DATADESC()
@@ -1850,7 +1850,6 @@ BEGIN_DATADESC( CDynamicProp )
 	DEFINE_INPUTFUNC( FIELD_VOID,		"Disable",		InputTurnOff ),
 	DEFINE_INPUTFUNC( FIELD_VOID,		"EnableCollision",	InputEnableCollision ),
 	DEFINE_INPUTFUNC( FIELD_VOID,		"DisableCollision",	InputDisableCollision ),
-	DEFINE_INPUTFUNC( FIELD_FLOAT,		"SetPlaybackRate",	InputSetPlaybackRate ),
 
 	// Outputs
 	DEFINE_OUTPUT( m_pOutputAnimBegun, "OnAnimationBegun" ),
@@ -2266,14 +2265,6 @@ void CDynamicProp::InputSetAnimation( inputdata_t &inputdata )
 void CDynamicProp::InputSetDefaultAnimation( inputdata_t &inputdata )
 {
 	m_iszDefaultAnim = inputdata.value.StringID();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CDynamicProp::InputSetPlaybackRate( inputdata_t &inputdata )
-{
-	SetPlaybackRate( inputdata.value.Float() );
 }
 
 //-----------------------------------------------------------------------------
@@ -2924,7 +2915,7 @@ void CPhysicsProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 		}
 
 		pPlayer->PickupObject( this );
-
+		
 #ifdef PORTAL
 		CPortal_Player *pPortalPlayer = (CPortal_Player*)pPlayer;
 		if (pPortalPlayer)
@@ -2933,7 +2924,6 @@ void CPhysicsProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 			pPortalPlayer->SetLookForUseEntity(false);
 		}
 #endif
-
 	}
 }
 
@@ -4737,6 +4727,8 @@ public:
 
 	void	InputSetSpeed(inputdata_t &inputdata);
 
+	virtual void ComputeDoorExtent( Extent *extent, unsigned int extentType );	// extent contains the volume encompassing open + closed states
+
 	DECLARE_DATADESC();
 
 private:
@@ -4854,6 +4846,10 @@ void CPropDoorRotating::Spawn()
 	{
 		::V_swap( m_angRotationOpenForward, m_angRotationOpenBack );
 	}
+
+#ifdef TF_DLL
+	TheTFNavMesh()->OnDoorCreated( this );
+#endif
 
 	// Figure out our volumes of movement as this door opens
 	CalculateDoorVolume( GetLocalAngles(), m_angRotationOpenForward, &m_vecForwardBoundsMin, &m_vecForwardBoundsMax );
@@ -5054,6 +5050,33 @@ void CPropDoorRotating::OnRestore( void )
 	// Figure out our volumes of movement as this door opens
 	CalculateDoorVolume( GetLocalAngles(), m_angRotationOpenForward, &m_vecForwardBoundsMin, &m_vecForwardBoundsMax );
 	CalculateDoorVolume( GetLocalAngles(), m_angRotationOpenBack, &m_vecBackBoundsMin, &m_vecBackBoundsMax );
+}
+
+// extent contains the volume encompassing open + closed states
+void CPropDoorRotating::ComputeDoorExtent( Extent *extent, unsigned int extentType )
+{
+	if ( !extent )
+		return;
+
+	if ( extentType & DOOR_EXTENT_CLOSED )
+	{
+		Extent closedExtent;
+		CalculateDoorVolume( m_angRotationClosed, m_angRotationClosed, &extent->lo, &extent->hi );
+
+		if ( extentType & DOOR_EXTENT_OPEN )
+		{
+			Extent openExtent;
+			UTIL_ComputeAABBForBounds( m_vecForwardBoundsMin, m_vecForwardBoundsMax, m_vecBackBoundsMin, m_vecBackBoundsMax, &openExtent.lo, &openExtent.hi );
+			extent->Encompass( openExtent );
+		}
+	}
+	else if ( extentType & DOOR_EXTENT_OPEN )
+	{
+		UTIL_ComputeAABBForBounds( m_vecForwardBoundsMin, m_vecForwardBoundsMax, m_vecBackBoundsMin, m_vecBackBoundsMax, &extent->lo, &extent->hi );
+	}
+
+	extent->lo += GetAbsOrigin();
+	extent->hi += GetAbsOrigin();
 }
 
 //-----------------------------------------------------------------------------

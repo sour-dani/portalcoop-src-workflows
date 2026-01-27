@@ -16,7 +16,6 @@ END_RECV_TABLE()
 
 LINK_ENTITY_TO_CLASS( func_physbox, C_PhysBox );
 
-
 C_PhysBox::C_PhysBox()
 {
 }

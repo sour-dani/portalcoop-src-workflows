@@ -43,13 +43,13 @@ void PrecachePhysicsSounds( void );
 //FIXME: Replicated from server end, consolidate?
 
 
+extern IVEngineClient *engine;
+
 #ifdef PORTAL
 	CPortal_CollisionEvent g_Collisions;
 #else
 	CCollisionEvent g_Collisions;
 #endif
-
-extern IVEngineClient *engine;
 
 bool PhysIsInCallback()
 {
@@ -95,7 +95,7 @@ void PhysicsLevelInit( void )
 	physenv->SetGravity( Vector(0, 0, -GetCurrentGravity() ) );
 	// 15 ms per tick
 	// NOTE: Always run client physics at this rate - helps keep ragdolls stable
-	physenv->SetSimulationTimestep( IsXbox() ? DEFAULT_XBOX_CLIENT_VPHYSICS_TICK : DEFAULT_TICK_INTERVAL );
+	physenv->SetSimulationTimestep( IsXbox() ? DEFAULT_XBOX_CLIENT_VPHYSICS_TICK : gpGlobals->interval_per_tick );
 	physenv->SetCollisionEventHandler( &g_Collisions );
 	physenv->SetCollisionSolver( &g_Collisions );
 
@@ -357,16 +357,12 @@ void CPhysicsSystem::PhysicsSimulate()
 	if ( physenv )
 	{
 		tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "%s %d", __FUNCTION__, physenv->GetActiveObjectCount() );
-
-
-#ifdef _DEBUG
-		physenv->DebugCheckContacts();
-#endif
-
 #ifndef PORTAL //instead of wrapping 1 simulation with this, portal needs to wrap 3
 		g_Collisions.BufferTouchEvents( true );
 #endif
-
+#ifdef _DEBUG
+		physenv->DebugCheckContacts();
+#endif
 		physenv->Simulate( frametime * cl_phys_timescale.GetFloat() );
 
 		int activeCount = physenv->GetActiveObjectCount();
@@ -389,13 +385,13 @@ void CPhysicsSystem::PhysicsSimulate()
 				}
 			}
 		}
-		
+#ifndef PORTAL //instead of wrapping 1 simulation with this, portal needs to wrap 3
 		g_Collisions.BufferTouchEvents( false );
 		g_Collisions.FrameUpdate();
+#endif
 	}
 	physicssound::PlayImpactSounds( m_impactSounds );
 }
-
 
 #ifdef PORTAL
 ConVar cl_fullsyncclones("cl_fullsyncclones", "1", FCVAR_CHEAT );
@@ -419,7 +415,6 @@ void PortalPhysicsSimulate() //small wrapper for PhysFrame that simulates all en
 	CPortalSimulator::PostPhysFrame();
 }
 #endif
-
 
 void PhysicsSimulate()
 {
@@ -482,7 +477,6 @@ void CCollisionEvent::FrameUpdate( void )
 //-----------------------------------------------------------------------------
 void CCollisionEvent::UpdateTouchEvents( void )
 {
-#if 1
 	// Turn on buffering in case new touch events occur during processing
 	bool bOldTouchEvents = m_bBufferTouchEvents;
 	m_bBufferTouchEvents = true;
@@ -502,45 +496,6 @@ void CCollisionEvent::UpdateTouchEvents( void )
 
 	m_touchEvents.RemoveAll();
 	m_bBufferTouchEvents = bOldTouchEvents;
-#else
-	// Copied from server
-
-	int i;
-	// Turn on buffering in case new touch events occur during processing
-	bool bOldTouchEvents = m_bBufferTouchEvents;
-	m_bBufferTouchEvents = true;
-	for ( i = 0; i < m_touchEvents.Count(); i++ )
-	{
-		const touchevent_t &event = m_touchEvents[i];
-		if ( event.touchType == TOUCH_START )
-		{
-			DispatchStartTouch( event.pEntity0, event.pEntity1, event.endPoint, event.normal );
-		}
-		else
-		{
-			// TOUCH_END
-			DispatchEndTouch( event.pEntity0, event.pEntity1 );
-		}
-	}
-	m_touchEvents.RemoveAll();
-
-	for ( i = 0; i < m_triggerEvents.Count(); i++ )
-	{
-		m_currentTriggerEvent = m_triggerEvents[i];
-		if ( m_currentTriggerEvent.bStart )
-		{
-			m_currentTriggerEvent.pTriggerEntity->StartTouch( m_currentTriggerEvent.pEntity );
-		}
-		else
-		{
-			m_currentTriggerEvent.pTriggerEntity->EndTouch( m_currentTriggerEvent.pEntity );
-		}
-	}
-	m_triggerEvents.RemoveAll();
-	m_currentTriggerEvent.Clear();
-	m_bBufferTouchEvents = bOldTouchEvents;
-
-#endif
 }
 
 //-----------------------------------------------------------------------------

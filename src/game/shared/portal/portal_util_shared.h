@@ -38,7 +38,8 @@ extern bool g_bBulletPortalTrace;
 
 #define USEMOVEMENTFORPORTALLING 1
 
-Color UTIL_Portal_Color( int iPortal, int iLinkageGroupID );
+enum PortalColorSet_t;
+Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet );
 
 void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColorSet );
 void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSet );

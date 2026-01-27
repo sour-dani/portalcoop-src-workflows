@@ -121,7 +121,7 @@ public:
 //-----------------------------------------------------------------------------
 // Purpose: Portal specific movement code
 //-----------------------------------------------------------------------------
-class CPortalGameMovement : public CGameMovement
+class CPortalGameMovement : public CHL2GameMovement
 {
 	typedef CGameMovement BaseClass;
 public:
@@ -921,12 +921,12 @@ CBaseHandle CPortalGameMovement::TestPlayerPosition( const Vector& pos, int coll
 		CPortal_Player *pPortalPlayer = (CPortal_Player *)player;
 		pPortalPlayer->SetStuckOnPortalCollisionObject();
 
-		return INVALID_EHANDLE_INDEX;
+		return INVALID_EHANDLE;
 	}
 #endif
 	else
 	{	
-		return INVALID_EHANDLE_INDEX;
+		return INVALID_EHANDLE;
 	}
 }
 

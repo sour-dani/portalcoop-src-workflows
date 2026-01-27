@@ -14,6 +14,7 @@
 #include "basetoggle.h"
 #include "entityoutput.h"
 
+
 // DVS TODO: get rid of CBaseToggle
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -23,7 +24,6 @@ class CBaseTrigger : public CBaseToggle
 	DECLARE_CLASS( CBaseTrigger, CBaseToggle );
 	DECLARE_SERVERCLASS();
 public:
-	
 	CBaseTrigger();
 	
 	void Activate( void );
@@ -39,6 +39,7 @@ public:
 	// Input handlers
 	virtual void InputEnable( inputdata_t &inputdata );
 	virtual void InputDisable( inputdata_t &inputdata );
+	virtual void InputDisableAndEndTouch( inputdata_t &inputdata );
 	virtual void InputToggle( inputdata_t &inputdata );
 	virtual void InputTouchTest ( inputdata_t &inputdata );
 
@@ -51,7 +52,7 @@ public:
 	virtual void EndTouch(CBaseEntity *pOther);
 	virtual void StartTouchAll() {}
 	virtual void EndTouchAll() {}
-	bool IsTouching( CBaseEntity *pOther );
+	virtual bool IsTouching( const CBaseEntity *pOther ) const;
 	bool AllPlayersAreTouching( void );
 	bool MaxPlayersAreTouching( void );
 
@@ -63,13 +64,11 @@ public:
 	void TraceAttack(CBaseEntity *pAttacker, float flDamage, const Vector &vecDir, trace_t *ptr, int bitsDamageType) {}
 
 	bool PointIsWithin( const Vector &vecPoint );
-
+	
 	CNetworkVar( bool, m_bDisabled );
-
-//	bool		m_bDisabled;
 	string_t	m_iFilterName;
 	CHandle<class CBaseFilter>	m_hFilter;
-	
+
 protected:
 
 	// Outputs
@@ -81,6 +80,7 @@ protected:
 	COutputEvent m_OnNotTouching;
 	COutputEvent m_OnAllPlayersTouching;
 	COutputEvent m_OnMaxPlayersTouching;
+
 	// Entities currently being touched by this trigger
 	CUtlVector< EHANDLE >	m_hTouchingEntities;
 	CUtlVector< CHandle<CBasePlayer> >	m_hTouchingPlayers;

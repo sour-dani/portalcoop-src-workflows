@@ -21,9 +21,7 @@
 #endif
 
 IMPLEMENT_CLIENTCLASS_DT( C_HLMachineGun, DT_HLMachineGun, CHLMachineGun )
-
 	RecvPropInt(RECVINFO(m_nShotsFired))
-
 END_RECV_TABLE()
 
 IMPLEMENT_CLIENTCLASS_DT( C_HLSelectFireMachineGun, DT_HLSelectFireMachineGun, CHLSelectFireMachineGun )

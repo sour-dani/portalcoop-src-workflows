@@ -780,8 +780,6 @@ void CGrabController::AttachEntity( CPortal_Player *pPlayer, CBaseEntity *pEntit
 	}
 #endif
 
-	pEntity->SetGrabController(this);
-
 	Vector position;
 	QAngle angles;
 	pPhys->GetPosition( &position, &angles );
@@ -958,8 +956,8 @@ static void ClampPhysicsVelocity( IPhysicsObject *pPhys, float linearLimit, floa
 
 void CGrabController::DetachEntity( bool bClearVelocity )
 {
-	CBaseEntity *pEntity = GetAttached();
 #ifdef GAME_DLL
+	CBaseEntity* pEntity = GetAttached();
 	Assert(!PhysIsInCallback());
 	if ( pEntity )
 	{
@@ -1007,8 +1005,6 @@ void CGrabController::DetachEntity( bool bClearVelocity )
 		m_attachedEntity->VPhysicsDestroyObject();
 	}
 #endif
-	if (pEntity)
-		pEntity->SetGrabController(NULL);
 	
 	m_attachedEntity = NULL;
 }
@@ -1367,11 +1363,11 @@ CPlayerPickupController::CPlayerPickupController()
 //-----------------------------------------------------------------------------
 void CPlayerPickupController::Initiate(CPortal_Player *pPlayer, CBaseEntity *pObject)
 {
-	CWeaponPhysCannon *pPhysgun = pObject->GetPhysgun();
+	CWeaponPhysCannon *pPhysgun = GetPhyscannonFromEntity( pObject );
 	if (pPhysgun)
 		return;
 
-	CGrabController *pGrabController = pObject->GetGrabController();
+	CGrabController *pGrabController = GetGrabControllerForEntity( pObject );
 	if (pGrabController)
 		pGrabController->DetachEntity(false);
 
@@ -3059,8 +3055,6 @@ bool CWeaponPhysCannon::AttachObject( CBaseEntity *pObject, const Vector &vPosit
 		Physgun_OnPhysGunPickup( pObject, pOwner, PICKED_UP_BY_CANNON );
 	}
 
-	pObject->SetPhysgun(this);
-
 	// NOTE :This must happen after OnPhysGunPickup because that can change the mass
 	m_grabController.AttachEntity( pOwner, pObject, pPhysics, bIsMegaPhysCannon, vPosition, (!bKilledByGrab) );
 
@@ -3226,8 +3220,8 @@ CWeaponPhysCannon::FindObjectResult_t CWeaponPhysCannon::FindObject( void )
 
 	if ( bAttach )
 	{
-		CWeaponPhysCannon *pPhysgun = pEntity->GetPhysgun();
-		CGrabController *pController = pEntity->GetGrabController();
+		CWeaponPhysCannon *pPhysgun = GetPhyscannonFromEntity( pEntity );
+		CGrabController *pController = GetGrabControllerForEntity( pEntity );
 		//Allow steal other objects if we are the megacannon but the object's physcannon isn't mega.
 		if (pPhysgun && pPhysgun != this)
 		{
@@ -3685,9 +3679,6 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 
 	CBaseEntity *pObject = m_grabController.GetAttached();
 	Assert(pObject);
-
-	if (pObject)
-	pObject->SetPhysgun(NULL);
 
 	m_grabController.DetachEntity( wasLaunched );
 
@@ -4261,7 +4252,7 @@ bool CWeaponPhysCannon::CanPickupObject( CBaseEntity *pTarget )
 		m_bCanPickupObject = false;
 		return false;
 	}
-	CWeaponPhysCannon *pPhysgun = pTarget->GetPhysgun();
+	CWeaponPhysCannon *pPhysgun = GetPhyscannonFromEntity( pTarget );
 	//Allow steal other objects if we are the megacannon but the object's physcannon isn't mega.
 	if (pPhysgun && pPhysgun != this)
 	{
@@ -5648,6 +5639,47 @@ void GrabController_SetPortalPenetratingEntity( CGrabController *pController, CB
 	Assert(pController);
 	Assert(pPenetrated);
 	pController->SetPortalPenetratingEntity( pPenetrated );
+}
+
+CGrabController *GetGrabControllerForEntity( CBaseEntity *pEntity )
+{
+	CPortal_Player *pPortalPlayer = (CPortal_Player *)GetPlayerHoldingEntity( pEntity );
+	if ( pPortalPlayer )
+	{
+		return GetGrabControllerForPlayer( pPortalPlayer );
+	}
+
+	return NULL;
+}
+
+CGrabController *GetPhyscannonGrabControllerFromEntity( CBaseEntity *pEntity )
+{
+	CPortal_Player *pPortalPlayer = (CPortal_Player *)GetPlayerHoldingEntity( pEntity );
+	if ( pPortalPlayer )
+	{
+		CBaseCombatWeapon *pWpn = pPortalPlayer->GetActiveWeapon();
+		if ( PhysCannonGetHeldEntity( pWpn ) == pEntity)
+		{
+			return &((CWeaponPhysCannon*)pWpn)->GetGrabController();
+		}
+	}
+
+	return NULL;
+}
+
+CWeaponPhysCannon *GetPhyscannonFromEntity( CBaseEntity *pEntity )
+{
+	CPortal_Player *pPortalPlayer = (CPortal_Player *)GetPlayerHoldingEntity( pEntity );
+	if ( pPortalPlayer )
+	{
+		CBaseCombatWeapon *pWpn = pPortalPlayer->GetActiveWeapon();
+		if ( PhysCannonGetHeldEntity( pWpn ) == pEntity)
+		{
+			return (CWeaponPhysCannon*)pWpn;
+		}
+	}
+
+	return NULL;
 }
 #ifdef USE_VM_GRAB
 void CGrabController::AttachEntityVM( CBasePlayer *pPlayer, CBaseEntity *pEntity, IPhysicsObject *pPhys, bool bIsMegaPhysCannon, const Vector &vGrabPosition, bool bUseGrabPosition )

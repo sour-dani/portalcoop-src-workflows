@@ -401,7 +401,7 @@ bool CAI_ScriptConditions::EvalPlayerInVehicle( const EvalArgs_t &args )
 		return false;
 
 	// Desired states must match
-	return ( !!args.pPlayer->IsInAVehicle() == m_fPlayerInVehicle );
+	return args.pPlayer->IsInAVehicle() == ( m_fPlayerInVehicle == TRS_TRUE );
 }
 
 //-----------------------------------------------------------------------------
@@ -421,7 +421,7 @@ bool CAI_ScriptConditions::EvalActorInVehicle( const EvalArgs_t &args )
 		return false;
 
 	// Desired states must match
-	return ( !!pBCC->IsInAVehicle() == m_fActorInVehicle );
+	return pBCC->IsInAVehicle() == ( m_fActorInVehicle == TRS_TRUE );
 }
 
 //-----------------------------------------------------------------------------
@@ -735,11 +735,12 @@ bool CAI_ScriptConditions::IsInFOV( CBaseEntity *pViewer, CBaseEntity *pViewed, 
 
 bool CAI_ScriptConditions::PlayerHasLineOfSight( CBaseEntity *pViewer, CBaseEntity *pViewed, bool fNot )
 {
+	// PCOOP_PORT: Maybe these checks should be removed
 	if ( !pViewer || !pViewed )
 		return false;
 
 	CBaseCombatCharacter *pCombatantViewer = pViewer->MyCombatCharacterPointer();
-	
+
 	if( pCombatantViewer )
 	{
 		// We always trace towards the player, so we handle players-in-vehicles

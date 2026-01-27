@@ -296,7 +296,6 @@ BEGIN_DATADESC( CFilterClass )
 
 END_DATADESC()
 
-
 // ###################################################################
 //	> FilterClass
 // ###################################################################
@@ -329,7 +328,6 @@ BEGIN_DATADESC( CFilterPlayerIndex )
 	DEFINE_KEYFIELD( m_iPlayerIndex,	FIELD_INTEGER,	"PlayerIndex" ),
 
 END_DATADESC()
-
 
 // ###################################################################
 //	> FilterTeam

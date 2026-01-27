@@ -248,21 +248,21 @@ void CCredits::InputShowLogo( inputdata_t &inputdata )
 	for (int i = 1; i <= gpGlobals->maxClients; ++i)
 	{
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
-		if (pPlayer)
+		if ( pPlayer )
 		{
-			CSingleUserRecipientFilter user(pPlayer);
+			CSingleUserRecipientFilter user( pPlayer );
 			user.MakeReliable();
 
-			if (m_flLogoLength)
+			if ( m_flLogoLength )
 			{
-				UserMessageBegin(user, "LogoTimeMsg");
-				WRITE_FLOAT(m_flLogoLength);
+				UserMessageBegin( user, "LogoTimeMsg" );
+					WRITE_FLOAT( m_flLogoLength );
 				MessageEnd();
 			}
 			else
 			{
-				UserMessageBegin(user, "CreditsMsg");
-				WRITE_BYTE(1);
+				UserMessageBegin( user, "CreditsMsg" );
+					WRITE_BYTE( 1 );
 				MessageEnd();
 			}
 		}
@@ -276,17 +276,16 @@ void CCredits::InputSetLogoLength( inputdata_t &inputdata )
 
 void CCredits::InputRollCredits( inputdata_t &inputdata )
 {
-
 	for (int i = 1; i <= gpGlobals->maxClients; ++i)
 	{
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
 		if (pPlayer)
 		{
-			CSingleUserRecipientFilter user(pPlayer);
+			CSingleUserRecipientFilter user( pPlayer );
 			user.MakeReliable();
 
-			UserMessageBegin(user, "CreditsMsg");
-			WRITE_BYTE(2);
+			UserMessageBegin( user, "CreditsMsg" );
+				WRITE_BYTE( 2 );
 			MessageEnd();
 		}
 	}

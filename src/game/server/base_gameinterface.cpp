@@ -13,7 +13,11 @@
 
 void CServerGameClients::GetPlayerLimits( int& minplayers, int& maxplayers, int &defaultMaxPlayers ) const
 {
-	minplayers = defaultMaxPlayers = 2; 
+#ifdef PORTAL
+	minplayers = defaultMaxPlayers = 2;
+#else
+	minplayers = defaultMaxPlayers = 1; 
+#endif
 	maxplayers = MAX_PLAYERS;
 }
 

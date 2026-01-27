@@ -166,7 +166,6 @@ extern ConVar building_cubemaps;
 //-----------------------------------------------------------------------------
 void __MsgFunc_Fade( bf_read &msg )
 {
-
 	if (building_cubemaps.GetBool())
 		return;
 

@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: For the slow removing of the CBaseToggle entity
 //			only old entities that need it for backwards-compatibility should
@@ -9,14 +9,13 @@
 #define BASETOGGLE_H
 #pragma once
 
-class CBaseEntity;
+#include "baseentity.h"
 
 
 class CBaseToggle : public CBaseEntity
 {
 	DECLARE_CLASS( CBaseToggle, CBaseEntity );
 	DECLARE_SERVERCLASS();
-
 public:
 	CBaseToggle();
 
@@ -40,7 +39,7 @@ public:
 	EHANDLE				m_hActivator;
 	CNetworkVector(	m_vecFinalDest );
 	QAngle				m_vecFinalAngle;
-
+	
 	CNetworkVar( int, m_movementType );
 
 	CNetworkVar( float, m_flMoveTargetTime ); //absolute time, not local time

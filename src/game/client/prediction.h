@@ -91,6 +91,7 @@ protected:
 	// Helpers to call pre and post think for player, and to call think if a think function is set
 	void			RunPreThink( C_BasePlayer *player );
 	void			RunThink (C_BasePlayer *ent, double frametime );
+	void			CheckMovingGround( C_BasePlayer* player, double frametime );
 	void			RunPostThink( C_BasePlayer *player );
 
 private:
@@ -140,6 +141,8 @@ private:
 	int				m_nCommandsPredicted;
 	int				m_nServerCommandsAcknowledged;
 	int				m_bPreviousAckHadErrors;
+	int				m_bPreviousAckErrorTriggersFullLatchReset;
+	CUtlVector< CHandle< CBaseEntity > > m_EntsWithPredictionErrorsInLastAck;
 	int				m_nIncomingPacketNumber;
 
 #endif

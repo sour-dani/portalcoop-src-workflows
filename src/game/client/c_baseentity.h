@@ -48,7 +48,6 @@ class IRecipientFilter;
 class CUserCmd;
 struct solid_t;
 class ISave;
-class variant_t;
 class IRestore;
 class C_BaseAnimating;
 class C_AI_BaseNPC;
@@ -60,9 +59,6 @@ class CEntityMapData;
 class ConVar;
 class CDmgAccumulator;
 class IHasAttributes;
-class CGrabController;
-class C_WeaponPhysCannon;
-class C_PhysicsShadowClone;
 
 struct CSoundParameters;
 
@@ -485,15 +481,6 @@ public:
 
 	string_t						m_iClassname;
 
-	//Shadow clones
-
-	void SetShadowClone(C_BaseEntity *ShadowClone) { m_pShadowClone = ShadowClone; };
-	C_BaseEntity *GetShadowClone(void) { return m_pShadowClone; };
-
-protected:
-
-	C_BaseEntity *m_pShadowClone;
-
 // IClientUnknown overrides.
 public:
 
@@ -813,11 +800,11 @@ public:
 	virtual bool					GetAttachmentVelocity( int number, Vector &originVel, Quaternion &angleVel );
 
 	// Team handling
-	virtual C_Team					*GetTeam( void );
+	virtual C_Team					*GetTeam( void ) const;
 	virtual int						GetTeamNumber( void ) const;
 	virtual void					ChangeTeam( int iTeamNum );			// Assign this entity to a team.
 	virtual int						GetRenderTeamNumber( void );
-	virtual bool					InSameTeam( C_BaseEntity *pEntity );	// Returns true if the specified entity is on the same team as this one
+	virtual bool					InSameTeam( const C_BaseEntity *pEntity ) const;	// Returns true if the specified entity is on the same team as this one
 	virtual bool					InLocalTeam( void );
 
 	// ID Target handling
@@ -1063,6 +1050,7 @@ public:
 	void							PostEntityPacketReceived( void );
 	bool							PostNetworkDataReceived( int commands_acknowledged );
 	virtual void					HandlePredictionError( bool bErrorInThisEntity ); //we just processed a network update with errors, bErrorInThisEntity is false if the prediction errors were entirely in other entities and not this one
+	virtual bool					PredictionErrorShouldResetLatchedForAllPredictables( void ) { return true; } //legacy behavior is that any prediction error causes all predictables to reset latched
 	bool							GetPredictionEligible( void ) const;
 	void							SetPredictionEligible( bool canpredict );
 
@@ -1280,7 +1268,7 @@ public:
 
 	// Called by physics to see if we should avoid a collision test....
 	virtual bool		ShouldCollide( int collisionGroup, int contentsMask ) const;
-
+	
 	// FIXME: Figure out what to do about this
 	virtual void	GetVelocity(Vector *vVelocity, AngularImpulse *vAngVelocity = NULL);
 
@@ -1404,6 +1392,9 @@ public:
 
 	int		GetCreationTick() const;
 
+	virtual void ClientAdjustStartSoundParams( EmitSound_t &params ) {}
+	virtual void ClientAdjustStartSoundParams( StartSoundParams_t& params ) {}
+
 #ifdef _DEBUG
 	void FunctionCheck( void *pFunction, const char *name );
 
@@ -1488,16 +1479,6 @@ public:
 	int GetCollisionGroup() const;
 	void SetCollisionGroup( int collisionGroup );
 	void							CollisionRulesChanged();
-
-	//Grab Controller
-	CGrabController *m_pGrabController;
-	CGrabController *GetGrabController() { return m_pGrabController; }
-	void SetGrabController(CGrabController *pGrabController) { m_pGrabController = pGrabController; }
-	
-	//Physgun
-	C_WeaponPhysCannon *m_pPhysgun;
-	C_WeaponPhysCannon *GetPhysgun() { return m_pPhysgun; }
-	void SetPhysgun(C_WeaponPhysCannon *pPhysgun) { m_pPhysgun = pPhysgun; }
 
 	static C_BaseEntity				*Instance( int iEnt );
 	// Doesn't do much, but helps with trace results
@@ -1708,11 +1689,11 @@ public:
 	bool InitializeAsClientEntityByIndex( int iIndex, RenderGroup_t renderGroup );
 
 	void TrackAngRotation( bool bTrack );
-	
+#ifdef PORTAL
 	virtual PINGICON GetPingIcon() { return m_iPingIcon; }
 
 	PINGICON m_iPingIcon;
-
+#endif
 private:
 	friend void OnRenderStart();
 
@@ -1874,7 +1855,7 @@ private:
 
 	Vector							m_vecOldOrigin;
 	QAngle							m_vecOldAngRotation;
-
+	
 	Vector							m_vecOrigin;
 	CDiscontinuousInterpolatedVar< Vector >		m_iv_vecOrigin;
 	QAngle							m_angRotation;
@@ -1972,6 +1953,9 @@ protected:
 	RenderMode_t m_PreviousRenderMode;
 	color32 m_PreviousRenderColor;
 #endif
+
+private:
+	bool	m_bOldShouldDraw;
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);
@@ -2478,7 +2462,6 @@ inline bool C_BaseEntity::ShouldRecordInTools() const
 	return true;
 #endif
 }
-
 
 inline bool C_BaseEntity::HasSpawnFlags( int nFlags ) const
 { 

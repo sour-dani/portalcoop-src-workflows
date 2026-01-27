@@ -134,7 +134,6 @@ public:
 	virtual void	AvoidPhysicsProps( CUserCmd *pCmd );
 	
 	virtual bool	PlayerUse( void );
-	virtual void	PlayUseDenySound() {}
 	CBaseEntity		*FindUseEntity( void );
 	virtual bool	IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps );
 	bool					ClearUseEntity();
@@ -148,7 +147,7 @@ public:
 	// Data handlers
 	virtual bool	IsPlayer( void ) const { return true; }
 	virtual int		GetHealth() const { return m_iHealth; }
-	
+
 	// observer mode
 	virtual int			GetObserverMode() const;
 	void				SetObserverMode ( int iNewMode );
@@ -247,7 +246,7 @@ public:
 
 	virtual void				PhysicsSimulate( void );
 	void						SetVCollisionState( const Vector &vecAbsOrigin, const Vector &vecAbsVelocity, int collisionState );
-	virtual unsigned int		PhysicsSolidMaskForEntity( void ) const { return MASK_PLAYERSOLID; }
+	virtual unsigned int	PhysicsSolidMaskForEntity( void ) const { return MASK_PLAYERSOLID; }
 	void						PhysicsTouchTriggers( const Vector *pPrevAbsOrigin = NULL ); // prediction calls it on C_BasePlayer object
 
 	// Prediction stuff
@@ -271,6 +270,7 @@ public:
 
 	virtual void				UpdateClientData( void );
 
+	bool						IsLerpingFOV( void ) const;
 	virtual float				GetFOV( void );	
 	int							GetDefaultFOV( void ) const;
 	virtual bool				IsZoomed( void )	{ return false; }
@@ -403,8 +403,9 @@ public:
 #if defined USES_ECON_ITEMS
 	// Wearables
 	virtual void			UpdateWearables();
+	const C_EconWearable	*GetWearable( int i ) const { return m_hMyWearables[i]; }
 	C_EconWearable			*GetWearable( int i ) { return m_hMyWearables[i]; }
-	int						GetNumWearables( void ) { return m_hMyWearables.Count(); }
+	int						GetNumWearables( void ) const { return m_hMyWearables.Count(); }
 #endif
 
 	bool					HasFiredWeapon( void ) { return m_bFiredWeapon; }
@@ -419,6 +420,8 @@ protected:
 public:
 	int m_StuckLast;
 
+	const char* GetScriptOverlayMaterial() const { return m_Local.m_szScriptOverlayMaterial; }
+	
 	// Data for only the local player
 	CNetworkVarEmbedded( CPlayerLocalData, m_Local );
 
@@ -460,7 +463,7 @@ public:
 	float			m_flConstraintSpeedFactor;
 	
 	void SetUseEntity( CBaseEntity *pUseEntity );
-	
+
 protected:
 
 	void				CalcPlayerView( Vector& eyeOrigin, QAngle& eyeAngles, float& fov );
@@ -496,7 +499,7 @@ protected:
 // DATA
 	int				m_iObserverMode;	// if in spectator mode != 0
 	EHANDLE			m_hObserverTarget;	// current observer target
-	float			m_flObserverChaseDistance; // last distance to observer traget
+	float			m_flObserverChaseDistance; // last distance to observer target
 	Vector			m_vecFreezeFrameStart;
 	float			m_flFreezeFrameStartTime;	// Time at which we entered freeze frame observer mode
 	float			m_flFreezeFrameDistance;
@@ -518,7 +521,7 @@ private:
 	EHANDLE			m_hUseEntity;
 	
 	float			m_flMaxspeed;
-	
+
 	// Not replicated
 	Vector			m_vecWaterJumpVel;
 	float			m_flWaterJumpTime;  // used to be called teleport_time
@@ -596,9 +599,10 @@ private:
 	float m_flAvoidanceDotRight;
 
 public:
-	virtual bool IsDucked(void) const { return m_Local.m_bDucked; }
+	// PCOOP_PORT: IsDucked is moved here, but there may be a better solution to that 
 
 protected:
+	virtual bool IsDucked( void ) const { return m_Local.m_bDucked; }
 	virtual bool IsDucking( void ) const { return m_Local.m_bDucking; }
 	virtual float GetFallVelocity( void ) { return m_Local.m_flFallVelocity; }
 	bool ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOut, float curtimeOffset );

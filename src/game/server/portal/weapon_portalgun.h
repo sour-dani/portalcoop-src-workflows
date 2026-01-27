@@ -42,8 +42,8 @@ public:
 	void SetLinkageGroupID( int iPortalLinkageGroupID) { m_iPortalLinkageGroupID = iPortalLinkageGroupID; }
 
 	CNetworkVar(unsigned char, m_iPortalLinkageGroupID); //which portal linkage group this gun is tied to, usually set by mapper, or inherited from owning player's index
-	CNetworkVar( int, m_iCustomPortalColorSet );
-	CNetworkVar( int, m_iPortalColorSet )
+	CNetworkVar( PortalColorSet_t, m_iCustomPortalColorSet );
+	CNetworkVar( PortalColorSet_t, m_iPortalColorSet )
 		
 	// HACK HACK! Used to make the gun visually change when going through a cleanser!
 	CNetworkVar( float,	m_fEffectsMaxSize1 );
@@ -67,7 +67,7 @@ public:
 	virtual void UpdateOnRemove( void );
 	void Spawn( void );
 	virtual void Activate();
-	void DoEffectBlast(CBaseEntity *pOwner, bool bPortal2, int iPlacedBy, const Vector &ptStart, const Vector &ptFinalPos, const QAngle &qStartAngles, float fDelay, int iPortalLinkageGroup);
+	void DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iPlacedBy, const Vector &ptStart, const Vector &ptFinalPos, const QAngle &qStartAngles, float fDelay, PortalColorSet_t iPortalColorSet );
 	virtual void OnPickedUp( CBaseCombatCharacter *pNewOwner );
 
 	virtual bool ShouldDrawCrosshair( void );

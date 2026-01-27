@@ -56,7 +56,7 @@ public:
 
 	DECLARE_DATADESC();
 
-	virtual bool IsOn( void ) const;
+	virtual bool IsOn( void );
 };
 
 

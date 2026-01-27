@@ -124,7 +124,8 @@ void CPredictionCopy::ReportFieldsDiffer( const char *fmt, ... )
 		Msg( "\n" );
 	}
 
-	Msg( "%03i %s::%s - %s",
+	Msg( "[Tick %d] %03i %s::%s - %s",
+		gpGlobals->tickcount,
 		m_nErrorCount,
 		m_pCurrentClassName,
 		fieldname,
@@ -576,6 +577,7 @@ void CPredictionCopy::WatchVMatrix( difftype_t dt, VMatrix* outValue, const VMat
 }
 
 
+
 void CPredictionCopy::DescribeQuaternion( difftype_t dt, Quaternion& outValue, const Quaternion &inValue )
 {
 	if ( !m_bErrorCheck )
@@ -752,6 +754,8 @@ CPredictionCopy::difftype_t CPredictionCopy::CompareInt( int *outvalue, const in
 	if ( !m_bErrorCheck )
 		return DIFFERS;
 
+	difftype_t retval = IDENTICAL;
+
 	if ( CanCheck() )
 	{
 		for ( int i = 0; i < count; i++ )
@@ -759,12 +763,21 @@ CPredictionCopy::difftype_t CPredictionCopy::CompareInt( int *outvalue, const in
 			if ( outvalue[ i ] == invalue[ i ] )
 				continue;
 
+			if ( m_pCurrentField->flags & FTYPEDESC_ONLY_ERROR_IF_ABOVE_ZERO_TO_ZERO_OR_BELOW_ETC )
+			{
+				if ( ( outvalue[i] > 0 ) == ( invalue[i] > 0 ) )
+				{
+					retval = WITHINTOLERANCE;
+					continue;
+				}
+			}
+
 			ReportFieldsDiffer( "int differs (net %i pred %i) diff(%i)\n", invalue[i], outvalue[i], outvalue[i] - invalue[i] );
 			return DIFFERS;
 		}
 	}
 
-	return IDENTICAL;
+	return retval;
 }
 
 void CPredictionCopy::CopyBool( difftype_t dt, bool *outvalue, const bool *invalue, int count )
@@ -825,6 +838,15 @@ CPredictionCopy::difftype_t CPredictionCopy::CompareFloat( float *outvalue, cons
 		{
 			if ( outvalue[ i ] == invalue[ i ] )
 				continue;
+
+			if ( m_pCurrentField->flags & FTYPEDESC_ONLY_ERROR_IF_ABOVE_ZERO_TO_ZERO_OR_BELOW_ETC )
+			{
+				if ( ( outvalue[i] > 0.0f ) == ( invalue[i] > 0.0f ) )
+				{
+					retval = WITHINTOLERANCE;
+					continue;
+				}
+			}
 
 			if ( usetolerance &&
 				( fabs( outvalue[ i ] - invalue[ i ] ) <= tolerance ) )
@@ -1279,7 +1301,7 @@ void CPredictionCopy::CopyFields( int chain_count, datamap_t *pRootMap, typedesc
 
 		case FIELD_TIME:
 		case FIELD_TICK:
-		//	Assert( 0 );
+			Assert( 0 );
 			break;
 
 		case FIELD_STRING:
@@ -1325,7 +1347,7 @@ void CPredictionCopy::CopyFields( int chain_count, datamap_t *pRootMap, typedesc
 
 		case FIELD_VECTOR:
 			{
-				difftype = CompareVector((Vector *)pOutputData, (Vector const *)pInputData, fieldSize);
+				difftype = CompareVector( (Vector *)pOutputData, (Vector const *)pInputData, fieldSize );
 				CopyVector( difftype, (Vector *)pOutputData, (Vector const *)pInputData, fieldSize );
 				if ( m_bErrorCheck && m_bShouldDescribe ) DescribeVector( difftype, (Vector *)pOutputData, (Vector const *)pInputData, fieldSize );
 				if ( bShouldWatch ) WatchVector( difftype, (Vector *)pOutputData, (Vector const *)pInputData, fieldSize );
@@ -1762,12 +1784,6 @@ void CPredictionDescribeData::DescribeVector( const Vector &inValue )
 				inValue.x, inValue.y, inValue.z );
 }
 
-void CPredictionDescribeData::DescribeVector( const Vector *inValue, int count )
-{
-	Describe( "vector (%f %f %f)\n", 
-					inValue[0].x, inValue[0].y, inValue[0].z );
-}
-
 void CPredictionDescribeData::DescribeVMatrix( const VMatrix &inValue )
 {
 	Describe("vmatrix(%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f)\n",
@@ -1786,6 +1802,12 @@ void CPredictionDescribeData::DescribeVMatrix( const VMatrix *inValue, int count
 		inValue[0].m[2][0], inValue[0].m[2][1], inValue[0].m[2][2], inValue[0].m[2][3],
 		inValue[0].m[3][0], inValue[0].m[3][1], inValue[0].m[3][2], inValue[0].m[3][3]		
 		);
+}
+
+void CPredictionDescribeData::DescribeVector( const Vector *inValue, int count )
+{
+	Describe( "vector (%f %f %f)\n", 
+					inValue[0].x, inValue[0].y, inValue[0].z );
 }
 
 void CPredictionDescribeData::DescribeQuaternion( const Quaternion &inValue )

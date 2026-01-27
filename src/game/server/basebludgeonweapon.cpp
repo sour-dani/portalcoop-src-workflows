@@ -211,7 +211,6 @@ Activity CBaseHLBludgeonWeapon::ChooseIntersectionPointAndActivity( trace_t &hit
 					vecEnd.x = vecHullEnd.x + minmaxs[i][0];
 					vecEnd.y = vecHullEnd.y + minmaxs[j][1];
 					vecEnd.z = vecHullEnd.z + minmaxs[k][2];
-
 #ifdef PORTAL
 					Ray_t ray2;
 					ray2.Init(vecSrc, vecEnd);
@@ -259,11 +258,10 @@ bool CBaseHLBludgeonWeapon::ImpactWater( const Vector &start, const Vector &end 
 		return false;
 
 	trace_t	waterTrace;
-	
 #ifdef PORTAL
-					Ray_t ray;
-					ray.Init(start, end);
-					UTIL_Portal_TraceRay(ray, (CONTENTS_WATER | CONTENTS_SLIME), GetOwner(), COLLISION_GROUP_NONE, &waterTrace);
+	Ray_t ray;
+	ray.Init(start, end);
+	UTIL_Portal_TraceRay(ray, (CONTENTS_WATER | CONTENTS_SLIME), GetOwner(), COLLISION_GROUP_NONE, &waterTrace);
 #else	
 	UTIL_TraceLine( start, end, (CONTENTS_WATER|CONTENTS_SLIME), GetOwner(), COLLISION_GROUP_NONE, &waterTrace );
 #endif
@@ -298,7 +296,6 @@ void CBaseHLBludgeonWeapon::ImpactEffect( trace_t &traceHit )
 		return;
 
 	//FIXME: need new decals
-
 	UTIL_ImpactTrace( &traceHit, DMG_CLUB );
 }
 
@@ -324,7 +321,6 @@ void CBaseHLBludgeonWeapon::Swing( int bIsSecondary )
 	forward = pOwner->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT, GetRange() );
 
 	Vector swingEnd = swingStart + forward * GetRange();
-
 #ifdef PORTAL
 	Ray_t ray;
 	ray.Init(swingStart, swingEnd);

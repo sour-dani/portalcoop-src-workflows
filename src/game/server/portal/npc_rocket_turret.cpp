@@ -76,6 +76,7 @@ const char *pRocketTurretFollowerBoneNames[] =
 	"panel",
 };
 
+#define ROCKET_TURRET_LASER_ATTACHMENT 2
 
 class CNPC_RocketTurret : public CAI_BaseNPC
 {
@@ -214,7 +215,6 @@ protected:
 	CNetworkVar( int, m_nSiteHalo );
 
 	// Target indicator sprite info
-	int		m_iMuzzleAttachment;
 	int		m_iLightAttachment;
 
 	COutputEvent m_OnFoundTarget;
@@ -248,7 +248,6 @@ BEGIN_DATADESC( CNPC_RocketTurret )
 	DEFINE_FIELD( m_iPosePitch,					FIELD_INTEGER ),
 	DEFINE_FIELD( m_iPoseYaw,					FIELD_INTEGER ),
 	DEFINE_FIELD( m_hCurRocket,					FIELD_EHANDLE ),
-	DEFINE_FIELD( m_iMuzzleAttachment,			FIELD_INTEGER ),
 	DEFINE_FIELD( m_iLightAttachment,			FIELD_INTEGER ),
 	DEFINE_FIELD( m_muzzleToWorldTick,			FIELD_INTEGER ),
 	DEFINE_FIELD( m_muzzleToWorld,				FIELD_MATRIX3X4_WORLDSPACE ),
@@ -343,7 +342,7 @@ CNPC_RocketTurret::CNPC_RocketTurret( void )
 
 	m_flTimeLastFired = m_flTimeLocking = m_flDistToEnemy = m_flTimeSpentDying	= 0.0f;
 	
-	m_iLightAttachment = m_iMuzzleAttachment = m_nSiteHalo = 0;
+	m_iLightAttachment = m_nSiteHalo = 0;
 	
 	m_flTimeSpentPaused = m_flPauseLength = m_flTotalDivergenceX = m_flTotalDivergenceY = 0.0f;
 
@@ -393,7 +392,6 @@ void CNPC_RocketTurret::Spawn( void )
 	SetModel( ROCKET_TURRET_MODEL_NAME );
 	SetSolid( SOLID_VPHYSICS );
 
-	m_iMuzzleAttachment = LookupAttachment ( "barrel" );
 	m_iLightAttachment = LookupAttachment ( "eye" );
 
 	m_iPosePitch = LookupPoseParameter( "aim_pitch" );
@@ -431,10 +429,42 @@ void CNPC_RocketTurret::Spawn( void )
 	SetNextThink( gpGlobals->curtime + ROCKET_TURRET_THINK_RATE );
 }
 
+//ConVar rocket_turret_baseup_offset( "rocket_turret_baseup_offset", "38", FCVAR_CHEAT );
+//ConVar rocket_turret_up_offset( "rocket_turret_up_offset", "1", FCVAR_CHEAT );
+//ConVar rocket_turret_forward_offset( "rocket_turret_forward_offset", "26", FCVAR_CHEAT );
+//ConVar rocket_turret_right_offset( "rocket_turret_right_offset", "12", FCVAR_CHEAT );
+//ConVar rocket_turret_box_time( "rocket_turret_box_time", "0", FCVAR_CHEAT );
+
+ConVar rocket_turret_use_new_muzzle_pos( "rocket_turret_use_new_muzzle_pos", "1", FCVAR_CHEAT );
+
 Vector CNPC_RocketTurret::GetMuzzlePos()
 {
+	if ( rocket_turret_use_new_muzzle_pos.GetBool()
+		//|| FStrEq( gpGlobals->mapname.ToCStr(), "p2coop_9" )
+		)
+	{
+		Vector forward, right, up;
+		AngleVectors( m_vecCurrentAngles, &forward, &right, &up );
+		
+		// Angled rocket launchers need to be taken into account too
+		Vector baseUp;
+		AngleVectors( GetAbsAngles(), NULL, NULL, &baseUp);
+
+		Vector base = GetAbsOrigin();
+		base += baseUp * 38;
+		base += up * 1;
+		base += forward * 26;
+		base -= right * 12;
+		
+		//if (rocket_turret_box_time.GetFloat() != 0.0)
+		//{
+		//	NDebugOverlay::Box( base, Vector(-4,-4,-4), Vector(4,4,4), 255, 0, 0, 255, rocket_turret_box_time.GetFloat() );
+		//	NDebugOverlay::Box( GetAbsOrigin() + (baseUp * rocket_turret_baseup_offset.GetFloat()), Vector(-4,-4,-4), Vector(4,4,4), 0, 255, 0, 255, rocket_turret_box_time.GetFloat() );
+		//}
+		return base;
+	}
 	Vector vMuzzlePos;
-	GetAttachment( m_iMuzzleAttachment, vMuzzlePos, NULL, NULL, NULL );
+	GetAttachment( ROCKET_TURRET_LASER_ATTACHMENT, vMuzzlePos, NULL, NULL, NULL );
 	return vMuzzlePos;
 }
 
@@ -894,7 +924,7 @@ void CNPC_RocketTurret::UpdateMuzzleMatrix()
 	if ( gpGlobals->tickcount != m_muzzleToWorldTick )
 	{
 		m_muzzleToWorldTick = gpGlobals->tickcount;
-		GetAttachment( m_iMuzzleAttachment, m_muzzleToWorld );
+		GetAttachment( ROCKET_TURRET_LASER_ATTACHMENT, m_muzzleToWorld );
 	}
 }
 

@@ -127,7 +127,7 @@ public:
 
 	virtual bool			Interpolate( float currentTime );
 
-	bool					ShouldFlipViewModel();
+	virtual bool			ShouldFlipViewModel() OVERRIDE;
 	void					UpdateAnimationParity( void );
 
 	virtual void			ApplyBoneMatrixTransform( matrix3x4_t& transform );
@@ -159,7 +159,6 @@ public:
 
 	// (inherited from C_BaseAnimating)
 	virtual void			FormatViewModelAttachment( int nAttachment, matrix3x4_t &attachmentToWorld );
-	//virtual bool			IsViewModel() const;
 	
 	CBaseCombatWeapon		*GetWeapon() const { return m_hWeapon.Get(); }
 

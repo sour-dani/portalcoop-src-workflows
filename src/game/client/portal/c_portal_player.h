@@ -69,6 +69,7 @@ public:
 	virtual void UpdateClientSideAnimation();
 	void DoAnimationEvent( PlayerAnimEvent_t event, int nData );
 
+	bool ShouldDrawThroughPortals( void );
 	virtual int DrawModel( int flags );
 	virtual void Simulate();
 	
@@ -220,17 +221,12 @@ public:
 
 	bool IsSuppressingCrosshair( void ) { return m_bSuppressingCrosshair; }
 	
-	int m_iCustomPortalColorSet;
+	PortalColorSet_t m_iCustomPortalColorSet;
 	
 	float GetLatestServerTeleport() { return m_fLatestServerTeleport; }
 
 	CSoundPatch		*m_pWooshSound;
 	bool	m_bIntersectingPortalPlane;
-
-	C_Prop_Portal *m_pPortalEnvironments;
-	C_Prop_Portal *m_pTransformPortal;
-
-	VMatrix m_PendingPortalMatrix;
 
 protected:
 

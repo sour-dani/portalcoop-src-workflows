@@ -39,6 +39,10 @@
 #include "saverestoretypes.h"
 #include "nav_mesh.h"
 
+#ifdef TF_DLL
+#include "nav_mesh/tf_nav_area.h"
+#endif
+
 #ifdef NEXT_BOT
 #include "NextBot/NextBotManager.h"
 #endif
@@ -1243,7 +1247,7 @@ CBaseEntity *CBaseCombatCharacter::CheckTraceHullAttack( const Vector &vStart, c
 		vecEnd = vecTopCenter;
 		vecEnd.z += 2.0f;
 		
-		ray.Init(vecTopCenter, vEnd, mins, maxs);
+		ray.Init( vecTopCenter, vEnd, mins, maxs );
 #ifdef PORTAL
 		UTIL_Portal_TraceRay( ray, MASK_SHOT_HULL, &traceFilter, &tr );
 #else
@@ -1542,11 +1546,10 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 #ifdef HL2_DLL	
 
 	bool bMegaPhyscannonActive = false;
-
-#if !defined( HL2MP ) && !defined (PORTAL)
+#if !defined( HL2MP )
 	bMegaPhyscannonActive = HL2GameRules()->MegaPhyscannonActive();
-#endif // !HL2MP || !PORTAL
-
+#endif // !HL2MP
+	
 #ifdef PORTAL
 	bMegaPhyscannonActive = PortalGameRules()->MegaPhyscannonActive();
 #endif
@@ -2168,7 +2171,20 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 
 	// Pass the lighting origin over to the weapon if we have one
 	pWeapon->SetLightingOriginRelative( GetLightingOriginRelative() );
+
+	if ( IsPlayer() )
+	{
+		IGameEvent *event = gameeventmanager->CreateEvent( "weapon_equipped" );
+		if ( event )
+		{
+			event->SetString( "class", pWeapon->GetClassname() );
+			event->SetInt( "entindex", pWeapon->entindex() );
+			event->SetInt( "owner_entindex", entindex() );
+			gameeventmanager->FireEvent( event );
+		}
+	}
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose:	Leaves weapon, giving only ammo to the character
@@ -2996,6 +3012,18 @@ int CBaseCombatCharacter::GiveAmmo( int iCount, int iAmmoIndex, bool bSuppressSo
 
 	m_iAmmo.Set( iAmmoIndex, m_iAmmo[iAmmoIndex] + iAdd );
 
+	if ( IsPlayer() )
+	{
+		IGameEvent *event = gameeventmanager->CreateEvent( "ammo_pickup" );
+		if ( event )
+		{
+			event->SetInt( "ammo_index", iAmmoIndex );
+			event->SetInt( "amount", iAdd );
+			event->SetInt( "total", m_iAmmo[ iAmmoIndex ] );
+			gameeventmanager->FireEvent( event );
+		}
+	}
+
 	return iAdd;
 }
 
@@ -3111,14 +3139,12 @@ void CBaseCombatCharacter::VPhysicsShadowCollision( int index, gamevcollisioneve
 	{
 		flOtherAttackerTime = 1.0f;
 	}
-#else
-#ifdef PORTAL
+#elif defined ( PORTAL )
 	if (PortalGameRules()->MegaPhyscannonActive() == true)
 	{
 		flOtherAttackerTime = 1.0f;
 	}
-#endif // PORTAL
-#endif // HL2_DLL && !HL2MP && !PORTAL
+#endif // HL2_DLL && !HL2MP
 
 	if ( this == pOther->HasPhysicsAttacker( flOtherAttackerTime ) )
 		return;
@@ -3574,3 +3600,16 @@ float CBaseCombatCharacter::GetTimeSinceLastInjury( int team /*= TEAM_ANY */ ) c
 	return never;
 }
 
+//-----------------------------------------------------------------------------
+HSCRIPT CBaseCombatCharacter::ScriptGetLastKnownArea( void ) const 
+{ 
+#ifdef TF_DLL
+	return ToHScript( GetLastKnownArea() ); 
+#else
+	return NULL;
+#endif
+}	
+
+BEGIN_ENT_SCRIPTDESC( CBaseCombatCharacter, CBaseFlex, "Base combat characters." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetLastKnownArea, "GetLastKnownArea", "Return the last nav area occupied - NULL if unknown" )
+END_SCRIPTDESC();

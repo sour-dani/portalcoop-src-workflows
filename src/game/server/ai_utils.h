@@ -25,6 +25,7 @@ inline CBasePlayer *AI_GetSinglePlayer()
 {
 	if ( gpGlobals->maxClients > 1 )
 	{
+		// PCOOP_PORT: This should probably return NULL instead
 		return UTIL_PlayerByIndex(1);
 	}
 	

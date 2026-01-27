@@ -268,7 +268,7 @@ void CNPC_CeilingTurret::Precache( void )
 	PrecacheScriptSound( "NPC_CeilingTurret.ShotSounds" );
 	PrecacheScriptSound( "NPC_CeilingTurret.Ping" );
 	PrecacheScriptSound( "NPC_CeilingTurret.Die" );
-
+	
 	PrecacheScriptSound( "NPC_CeilingTurret.DryFire" );
 	
 	BaseClass::Precache();
@@ -290,7 +290,7 @@ void CNPC_CeilingTurret::Spawn( void )
 	m_flFieldOfView	= 0.0f;
 	m_takedamage	= DAMAGE_YES;
 	if (m_iHealth == 0)
-		m_iHealth = 1000;
+		m_iHealth		= 1000;
 	m_bloodColor	= BLOOD_COLOR_MECH;
 	
 	SetSolid( SOLID_BBOX );

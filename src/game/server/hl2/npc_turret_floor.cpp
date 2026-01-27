@@ -307,7 +307,7 @@ void CNPC_FloorTurret::Spawn( void )
 	m_takedamage	= DAMAGE_EVENTS_ONLY;
 	m_iHealth		= 100;
 	m_iMaxHealth	= 100;
-
+	
 	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL );
 
 	SetPoseParameter( m_poseAim_Yaw, 0 );
@@ -2126,9 +2126,6 @@ void CNPC_FloorTurret::SelfDestructThink( void )
 //-----------------------------------------------------------------------------
 void CNPC_FloorTurret::InputSelfDestruct( inputdata_t &inputdata )
 {
-	if (!m_bActive)
-		Deploy();
-
 	// Ka-boom!
 	m_flDestructStartTime = gpGlobals->curtime;
 	m_flPingTime = gpGlobals->curtime;

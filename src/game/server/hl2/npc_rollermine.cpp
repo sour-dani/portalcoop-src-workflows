@@ -541,7 +541,7 @@ void CNPC_RollerMine::Spawn( void )
 	AddSolidFlags( FSOLID_FORCE_WORLD_ALIGNED | FSOLID_NOT_STANDABLE );
 
 	BaseClass::Spawn();
-
+	
 	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL );
 
 	CapabilitiesClear();
@@ -1557,7 +1557,7 @@ void CNPC_RollerMine::RunTask( const Task_t *pTask )
 				TaskFail( FAIL_NO_PLAYER );
 				return;
 			}
-
+			
 		//	CBaseEntity *pPlayer = gEntList.FindEntityByName( NULL, "!player" );
 			CBaseEntity *pPlayer = UTIL_GetNearestPlayer(this, true);
 			if ( !pPlayer || m_bHeld || m_hVehicleStuckTo )

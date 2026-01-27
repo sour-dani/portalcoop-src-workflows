@@ -43,6 +43,7 @@ public:
 #else
 	DECLARE_CLASS( CHalfLife2, CSingleplayRules );
 #endif
+
 	// Damage Query Overrides.
 	virtual bool			Damage_IsTimeBased( int iDmgType );
 	// TEMP:

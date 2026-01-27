@@ -90,7 +90,7 @@ public:
 	void SetBloodColor( int nBloodColor );
 
 	virtual void		DoMuzzleFlash();
-	
+
 public:
 
 	float			m_flNextAttack;
@@ -106,7 +106,14 @@ private:
 
 	CHandle<C_BaseCombatWeapon>		m_hMyWeapons[MAX_WEAPONS];
 	CHandle< C_BaseCombatWeapon > m_hActiveWeapon;
-	
+
+#ifdef GLOWS_ENABLE
+	bool				m_bClientSideGlowEnabled;	// client-side only value used for spectator
+	bool				m_bGlowEnabled;				// networked value
+	bool				m_bOldGlowEnabled;
+	CGlowObject			*m_pGlowEffect;
+#endif // GLOWS_ENABLE
+
 private:
 	C_BaseCombatCharacter( const C_BaseCombatCharacter & ); // not defined, not accessible
 

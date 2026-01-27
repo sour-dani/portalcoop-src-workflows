@@ -19,9 +19,7 @@
 #include "soundflags.h"
 #include "engine/IEngineSound.h"
 #include "filters.h"
-#ifdef PORTAL
-#include "weapon_portalgun.h"
-#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -277,6 +275,7 @@ bool CEnvMicrophone::CanHearSound(CSound *pSound, float &flVolume)
 	CBaseFilter *pFilter = m_hListenFilter.Get();
 	if ( pFilter )
 	{
+		CBaseEntity *pSoundOwner = pSound->m_hOwner.Get();
 		if ( !pSoundOwner || !pFilter->PassesFilter( this, pSoundOwner ) )
 		{
 			return false;
@@ -329,7 +328,7 @@ bool CEnvMicrophone::CanHearSound( int entindex, soundlevel_t soundlevel, float 
 	{
 		pEntity = CBaseEntity::Instance( engine->PEntityOfEntIndex(entindex) );
 	}
-
+	
 #ifdef PORTAL
 	CBaseCombatWeapon *pWeapon = dynamic_cast<CBaseCombatWeapon*>(pEntity);
 
@@ -488,7 +487,7 @@ MicrophoneResult_t CEnvMicrophone::SoundPlayed( int entindex, const char *soundn
 
 	if ( !CanHearSound( entindex, soundlevel, flVolume, pOrigin ) )
 		return MicrophoneResult_Ok;
-
+	
 #ifdef PORTAL
 	// Music hack fix
 	if ( V_stristr( soundname, "music" ) || V_stristr( soundname, "song" ) )

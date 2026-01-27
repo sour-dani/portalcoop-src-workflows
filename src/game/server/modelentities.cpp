@@ -79,7 +79,7 @@ bool CFuncBrush::CreateVPhysics( void )
 		int contents = modelinfo->GetModelContents( GetModelIndex() );
 		if ( ! (contents & (MASK_SOLID|MASK_PLAYERSOLID|MASK_NPCSOLID)) )
 		{
-			// leave the physics shadow there in case it has crap constrained to it
+			// leave the physics shadow there in case it has stuff constrained to it
 			// but disable collisions with it
 			pPhys->EnableCollisions( false );
 		}
@@ -170,6 +170,16 @@ void CFuncBrush::TurnOff( void )
 	}
 
 	AddEffects( EF_NODRAW );
+
+	IPhysicsObject *pObject = VPhysicsGetObject();
+	if( pObject )
+	{
+		pObject->Wake();
+		pObject->EnableCollisions( false );
+	}
+
+	WakeRestingObjects();
+
 	m_iDisabled = TRUE;
 }
 
@@ -186,12 +196,24 @@ void CFuncBrush::TurnOn( void )
 	{
 		RemoveSolidFlags( FSOLID_NOT_SOLID );
 	}
+	
+	IPhysicsObject *pObject = VPhysicsGetObject();
+	if( pObject )
+	{
+		pObject->EnableCollisions( true );
+		if( pObject->IsAsleep() )
+		{
+			pObject->Wake();
+		}		
+	}
 
 	RemoveEffects( EF_NODRAW );
+
+	m_iDisabled = FALSE;
 }
 
 
-bool CFuncBrush::IsOn( void ) const
+bool CFuncBrush::IsOn( void )
 {
 	return !IsEffectActive( EF_NODRAW );
 }
@@ -361,4 +383,3 @@ bool CTriggerBrush::PassesInputFilter( CBaseEntity *pOther, int filter )
 
 	return true;
 }
-

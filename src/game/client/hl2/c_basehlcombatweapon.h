@@ -43,7 +43,7 @@ protected:
 class C_HLSelectFireMachineGun : public C_HLMachineGun
 {
 public:
-
+	
 	C_HLSelectFireMachineGun();
 	
 	virtual void WeaponSound(WeaponSound_t sound_type, float soundtime = 0.0f);

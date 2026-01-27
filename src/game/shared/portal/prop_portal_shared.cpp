@@ -556,8 +556,11 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 			{
 				//curl the player up into a little ball
 				pOtherAsPlayer->SetGroundEntity( NULL );
-//#ifdef GAME_DLL
+#ifdef GAME_DLL
 				if( !pOtherAsPlayer->IsDucked() )
+#else
+				if( (pOtherAsPlayer->GetFlags() & FL_DUCKING) == 0 )
+#endif
 				{
 					pOtherAsPlayer->ForceDuckThisFrame( pOtherAsPlayer->GetAbsOrigin(), pOtherAsPlayer->GetAbsVelocity() );
 					pOtherAsPlayer->m_Local.m_bInDuckJump = true;
@@ -567,7 +570,6 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 					else
 						ptOtherCenter.z += 16.0f; //portal facing down, shrink upwards
 				}
-//#endif
 			}			
 		}
 	}
@@ -766,11 +768,6 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 				pOtherAsPlayer->SetBaseVelocity( vNewVelocity );				
 
 			}
-	
-	
-			
-			//pOtherAsPlayer->m_bWantsToStoreAngles = true;
-			pOtherAsPlayer->m_PendingPortalMatrix = MatrixThisToLinked();
 #endif
 		}
 		else
@@ -788,7 +785,7 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 				if (pHeldPhysics)
 				{
 
-					const AngularImpulse angImpulse;
+					AngularImpulse angImpulse;
 
 					pHeldPhysics->SetPosition(ptNewOrigin, qNewAngles, true);
 					pHeldPhysics->SetVelocity(&vec3_origin, &angImpulse);
@@ -809,7 +806,7 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 				if ( pHeldPhysics )
 				{
 
-					const AngularImpulse angImpulse;
+					AngularImpulse angImpulse;
 
 					pHeldPhysics->SetPosition( ptNewOrigin, qNewAngles, true );
 					pHeldPhysics->SetVelocity( &vec3_origin, &angImpulse );
@@ -1027,10 +1024,10 @@ bool CProp_Portal::ShouldTeleportTouchingEntity( CBaseEntity *pOther )
 
 void CProp_Portal::SetupPortalColorSet( void )
 {
-	if (m_iCustomPortalColorSet && sv_allow_customized_portal_colors.GetBool())
-		m_iPortalColorSet = m_iCustomPortalColorSet - 1;
+	if (m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID && sv_allow_customized_portal_colors.GetBool())
+		m_iPortalColorSet = m_iCustomPortalColorSet;
 	else
-		m_iPortalColorSet = m_iLinkageGroupID;
+		m_iPortalColorSet = ConvertLinkageIDToColorSet( m_iLinkageGroupID );
 }
 
 

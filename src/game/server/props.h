@@ -89,7 +89,7 @@ public:
 			m_bHasPreferredCarryAngles = true;
 			return true;
 		}
-		
+
 		m_bHasPreferredCarryAngles = false;
 		return false; 
 	}
@@ -114,7 +114,7 @@ public:
 	float			m_impactEnergyScale;
 
 	int				m_iMinHealthDmg;
-
+	
 	CNetworkQAngle( m_preferredCarryAngles );
 
 	CNetworkVar( bool, m_bHasPreferredCarryAngles );
@@ -300,7 +300,6 @@ public:
 	void InputTurnOff( inputdata_t &inputdata );
 	void InputDisableCollision( inputdata_t &inputdata );
 	void InputEnableCollision( inputdata_t &inputdata );
-	void InputSetPlaybackRate( inputdata_t &inputdata );
 
 	COutputEvent		m_pOutputAnimBegun;
 	COutputEvent		m_pOutputAnimOver;

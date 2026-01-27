@@ -116,7 +116,9 @@ struct solid_t;
 extern bool PhysicsDLLInit( CreateInterfaceFn physicsFactory );
 extern void PhysicsReset();
 extern void PhysicsSimulate();
+#ifdef PORTAL
 extern void PortalPhysicsSimulate();
+#endif
 extern float PhysGetSyncCreateTime();
 
 #endif // PHYSICS_H

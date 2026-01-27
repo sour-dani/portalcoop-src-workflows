@@ -243,7 +243,7 @@ void CPhysicsHook::LevelInitPreEntity()
 
 	physenv->SetObjectEventHandler( &g_Collisions );
 	
-	physenv->SetSimulationTimestep( DEFAULT_TICK_INTERVAL ); // 15 ms per tick
+	physenv->SetSimulationTimestep( gpGlobals->interval_per_tick ); // 15 ms per tick
 	// HL Game gravity, not real-world gravity
 	physenv->SetGravity( Vector( 0, 0, -GetCurrentGravity() ) );
 	g_PhysAverageSimTime = 0;
@@ -469,16 +469,17 @@ int CCollisionEvent::ShouldCollide_2( IPhysicsObject *pObj0, IPhysicsObject *pOb
 
 	if ( !pEntity0 || !pEntity1 )
 		return 1;
-
+	
 	// Sometimes pEntity is plain garbage, -17891602 seems to be a value set for all values for the garbage pointer. Let's just hope GetCollisionGroup won't crash this crap.
 	// We use GetCollisionGroup() because get collision group should never be lower than 0!
-	
+	// PCOOP_PORT: This is a crappy hack that doesn't always work, the root cause should be addressed instead
+
 	if (pEntity0->GetCollisionGroup() < 0)
 		return 1;
 
 	if (pEntity1->GetCollisionGroup() < 0)
 		return 1;
-		
+
 	unsigned short gameFlags0 = pObj0->GetGameFlags();
 	unsigned short gameFlags1 = pObj1->GetGameFlags();
 
@@ -1077,7 +1078,7 @@ void CCollisionEvent::FluidStartTouch( IPhysicsObject *pObject, IPhysicsFluidCon
 		return;
 
 	pEntity->AddEFlags( EFL_TOUCHING_FLUID );
-	pEntity->OnEntityEvent( ENTITY_EVENT_WATER_TOUCH, (void*)pFluid->GetContents() );
+	pEntity->OnEntityEvent( ENTITY_EVENT_WATER_TOUCH, (void*)(intp)pFluid->GetContents() );
 
 	float timeSinceLastCollision = DeltaTimeSinceLastFluid( pEntity );
 	if ( timeSinceLastCollision < 0.5f )
@@ -1133,7 +1134,7 @@ void CCollisionEvent::FluidEndTouch( IPhysicsObject *pObject, IPhysicsFluidContr
 	}
 
 	pEntity->RemoveEFlags( EFL_TOUCHING_FLUID );
-	pEntity->OnEntityEvent( ENTITY_EVENT_WATER_UNTOUCH, (void*)pFluid->GetContents() );
+	pEntity->OnEntityEvent( ENTITY_EVENT_WATER_UNTOUCH, (void*)(intp)pFluid->GetContents() );
 }
 
 class CSkipKeys : public IVPhysicsKeyHandler
@@ -1615,7 +1616,7 @@ CON_COMMAND( physics_budget, "Times the cost of each active object" )
 		float totalTime = 0.f;
 		g_Collisions.BufferTouchEvents( true );
 		float full = engine->Time();
-		physenv->Simulate( DEFAULT_TICK_INTERVAL );
+		physenv->Simulate( gpGlobals->interval_per_tick );
 		full = engine->Time() - full;
 		float lastTime = full;
 
@@ -1632,7 +1633,7 @@ CON_COMMAND( physics_budget, "Times the cost of each active object" )
 				PhysForceEntityToSleep( ents[j], ents[j]->VPhysicsGetObject() );
 			}
 			float start = engine->Time();
-			physenv->Simulate( DEFAULT_TICK_INTERVAL );
+			physenv->Simulate( gpGlobals->interval_per_tick );
 			float end = engine->Time();
 
 			float elapsed = end - start;
@@ -2894,7 +2895,7 @@ void DebugDrawContactPoints(IPhysicsObject *pPhysics)
 
 
 
-#if 1
+#if 0
 
 #include "filesystem.h"
 //-----------------------------------------------------------------------------

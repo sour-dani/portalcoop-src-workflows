@@ -37,16 +37,15 @@ public:
 	bool ShouldDraw();
 
 	void ClientThink();
+	
+	ClientCCHandle_t CCHandle() const { return m_CCHandle; }
+
+	Vector	m_vecOrigin;
 
 	float	m_minFalloff;
 	float	m_maxFalloff;
 
-	Vector	m_vecOrigin;
-
-	ClientCCHandle_t CCHandle() const { return m_CCHandle; }
-
 private:
-
 	float	m_flCurWeight;
 	char	m_netLookupFilename[MAX_PATH];
 
@@ -149,9 +148,6 @@ bool C_ColorCorrection::ShouldDraw()
 	return false;
 }
 
-#ifdef PORTAL
-
-
 C_ColorCorrection *GetNearestDistBasedColorCorrectionWithHandle( ClientCCHandle_t handle )
 {
 	float flFinalDistance = FLT_MAX;
@@ -186,8 +182,6 @@ C_ColorCorrection *GetNearestDistBasedColorCorrectionWithHandle( ClientCCHandle_
 	return pFinalCorrection;
 }
 
-#endif
-
 void C_ColorCorrection::ClientThink()
 {
 	if ( m_CCHandle == INVALID_CLIENT_CCHANDLE )
@@ -199,7 +193,7 @@ void C_ColorCorrection::ClientThink()
 		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, 0.0f );
 		return;
 	}
-
+	
 	bool bUseDist = ( m_minFalloff != -1 ) && ( m_maxFalloff != -1 ) && m_minFalloff != m_maxFalloff;
 
 	if( bUseDist && GetNearestDistBasedColorCorrectionWithHandle( m_CCHandle ) != this )
@@ -210,11 +204,11 @@ void C_ColorCorrection::ClientThink()
 		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, 0.0f );
 		return;
 	}
-
+	
 	// Debug stuff
 	//Msg( "Handle %i\n", (int)m_CCHandle );
 	//NDebugOverlay::Box( m_vecOrigin, Vector(-8-8-8), Vector(8,8,8), 255, 0, 0, 100, gpGlobals->frametime );
-	
+
 	float weight = 0;
 	if ( bUseDist )
 	{

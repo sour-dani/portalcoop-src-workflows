@@ -91,8 +91,11 @@ void CHudBonusProgress::Reset()
 
 	C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
 	if ( local )
+#ifdef PORTAL
 		m_iLastChallenge = 0;//local->GetBonusChallenge();
-
+#else
+		m_iLastChallenge = local->GetBonusChallenge();
+#endif
 	SetChallengeLabel();
 
 	SetDisplayValue(m_iBonusProgress);
@@ -116,6 +119,7 @@ void CHudBonusProgress::OnThink()
 #else	
 	CPortalGameRules *pGameRules = PortalGameRules();
 #endif
+
 	if ( !pGameRules )
 	{
 		// Not ready to init!
@@ -133,9 +137,13 @@ void CHudBonusProgress::OnThink()
 	}
 
 	// Never below zero
+#ifdef PORTAL
 	newBonusProgress = MAX( pGameRules->GetBonusProgress(), 0 );
 	iBonusChallenge = pGameRules->GetBonusChallenge();
-	
+#else
+	newBonusProgress = MAX( local->GetBonusProgress(), 0 );
+	iBonusChallenge = local->GetBonusChallenge();
+#endif
 	// Only update the fade if we've changed bonusProgress
 	if ( newBonusProgress == m_iBonusProgress && m_iLastChallenge == iBonusChallenge )
 	{

@@ -194,14 +194,14 @@ BEGIN_PREDICTION_DATA( C_WeaponPortalgun )
 	DEFINE_PRED_FIELD( m_bOpenProngs, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_EffectState,	FIELD_INTEGER,	FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_iPortalLinkageGroupID,	FIELD_INTEGER,	FTYPEDESC_INSENDTABLE ),
-	DEFINE_PRED_FIELD( m_iCustomPortalColorSet,	FIELD_INTEGER,	FTYPEDESC_INSENDTABLE ),
-	DEFINE_PRED_FIELD( m_iPortalColorSet,	FIELD_INTEGER,	FTYPEDESC_INSENDTABLE ),
+//	DEFINE_PRED_FIELD( m_iCustomPortalColorSet,	FIELD_INTEGER,	FTYPEDESC_INSENDTABLE ),
+//	DEFINE_PRED_FIELD( m_iPortalColorSet,	FIELD_INTEGER,	FTYPEDESC_INSENDTABLE ),
 	
 //	DEFINE_FIELD( m_fCanPlacePortal1OnThisSurface, FIELD_FLOAT ),
 //	DEFINE_FIELD( m_fCanPlacePortal2OnThisSurface, FIELD_FLOAT ),
-	DEFINE_FIELD( m_fCanPlacePortal1OnThisSurfaceNetworked, FIELD_FLOAT ),
-	DEFINE_FIELD( m_fCanPlacePortal2OnThisSurfaceNetworked, FIELD_FLOAT ),
-	DEFINE_FIELD( m_iValidPlayer, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_fCanPlacePortal1OnThisSurfaceNetworked, FIELD_FLOAT ),
+//	DEFINE_FIELD( m_fCanPlacePortal2OnThisSurfaceNetworked, FIELD_FLOAT ),
+//	DEFINE_FIELD( m_iValidPlayer, FIELD_INTEGER ),
 
 END_PREDICTION_DATA()
 
@@ -286,15 +286,15 @@ void C_WeaponPortalgun::StartEffects( void )
 		m_Parameters[PORTALGUN_PORTAL1LIGHT].SetAttachment( pModelView->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT].SetVisible( false );
 		
-		if (m_iPortalColorSet == 1)
+		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT].SetMaterial(PORTALGUN_LIGHTBLUE_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == 2)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT].SetMaterial(PORTALGUN_YELLOW_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == 3)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT].SetMaterial(PORTALGUN_GREEN_LAST_GLOW);
 		}
@@ -311,15 +311,15 @@ void C_WeaponPortalgun::StartEffects( void )
 		m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetAttachment( pModelWorld->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetVisible( false );
 
-		if (m_iPortalColorSet == 1)
+		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetMaterial(PORTALGUN_LIGHTBLUE_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == 2)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetMaterial(PORTALGUN_YELLOW_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == 3)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetMaterial(PORTALGUN_GREEN_LAST_GLOW);
 		}
@@ -337,15 +337,15 @@ void C_WeaponPortalgun::StartEffects( void )
 		m_Parameters[PORTALGUN_PORTAL2LIGHT].SetAttachment( pModelView->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT].SetVisible( false );
 		
-		if (m_iPortalColorSet == 1)
+		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT].SetMaterial( PORTALGUN_PURPLE_LAST_GLOW );
 		}
-		else if (m_iPortalColorSet == 2)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT].SetMaterial( PORTALGUN_RED_LAST_GLOW );
 		}
-		else if (m_iPortalColorSet == 3)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT].SetMaterial( PORTALGUN_PINK_LAST_GLOW );
 		}
@@ -363,15 +363,15 @@ void C_WeaponPortalgun::StartEffects( void )
 		m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetAttachment( pModelWorld->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetVisible( false );
 		
-		if (m_iPortalColorSet == 1)
+		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetMaterial(PORTALGUN_PURPLE_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == 2)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetMaterial(PORTALGUN_RED_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == 3)
+		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetMaterial(PORTALGUN_PINK_LAST_GLOW);
 		}

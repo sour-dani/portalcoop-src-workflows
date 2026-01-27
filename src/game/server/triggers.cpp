@@ -107,13 +107,14 @@ BEGIN_DATADESC( CBaseTrigger )
 	DEFINE_KEYFIELD( m_iFilterName,	FIELD_STRING,	"filtername" ),
 	DEFINE_FIELD( m_hFilter,	FIELD_EHANDLE ),
 	DEFINE_KEYFIELD( m_bDisabled,		FIELD_BOOLEAN,	"StartDisabled" ),
-	
 	DEFINE_UTLVECTOR( m_hTouchingEntities, FIELD_EHANDLE ),
 	
 	DEFINE_UTLVECTOR( m_hTouchingPlayers, FIELD_EHANDLE ),
+
 	// Inputs	
 	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "DisableAndEndTouch", InputDisableAndEndTouch ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Toggle", InputToggle ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "TouchTest", InputTouchTest ),
 
@@ -130,6 +131,7 @@ BEGIN_DATADESC( CBaseTrigger )
 	
 	DEFINE_OUTPUT( m_OnAllPlayersTouching, "OnAllPlayersTouching" ),
 	DEFINE_OUTPUT( m_OnMaxPlayersTouching, "OnMaxPlayersTouching" ),
+
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CBaseTrigger, DT_BaseTrigger )
@@ -164,6 +166,29 @@ void CBaseTrigger::InputEnable( inputdata_t &inputdata )
 //------------------------------------------------------------------------------
 void CBaseTrigger::InputDisable( inputdata_t &inputdata )
 { 
+	Disable();
+}
+
+//------------------------------------------------------------------------------
+// Purpose: Input handler to call EndTouch on all touching entities, and then
+//			turn off this trigger
+//------------------------------------------------------------------------------
+void CBaseTrigger::InputDisableAndEndTouch( inputdata_t &inputdata )
+{
+	// EndTouch may delete an arbitrary number of entities from the touch list
+	for ( int i = m_hTouchingEntities.Count() - 1; i >= 0; i = m_hTouchingEntities.Count() - 1 )
+	{
+		if ( m_hTouchingEntities[i] )
+		{
+			EndTouch( m_hTouchingEntities[ i ] );
+			Assert( i > m_hTouchingEntities.Count() - 1 );
+		}
+		else
+		{
+			m_hTouchingEntities.Remove( i );
+		}
+	}
+
 	Disable();
 }
 
@@ -480,7 +505,7 @@ void CBaseTrigger::StartTouch(CBaseEntity *pOther)
 	{
 		EHANDLE hOther;
 		hOther = pOther;
-
+		
 		//We have to be delicate since touching players is acting weird
 		CBasePlayer *pPlayer = ToBasePlayer(pOther);
 		CHandle<CBasePlayer> hPlayer = pPlayer;
@@ -497,14 +522,13 @@ void CBaseTrigger::StartTouch(CBaseEntity *pOther)
 		}
 
 		m_OnStartTouch.FireOutput(pOther, this);
-				
+		
 		if ( AllPlayersAreTouching() && pPlayer )
 			m_OnAllPlayersTouching.FireOutput( pPlayer, this );
 		
 		if ( MaxPlayersAreTouching() && pPlayer )
 			m_OnMaxPlayersTouching.FireOutput( pPlayer, this );
-		
-		
+
 		if ( bAdded && ( m_hTouchingEntities.Count() == 1 ) )
 		{
 			// First entity to touch us that passes our filters
@@ -525,13 +549,13 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 	{
 		EHANDLE hOther;
 		hOther = pOther;
-
+		
 		//We have to be delicate since touching players is acting weird
 		CBasePlayer *pPlayer = dynamic_cast<CBasePlayer*>(pOther);
 		CHandle<CBasePlayer> hPlayer = pPlayer;
 
 		m_hTouchingEntities.FindAndRemove( hOther );
-
+		
 		if (pPlayer)
 		{
 			m_hTouchingPlayers.FindAndRemove( hPlayer );
@@ -540,8 +564,7 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 		//FIXME: Without this, triggers fire their EndTouch outputs when they are disabled!
 		//if ( !m_bDisabled )
 		//{
-			if (pOther)
-				m_OnEndTouch.FireOutput(pOther, this);
+			m_OnEndTouch.FireOutput(pOther, this);
 		//}
 
 		// If there are no more entities touching this trigger, fire the lost all touches
@@ -559,15 +582,26 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 			}
 			else if ( hOther->IsPlayer() && !hOther->IsAlive() )
 			{
-#ifdef STAGING_ONLY
-				if ( !HushAsserts() )
-				{
-					AssertMsg( false, "Dead player [%s] is still touching this trigger at [%f %f %f]", hOther->GetEntityName().ToCStr(), XYZ( hOther->GetAbsOrigin() ) );
-				}
-				Warning( "Dead player [%s] is still touching this trigger at [%f %f %f]", hOther->GetEntityName().ToCStr(), XYZ( hOther->GetAbsOrigin() ) );
-#endif
 				m_hTouchingEntities.Remove( i );
-				
+			}
+			else
+			{
+				bFoundOtherTouchee = true;
+			}
+		}
+		iSize = m_hTouchingPlayers.Count();
+		for ( int i = iSize-1; i >= 0; i-- )
+		{
+			EHANDLE hOther;
+			hOther = m_hTouchingPlayers[i];
+
+			if ( !hOther )
+			{
+				m_hTouchingPlayers.Remove( i );
+			}
+			else if ( !hOther->IsAlive() )
+			{
+				Assert( hOther->IsPlayer() );
 				m_hTouchingPlayers.Remove( i );
 			}
 			else
@@ -580,8 +614,7 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 		// Didn't find one?
 		if ( !bFoundOtherTouchee /*&& !m_bDisabled*/ )
 		{
-			if (pOther)
-				m_OnEndTouchAll.FireOutput(pOther, this);
+			m_OnEndTouchAll.FireOutput(pOther, this);
 			EndTouchAll();
 		}
 	}
@@ -590,7 +623,7 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 //-----------------------------------------------------------------------------
 // Purpose: Return true if the specified entity is touching us
 //-----------------------------------------------------------------------------
-bool CBaseTrigger::IsTouching( CBaseEntity *pOther )
+bool CBaseTrigger::IsTouching( const CBaseEntity *pOther ) const
 {
 	EHANDLE hOther;
 	hOther = pOther;
@@ -1602,14 +1635,13 @@ CBaseEntity *CChangeLevel::FindLandmark( const char *pLandmarkName )
 void CChangeLevel::InputChangeLevel( inputdata_t &inputdata )
 {
 	// Ignore changelevel transitions if the player's dead or attempting a challenge
-	/*
 	if ( gpGlobals->maxClients == 1 )
 	{
 		CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
-		if ( pPlayer && ( !pPlayer->IsAlive() || pPlayer->GetBonusChallenge() > 0 ) )
+		if ( pPlayer && ( !pPlayer->IsAlive() || GameRules()->GetBonusChallenge() > 0))
 			return;
 	}
-	*/
+
 	ChangeLevelNow( inputdata.pActivator );
 }
 
@@ -1699,13 +1731,12 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 	if ( !MaxPlayersAreTouching() && m_bMaxPlayersMustBeTouching )
 		return;
 	
-
 	CBaseEntity	*pLandmark = FindLandmark( m_szLandmarkName );
+
 	levellist_t	levels[16];
 
 	Assert(!FStrEq(m_szMapName, ""));
-
-
+	
 	// Restart the map if we're doing a bonus challenge
 	if ( g_pGameRules->GetBonusChallenge() )
 	{
@@ -1714,63 +1745,54 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 		return;
 	}
 
-	// Doesn't work in multiplayer
+	// Don't work in multiplayer
 	if ( gpGlobals->maxClients > 1 )
 	{
 		engine->ChangeLevel( m_szMapName, NULL );
 		return;
 	}
-
 	// Some people are firing these multiple times in a frame, disable
 	if ( m_bTouched )
 		return;
 
 	m_bTouched = true;
 
-	//CBaseEntity *pPlayer = (pActivator && pActivator->IsPlayer()) ? pActivator : UTIL_GetLocalPlayer();
+	CBaseEntity *pPlayer = (pActivator && pActivator->IsPlayer()) ? pActivator : UTIL_GetLocalPlayer();
 
-	for (int i = 1; i <= gpGlobals->maxClients; ++i)
+	int transitionState = InTransitionVolume(pPlayer, m_szLandmarkName);
+	if ( transitionState == TRANSITION_VOLUME_SCREENED_OUT )
 	{
-		CBaseEntity *pPlayer = (pActivator && pActivator->IsPlayer()) ? pActivator : UTIL_PlayerByIndex(i);
-	
+		DevMsg( 2, "Player isn't in the transition volume %s, aborting\n", m_szLandmarkName );
+		return;
+	}
 
-		int transitionState = InTransitionVolume(pPlayer, m_szLandmarkName);
-		if ( transitionState == TRANSITION_VOLUME_SCREENED_OUT )
+	if ( !pLandmark )
+		return;
+
+	// no transition volumes, check PVS of landmark
+	if ( transitionState == TRANSITION_VOLUME_NOT_FOUND )
+	{
+		byte pvs[MAX_MAP_CLUSTERS/8];
+		int clusterIndex = engine->GetClusterForOrigin( pLandmark->GetAbsOrigin() );
+		engine->GetPVSForCluster( clusterIndex, sizeof(pvs), pvs );
+		if ( pPlayer )
 		{
-			DevMsg( 2, "Player isn't in the transition volume %s, aborting\n", m_szLandmarkName );
-			return;
-		}
-	
-		// look for a landmark entity		
-		//pLandmark = FindLandmark( m_szLandmarkName );
+			Vector vecSurroundMins, vecSurroundMaxs;
+			pPlayer->CollisionProp()->WorldSpaceSurroundingBounds( &vecSurroundMins, &vecSurroundMaxs );
+			bool playerInPVS = engine->CheckBoxInPVS( vecSurroundMins, vecSurroundMaxs, pvs, sizeof( pvs ) );
 
-		if ( !pLandmark )
-			return;
-
-		// no transition volumes, check PVS of landmark
-		if ( transitionState == TRANSITION_VOLUME_NOT_FOUND )
-		{
-			byte pvs[MAX_MAP_CLUSTERS/8];
-			int clusterIndex = engine->GetClusterForOrigin( pLandmark->GetAbsOrigin() );
-			engine->GetPVSForCluster( clusterIndex, sizeof(pvs), pvs );
-			if ( pPlayer )
+			//Assert( playerInPVS );
+			if ( !playerInPVS )
 			{
-				Vector vecSurroundMins, vecSurroundMaxs;
-				pPlayer->CollisionProp()->WorldSpaceSurroundingBounds( &vecSurroundMins, &vecSurroundMaxs );
-				bool playerInPVS = engine->CheckBoxInPVS( vecSurroundMins, vecSurroundMaxs, pvs, sizeof( pvs ) );
-
-				//Assert( playerInPVS );
-				if ( !playerInPVS )
-				{
-					Warning( "Player isn't in the landmark's (%s) PVS, aborting\n", m_szLandmarkName );
-	#ifndef HL1_DLL
-					// HL1 works even with these errors!
-					return;
-	#endif
-				}
+				Warning( "Player isn't in the landmark's (%s) PVS, aborting\n", m_szLandmarkName );
+#ifndef HL1_DLL
+				// HL1 works even with these errors!
+				return;
+#endif
 			}
 		}
 	}
+
 	WarnAboutActiveLead();
 
 	g_iDebuggingTransition = 0;
@@ -1877,13 +1899,6 @@ int BuildChangeList( levellist_t *pLevelList, int maxList )
 {
 	return CChangeLevel::ChangeList( pLevelList, maxList );
 }
-
-struct collidelist_t
-{
-	const CPhysCollide	*pCollide;
-	Vector			origin;
-	QAngle			angles;
-};
 
 
 // NOTE: This routine is relatively slow.  If you need to use it for per-frame work, consider that fact.
@@ -3002,7 +3017,7 @@ public:
 	void InputDisable( inputdata_t &inputdata );
 	void InputEnableControlAllPlayers( inputdata_t &inputdata );
 	void InputDisableControlAllPlayers( inputdata_t &inputdata );
-	
+
 private:
 	EHANDLE m_hPlayer;
 	EHANDLE m_hTarget;
@@ -3229,7 +3244,7 @@ void CTriggerCamera::Enable( void )
 			{
 				if ( pOtherCamera == this )
 				{
-					// what the hell do you think you are doing?
+					// what do you think you are doing?
 					Warning("Viewcontrol %s was enabled twice in a row!\n", GetDebugName());
 					return;
 				}
@@ -4126,7 +4141,7 @@ public:
 			return IMotionEvent::SIM_NOTHING;
 
 		// Get a cosine modulated noise between 5 and 20 that is object specific
-		int nNoiseMod = 5+(int)pObject%15; // 
+		int nNoiseMod = 5+(int)(intp)pObject%15; // 
 
 		// Turn wind yaw direction into a vector and add noise
 		QAngle vWindAngle = vec3_angle;	
@@ -4602,7 +4617,9 @@ IMPLEMENT_SERVERCLASS_ST( CTriggerPlayerMovement, DT_TriggerPlayerMovement )
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CTriggerPlayerMovement )
+
 END_DATADESC()
+
 
 LINK_ENTITY_TO_CLASS( trigger_playermovement, CTriggerPlayerMovement );
 
@@ -4650,7 +4667,7 @@ void CTriggerPlayerMovement::StartTouch( CBaseEntity *pOther )
 		pPlayer->m_bForceDuckedByTriggerPlayerMove = true;
 		pPlayer->ForceButtons( IN_DUCK );
 	}
-
+	
 	if ( HasSpawnFlags( SF_TRIGGER_AUTO_WALK ) )
 	{
 		pPlayer->ForceButtons( IN_SPEED );
@@ -4672,13 +4689,13 @@ void CTriggerPlayerMovement::EndTouch( CBaseEntity *pOther )
 
 	if ( !pPlayer )
 		return;
-	
+
 	if ( HasSpawnFlags( SF_TRIGGER_AUTO_DUCK ) )
 	{
 		pPlayer->m_bForceDuckedByTriggerPlayerMove = false;
 		pPlayer->UnforceButtons( IN_DUCK );
 	}
-
+	
 	if ( HasSpawnFlags( SF_TRIGGER_AUTO_WALK ) )
 	{
 		pPlayer->UnforceButtons( IN_SPEED );

@@ -514,6 +514,11 @@ void CPropCombineBall::StartLifetime( float flDuration )
 	SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime + flDuration, s_pExplodeTimerContext );
 }
 
+void CPropCombineBall::DoExplodeThink( void )
+{
+	SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, s_pExplodeTimerContext );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Stops the lifetime on the ball from expiring
 //-----------------------------------------------------------------------------
@@ -630,11 +635,6 @@ void CPropCombineBall::UpdateOnRemove()
 void CPropCombineBall::ExplodeThink( void )
 {
 	DoExplosion();	
-}
-
-void CPropCombineBall::DoExplodeThink( void )
-{
-	SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, s_pExplodeTimerContext );
 }
 
 //-----------------------------------------------------------------------------

@@ -27,7 +27,7 @@ public:
 	bool WasWeaponLaunched( void ) const { return m_bWeaponLaunched; }
 
 protected:
-	
+
 	bool	m_bWeaponLaunched;		// Means this was fired from the AR2
 
 	void	DrawMotionBlur( void );
@@ -49,6 +49,5 @@ protected:
 bool UTIL_IsCombineBall( CBaseEntity *pEntity );
 bool UTIL_IsCombineBallDefinite( CBaseEntity *pEntity );
 bool UTIL_IsAR2CombineBall( CBaseEntity *pEntity );
-
 
 #endif

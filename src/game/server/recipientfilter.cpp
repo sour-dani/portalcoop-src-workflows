@@ -233,19 +233,19 @@ void CRecipientFilter::RemovePlayersFromBitMask( CBitVec< ABSOLUTE_PLAYER_LIMIT 
 
 void CRecipientFilter::AddRecipientsByPVS( const Vector& origin )
 {
-		AddAllPlayers();
+	AddAllPlayers();
 }
+
 void CRecipientFilter::RemoveRecipientsByPVS( const Vector& origin )
 {
-		m_Recipients.RemoveAll();
-
+	m_Recipients.RemoveAll();
 }
 
 
 
 void CRecipientFilter::AddRecipientsByPAS( const Vector& origin )
 {
-		AddAllPlayers();	
+	AddAllPlayers();
 }
 
 bool CRecipientFilter::IsInitMessage( void ) const

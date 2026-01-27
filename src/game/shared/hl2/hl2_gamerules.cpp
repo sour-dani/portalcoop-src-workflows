@@ -42,7 +42,6 @@ IMPLEMENT_NETWORKCLASS_ALIASED( HalfLife2Proxy, DT_HalfLife2Proxy )
 
 LINK_ENTITY_TO_CLASS_ALIASED( hl2_gamerules, HalfLife2Proxy );
 
-
 #ifdef CLIENT_DLL
 	void RecvProxy_HL2GameRules( const RecvProp *pProp, void **pOut, void *pData, int objectID )
 	{
@@ -1489,7 +1488,6 @@ ConVar  alyx_darkness_force( "alyx_darkness_force", "0", FCVAR_CHEAT | FCVAR_REP
 // ------------------------------------------------------------------------------------ //
 bool CHalfLife2::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 {
-#ifndef PORTAL
 	// The smaller number is always first
 	if ( collisionGroup0 > collisionGroup1 )
 	{
@@ -1498,7 +1496,7 @@ bool CHalfLife2::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 		collisionGroup0 = collisionGroup1;
 		collisionGroup1 = tmp;
 	}
-#endif
+	
 	// Prevent the player movement from colliding with spit globs (caused the player to jump on top of globs while in water)
 	if ( collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT && collisionGroup1 == HL2COLLISION_GROUP_SPIT )
 		return false;

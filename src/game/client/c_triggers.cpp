@@ -161,14 +161,14 @@ C_TriggerPlayerMovement::~C_TriggerPlayerMovement()
 // Little enumeration class used to try touching all triggers
 //-----------------------------------------------------------------------------
 template< class T >
-class CFastTouchTriggers
+class CFastTouchTriggers // PCOOP_PORT: This class should be removed entirely, eventually
 {
 public:
 	CFastTouchTriggers( C_BaseEntity *pEnt, T *pTriggers ) : m_pEnt( pEnt ), m_pTriggers( pTriggers )
 	{
 		m_pCollide = pEnt->GetCollideable();
 		m_pCollideProperty = pEnt->CollisionProp();
-		m_nRequiredTriggerFlags = m_pCollideProperty->GetRequiredTriggerFlags();
+		m_nRequiredTriggerFlags = 0;// m_pCollideProperty->GetRequiredTriggerFlags();
 		Assert( m_pCollide );
 
 		Vector vecMins, vecMaxs;
