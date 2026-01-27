@@ -1741,28 +1741,6 @@ void CPortalGameRules::LevelShutdown( void )
 extern void SavePortalPlayerData( CPortal_Player *pPlayer );
 extern void RestorePortalPlayerData( CPortal_Player *pPlayer );
 
-void PausePlayer( CBasePlayer *pPlayer )
-{
-	pPlayer->LockPlayerInPlace();
-	color32_s color;
-	color.r = 0;
-	color.g = 0;
-	color.b = 0;
-	color.a = 255;
-	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
-}
-
-void UnpausePlayer( CBasePlayer *pPlayer )
-{
-	pPlayer->UnlockPlayer();			
-	color32_s color;
-	color.r = 0;
-	color.g = 0;
-	color.b = 0;
-	color.a = 0;
-	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
-}
-
 void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
 {
 	if ( PlayerShouldPlay( pPlayer->entindex() ) )
@@ -1777,7 +1755,7 @@ void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
 	CheckShouldPause();
 	
 	if ( pcoop_paused.GetBool() )
-		PausePlayer( pPlayer );
+		pPlayer->OnPause();
 
 	m_bRestoringPlayer = true;
 	RestorePortalPlayerData( pPlayer );
@@ -1842,9 +1820,10 @@ void CPortalGameRules::ClientDisconnected( edict_t *pClient )
 	SavePortalPlayerData( pPlayer );
 
 	CheckShouldPause();
-
-	if ( pcoop_paused.GetBool() )
-		PausePlayer( pPlayer );
+	
+	// This doesn't seem necessary
+	//if ( pcoop_paused.GetBool() )
+	//	pPlayer->OnPause();
 
 	BaseClass::ClientDisconnected( pClient );
 }
@@ -1869,30 +1848,6 @@ void AddToPauseList( CBaseEntity *pEntity )
 void RemoveFromPauseList( CBaseEntity *pEntity )
 {
 	g_AllPausables.FindAndRemove( pEntity );
-}
-
-void PausePlayers( void )
-{
-	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
-	{
-		CPortal_Player *pPlayer = GetPortalPlayer( i );
-		if ( !pPlayer )
-			continue;
-
-		PausePlayer( pPlayer );
-	}
-}
-
-void UnPausePlayers( void )
-{
-	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
-	{
-		CPortal_Player *pPlayer = GetPortalPlayer( i );
-		if ( !pPlayer )
-			continue;
-
-		UnpausePlayer( pPlayer );
-	}
 }
 
 void PauseEntities( void )
@@ -1931,7 +1886,6 @@ void CPortalGameRules::CheckShouldPause( void )
 		if ( !pcoop_paused.GetBool() )
 		{
 			// When the game pauses, do things
-			PausePlayers();
 			PauseEntities();
 			
 			g_flTimeWhenPaused = gpGlobals->curtime;
@@ -1947,7 +1901,6 @@ void CPortalGameRules::CheckShouldPause( void )
 		if ( pcoop_paused.GetBool() )
 		{
 			// When the game unpauses, do things
-			UnPausePlayers();
 			UnPauseEntities();
 			RestoreEventQueue();
 			

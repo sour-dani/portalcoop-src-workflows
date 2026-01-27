@@ -3762,7 +3762,6 @@ void CBaseEntity::OnRestore()
 	NetworkProp()->MarkPVSInformationDirty();
 }
 #ifdef PORTAL
-extern float g_flTimeWhenPaused;
 extern int g_iPauseTick;
 void CBaseEntity::OnPause( void )
 {

@@ -109,6 +109,9 @@ public:
 	virtual void Spawn( void );
 	virtual void OnRestore( void );
 	virtual void Activate( void );
+	
+	virtual void OnPause( void ) OVERRIDE;
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
 
 	virtual void NotifySystemEvent( CBaseEntity *pNotify, notify_system_event_t eventType, const notify_system_event_params_t &params );
 

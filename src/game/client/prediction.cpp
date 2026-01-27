@@ -1757,9 +1757,9 @@ void CPrediction::Update( int startframe, bool validframe,
 	extern ConVar pcoop_paused;
 #endif
 	m_bEnginePaused = engine->IsPaused()
-#ifdef PORTAL
-		|| pcoop_paused.GetBool();
-#endif
+//#ifdef PORTAL
+//		|| pcoop_paused.GetBool()
+//#endif
 		;
 
 	bool received_new_world_update = true;

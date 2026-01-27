@@ -806,6 +806,8 @@ CPortal_Player::CPortal_Player()
 	m_bForceBumpWeapon = false;
 
 	m_bInvisible = false;
+
+	AddToPauseList( this );
 }
 
 CPortal_Player::~CPortal_Player(void)
@@ -831,6 +833,8 @@ CPortal_Player::~CPortal_Player(void)
 		pPortalgun->FizzleOwnedPortals();
 	}
 	*/
+	
+	RemoveFromPauseList( this );
 }
 
 bool g_bRemovingPortalPlayer = false;
@@ -1017,7 +1021,34 @@ void CPortal_Player::Activate(void)
 	const char *pszName = engine->GetClientConVarValue( entindex(), "cl_player_funnel_into_portals" );
 	m_bPortalFunnel = atoi( pszName ) != 0;
 }
+#ifdef PORTAL
+extern int g_iPauseTick;
+void CPortal_Player::OnPause( void )
+{
+	LockPlayerInPlace();
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 255;
+	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
 
+	BaseClass::OnPause();
+}
+
+void CPortal_Player::OnUnPause( float flAddedTime )
+{
+	UnlockPlayer();			
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 0;
+	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
+
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 void CPortal_Player::NotifySystemEvent(CBaseEntity* pNotify, notify_system_event_t eventType, const notify_system_event_params_t& params)
 {
 	// On teleport, we send event for tracking fling achievements
