@@ -160,7 +160,15 @@ CBaseFlex::~CBaseFlex( void )
 	m_LocalToGlobal.RemoveAll();
 	AssertMsg( m_SceneEvents.Count() == 0, "m_ScenesEvent.Count != 0: %d", m_SceneEvents.Count() );
 }
+#ifdef PORTAL
+void CBaseFlex::OnUnPause( float flAddedTime )
+{
+	m_flAllowResponsesEndTime += flAddedTime;
+	m_flLastFlexAnimationTime += flAddedTime;
 
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 void CBaseFlex::SetModel( const char *szModelName )
 {
 	MDLCACHE_CRITICAL_SECTION();

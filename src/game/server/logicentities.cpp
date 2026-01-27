@@ -258,6 +258,9 @@ class CTimerEntity : public CLogicalEntity
 public:
 	DECLARE_CLASS( CTimerEntity, CLogicalEntity );
 
+	CTimerEntity();
+	~CTimerEntity();
+
 	void Spawn( void );
 	void Think( void );
 
@@ -329,7 +332,16 @@ BEGIN_DATADESC( CTimerEntity )
 
 END_DATADESC()
 
+CTimerEntity::CTimerEntity()
+{
+	// Needed for the think function
+	AddToPauseList( this );
+}
 
+CTimerEntity::~CTimerEntity()
+{
+	RemoveFromPauseList( this );
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 

@@ -1008,7 +1008,15 @@ void CTriggerHurt::Touch( CBaseEntity *pOther )
 		SetNextThink( gpGlobals->curtime );
 	}
 }
+#ifdef PORTAL
+void CTriggerHurt::OnUnPause( float flAddedTime )
+{
+	m_flLastDmgTime += flAddedTime;
+	m_flDmgResetTime += flAddedTime;
 
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Checks if this point is in any trigger_hurt zones with positive damage
 //-----------------------------------------------------------------------------

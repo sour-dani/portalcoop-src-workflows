@@ -30,7 +30,6 @@
 	#include "datacache/imdlcache.h"	// For precaching box model
 	#include "weapon_portalgun.h"
 	#include "playerinfomanager.h"
-	#include "IPausable.h"
 
 	#include "achievementmgr.h"
 	extern CAchievementMgr g_AchievementMgrPortal;
@@ -1852,6 +1851,25 @@ void CPortalGameRules::ClientDisconnected( edict_t *pClient )
 
 float g_flTimeWhenPaused = 0.0f;
 float g_flServerTimeWhenPaused = 0.0f;
+int g_iPauseTick = 0;
+CUtlVector<CBaseEntity*> g_AllPausables;
+
+void ResetAllPauseData( void )
+{
+	g_flTimeWhenPaused = 0.0f;
+	g_flServerTimeWhenPaused = 0.0f;
+	g_iPauseTick = 0;
+}
+
+void AddToPauseList( CBaseEntity *pEntity )
+{
+	g_AllPausables.AddToTail( pEntity );
+}
+
+void RemoveFromPauseList( CBaseEntity *pEntity )
+{
+	g_AllPausables.FindAndRemove( pEntity );
+}
 
 void PausePlayers( void )
 {
@@ -1894,6 +1912,14 @@ void UnPauseEntities( void )
 	}
 }
 
+CON_COMMAND_F( dump_pausable_entities, "Lists every entity that gets restored after unpausing", FCVAR_CHEAT )
+{
+	for ( int i = 0; i < g_AllPausables.Count(); ++i )
+	{
+		Msg( "%i : %s\n", g_AllPausables[i]->entindex(), g_AllPausables[i]->GetClassname() );
+	}
+}
+
 extern void RestoreEventQueue();
 
 void CPortalGameRules::CheckShouldPause( void )
@@ -1910,6 +1936,7 @@ void CPortalGameRules::CheckShouldPause( void )
 			
 			g_flTimeWhenPaused = gpGlobals->curtime;
 			g_flServerTimeWhenPaused = engine->GetServerTime();
+			g_iPauseTick = gpGlobals->tickcount;
 
 			// Set the value
 			pcoop_paused.SetValue( true );
@@ -1923,9 +1950,8 @@ void CPortalGameRules::CheckShouldPause( void )
 			UnPausePlayers();
 			UnPauseEntities();
 			RestoreEventQueue();
-
-			g_flTimeWhenPaused = 0.0f;
-			g_flServerTimeWhenPaused = 0.0f;
+			
+			ResetAllPauseData();
 
 			// Set the value
 			pcoop_paused.SetValue( false );			

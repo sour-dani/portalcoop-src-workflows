@@ -54,6 +54,9 @@ public:
 
 	virtual int	 Restore( IRestore &restore );
 	virtual void OnRestore();
+#ifdef PORTAL
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 
 #ifdef GLOWS_ENABLE
 	// Glows

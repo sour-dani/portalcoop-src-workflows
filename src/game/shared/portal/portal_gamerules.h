@@ -184,6 +184,10 @@ public:
 #endif
 };
 
+#ifdef GAME_DLL
+void AddToPauseList( CBaseEntity *pEntity );
+void RemoveFromPauseList( CBaseEntity *pEntity );
+#endif
 
 //-----------------------------------------------------------------------------
 // Gets us at the Half-Life 2 game rules

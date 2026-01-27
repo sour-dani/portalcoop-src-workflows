@@ -3761,8 +3761,31 @@ void CBaseEntity::OnRestore()
 	// We're not save/loading the PVS dirty state. Assume everything is dirty after a restore
 	NetworkProp()->MarkPVSInformationDirty();
 }
+#ifdef PORTAL
+extern float g_flTimeWhenPaused;
+extern int g_iPauseTick;
+void CBaseEntity::OnPause( void )
+{
 
+}
 
+void CBaseEntity::OnUnPause( float flAddedTime )
+{
+	int iAddedTicks = gpGlobals->tickcount - g_iPauseTick;
+
+	// Restore the think timers
+	m_nNextThinkTick += iAddedTicks;
+	m_nLastThinkTick += iAddedTicks;
+	for ( int i = 0; i < m_aThinkFunctions.Count(); ++i )
+	{
+		m_aThinkFunctions[i].m_nNextThinkTick += iAddedTicks;
+		m_aThinkFunctions[i].m_nLastThinkTick += iAddedTicks;
+	}
+
+	// Restore the anim times
+	m_flAnimTime += flAddedTime;
+}
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Recursively restores all the classes in an object, in reverse order (top down)
 // Output : int 0 on failure, 1 on success

@@ -1877,8 +1877,14 @@ CDynamicProp::CDynamicProp()
 		UseClientSideAnimation();
 	}
 	m_iGoalSequence = -1;
+
+	AddToPauseList( this );
 }
 
+CDynamicProp::~CDynamicProp()
+{
+	RemoveFromPauseList( this );
+}
 
 //------------------------------------------------------------------------------
 // Purpose:

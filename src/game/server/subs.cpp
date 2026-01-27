@@ -170,6 +170,13 @@ CBaseToggle::CBaseToggle()
 	m_vecFinalDest.Init();
 	m_vecFinalAngle.Init();
 #endif
+
+	AddToPauseList( this );
+}
+
+CBaseToggle::~CBaseToggle()
+{
+	RemoveFromPauseList( this );
 }
 
 //-----------------------------------------------------------------------------
@@ -203,8 +210,13 @@ bool CBaseToggle::KeyValue( const char *szKeyName, const char *szValue )
 
 	return true;
 }
-
-
+#ifdef PORTAL
+void CBaseToggle::OnUnPause( float flAddedTime )
+{
+	m_flMoveTargetTime += flAddedTime;
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Calculate m_vecVelocity and m_flNextThink to reach vecDest from
 //			GetOrigin() traveling at flSpeed.

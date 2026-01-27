@@ -272,6 +272,7 @@ public:
 	DECLARE_DATADESC();
 
 	CDynamicProp();
+	~CDynamicProp();
 
 	void	Spawn( void );
 	bool	CreateVPhysics( void );

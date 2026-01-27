@@ -362,9 +362,7 @@ $Project "Server (Portal)"
 			$File	"portal\prop_box.cpp"
 			$File	"portal\prop_box.h"
 			$File	"portal\func_switch.cpp"
-			$File	"portal\IPausable.cpp"
-			$File	"portal\IPausable.h"
-
+			
 			$Folder	"Weapons"
 			{
 				$File	"$SRCDIR\game\shared\portal\weapon_physcannon.cpp"

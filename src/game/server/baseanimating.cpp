@@ -518,8 +518,14 @@ void CBaseAnimating::OnRestore()
 	m_flEstIkFloor = GetLocalOrigin().z;
 	PopulatePoseParameters();
 }
+#ifdef PORTAL
+void CBaseAnimating::OnUnPause( float flAddedTime )
+{
+	m_flDissolveStartTime += flAddedTime;
 
-
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CBaseAnimating::Spawn()

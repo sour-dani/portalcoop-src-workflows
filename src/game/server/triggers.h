@@ -190,6 +190,9 @@ public:
 	int HurtAllTouchers( float dt );
 
 	DECLARE_DATADESC();
+#ifdef PORTAL
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 
 	float	m_flOriginalDamage;	// Damage as specified by the level designer.
 	float	m_flDamage;			// Damage per second.

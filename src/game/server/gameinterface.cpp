@@ -1524,6 +1524,10 @@ void CServerGameDLL::LevelShutdown( void )
 	}
 #endif
 #endif
+#ifdef PORTAL
+	extern void ResetAllPauseData( void );
+	ResetAllPauseData();
+#endif
 }
 
 //-----------------------------------------------------------------------------

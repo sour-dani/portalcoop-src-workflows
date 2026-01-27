@@ -466,6 +466,9 @@ private:
 	
 	// Create user messages for game here, calls into static player class creation functions
 	void RegisterUserMessages( void );
+	
+	void AddToPauseList( CBaseEntity *pEntity );
+	void RemoveFromPauseList( CBaseEntity *pEntity );
 #endif
 
 

@@ -779,7 +779,10 @@ public:
 	// called before activate
 	// NOTE: Always chain to base class when implementing this!
 	virtual void OnRestore();
-
+#ifdef PORTAL
+	virtual void OnPause( void );
+	virtual void OnUnPause( float flAddedTime );
+#endif
 	int			 GetTextureFrameIndex( void );
 	void		 SetTextureFrameIndex( int iIndex );
 
