@@ -850,14 +850,11 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 				pHeldEntity->SetAbsOrigin(vTargetPosition);
 				pHeldEntity->SetAbsAngles(qTargetOrientation);
 
-#ifdef CLIENT_DLL
 				IPhysicsObject *pHeldPhysics = pHeldEntity->VPhysicsGetObject();
 				if ( pHeldPhysics )
 				{
 					pHeldPhysics->SetPosition( vTargetPosition, qTargetOrientation, true );
 				}
-#endif
-
 #endif
 				FindClosestPassableSpace( pHeldEntity, RemotePortalDataAccess.Placement.vForward );
 			}
@@ -1028,63 +1025,6 @@ void CProp_Portal::SetupPortalColorSet( void )
 		m_iPortalColorSet = m_iCustomPortalColorSet;
 	else
 		m_iPortalColorSet = ConvertLinkageIDToColorSet( m_iLinkageGroupID );
-}
-
-
-float CProp_Portal::GetMinimumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity )
-{
-	const PS_InternalData_t &RemotePortalDataAccess = m_hLinkedPortal->m_PortalSimulator.GetInternalData();
-	
-	//velocity hacks
-	{
-		//minimum floor exit velocity if both portals are on the floor or the player is coming out of the floor
-		if (RemotePortalDataAccess.Placement.vForward.z > 0.7071f)
-		{
-			if (bPlayer)
-			{
-				return MINIMUM_FLOOR_PORTAL_EXIT_VELOCITY_PLAYER;
-			}
-			else
-			{
-				const PS_InternalData_t &LocalPortalDataAccess = m_PortalSimulator.GetInternalData();
-
-				if ( LocalPortalDataAccess.Placement.vForward.z > 0.7071f )
-				{
-					return MINIMUM_FLOOR_TO_FLOOR_PORTAL_EXIT_VELOCITY;
-				}
-				else
-				{
-					return MINIMUM_FLOOR_PORTAL_EXIT_VELOCITY;
-				}
-			}
-		}
-	}
-
-	return -FLT_MAX; //default behavior is to not mess with the speed
-}
-
-float CProp_Portal::GetMaximumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity )
-{
-	return MAXIMUM_PORTAL_EXIT_VELOCITY;
-}
-
-
-void CProp_Portal::GetExitSpeedRange( CProp_Portal *pEntrancePortal, bool bPlayer, float &fExitMinimum, float &fExitMaximum, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity )
-{
-	CProp_Portal *pExitPortal = pEntrancePortal ? pEntrancePortal->m_hLinkedPortal.Get() : NULL;
-	if( !pExitPortal )
-	{
-		fExitMinimum = -FLT_MAX;
-		fExitMaximum = FLT_MAX;
-		return;
-	}
-		
-	const float COS_PI_OVER_SIX = 0.86602540378443864676372317075294f; // cos( 30 degrees ) in radians
-	bool bEntranceOnFloor = pEntrancePortal->m_plane_Origin.z > COS_PI_OVER_SIX;
-	bool bExitOnFloor = pExitPortal->m_plane_Origin.z > COS_PI_OVER_SIX;
-
-	fExitMinimum = pExitPortal->GetMinimumExitSpeed( bPlayer, bEntranceOnFloor, bExitOnFloor, vEntityCenterAtExit, pEntity );
-	fExitMaximum = pExitPortal->GetMaximumExitSpeed( bPlayer, bEntranceOnFloor, bExitOnFloor, vEntityCenterAtExit, pEntity );
 }
 
 

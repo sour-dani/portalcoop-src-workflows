@@ -1062,6 +1062,11 @@ void CPortalGameMovement::HandlePortallingLegacy( void )
 	if(LocalPortalDataAccess.Placement.PortalPlane.m_Normal.Dot( ptPlayerCenter ) < LocalPortalDataAccess.Placement.PortalPlane.m_Dist)
 	{
 		//entity wants to go further into the plane
+
+		// PCOOP: The EntityIsInPortalHole check should probably be removed
+		// If the player goes too fast, they can go past the portal without
+		// actually being inside it.
+		// Removing this will require further testing, however.
 		if( pPortalSimulator->EntityIsInPortalHole( player ) )
 		{
 			bPastPortalHole = true;

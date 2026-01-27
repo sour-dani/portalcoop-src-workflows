@@ -182,12 +182,6 @@ public:
 	PortalColorSet_t m_iOldPortalColorSet;
 	PortalColorSet_t m_iPortalColorSet;
 	
-	virtual float GetMinimumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity ); //return -FLT_MAX for no minimum
-	virtual float GetMaximumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity ); //return FLT_MAX for no maximum
-	
-	//does all the gruntwork of figuring out flooriness and calling the two above
-	static void				GetExitSpeedRange( CProp_Portal *pEntrancePortal, bool bPlayer, float &fExitMinimum, float &fExitMaximum, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity );
-	
 	C_PortalGhostRenderable *GetGhostRenderableForEntity( C_BaseEntity *pEntity );
 	
 	CUtlVector<EHANDLE>		m_hGhostingEntities;

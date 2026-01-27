@@ -235,13 +235,6 @@ public:
 	static CProp_Portal		*FindPortal( unsigned char iLinkageGroupID, bool bPortal2, bool bCreateIfNothingFound = false );
 	static const CUtlVector<CProp_Portal *> *GetPortalLinkageGroup( unsigned char iLinkageGroupID );
 
-	
-	virtual float GetMinimumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity );
-	virtual float GetMaximumExitSpeed( bool bPlayer, bool bEntranceOnFloor, bool bExitOnFloor, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity );
-	
-	//does all the gruntwork of figuring out flooriness and calling the two above
-	static void				GetExitSpeedRange( CProp_Portal *pEntrancePortal, bool bPlayer, float &fExitMinimum, float &fExitMaximum, const Vector &vEntityCenterAtExit, CBaseEntity *pEntity );
-
 	CNetworkVar(int, m_nPlacementAttemptParity); //Increments every time we try to move the portal in a predictable way. Will send a network packet to catch cases where placement succeeds on the client, but fails on the server.
 };
 
