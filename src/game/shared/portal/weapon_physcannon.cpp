@@ -772,7 +772,7 @@ void CGrabController::AttachEntity( CPortal_Player *pPlayer, CBaseEntity *pEntit
 	// play the impact sound of the object hitting the player
 	// used as feedback to let the player know he picked up the object
 #ifdef GAME_DLL
-	if ( !pPlayer->m_bSilentDropAndPickup && !PortalGameRules()->IsInRestore() )
+	if ( !pPlayer->m_bSilentDropAndPickup && !PortalGameRules()->IsRestoringPlayer() )
 	{
 		int hitMaterial = pPhys->GetMaterialIndex();
 		int playerMaterial = pPlayer->VPhysicsGetObject() ? pPlayer->VPhysicsGetObject()->GetMaterialIndex() : hitMaterial;

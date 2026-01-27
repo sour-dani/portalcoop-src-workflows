@@ -166,8 +166,9 @@ private:
 	bool ShouldRemoveRadio( void );
 	
 public:
-
+	
 	bool IsInRestore() { return m_bInRestore; }
+	bool IsRestoringPlayer() { return m_bRestoringPlayer; }
 
 	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer );
 
@@ -177,6 +178,7 @@ public:
 	
 	unsigned char m_iPlayingPlayers; // The amount of players who are actually playing (not spectators)
 	bool m_bInRestore;
+	bool m_bRestoringPlayer;
 	bool m_bDisableGamePause;
 	bool m_bDisablePlayerRestore;
 #endif

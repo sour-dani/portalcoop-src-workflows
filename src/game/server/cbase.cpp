@@ -1088,6 +1088,31 @@ void CEventQueue::ServiceEvents( void )
 	}
 }
 
+void CEventQueue::RestoreEvents( void )
+{
+#ifdef PORTAL
+#ifdef USE_SERVER_TIME
+	extern float g_flServerTimeWhenPaused;
+	float flAddedTime = engine->GetServerTime() - g_flServerTimeWhenPaused;
+#else
+	extern float g_flTimeWhenPaused;
+	float flAddedTime = gpGlobals->curtime - g_flTimeWhenPaused;
+#endif
+	
+	// delete all the events in the queue
+	EventQueuePrioritizedEvent_t *pe = g_EventQueue.m_Events.m_pNext;
+	
+	while ( pe != NULL )
+	{
+		EventQueuePrioritizedEvent_t *next = pe->m_pNext;
+
+		pe->m_flFireTime += flAddedTime;
+
+		pe = next;
+	}
+#endif
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Dumps the contents of the Entity I/O event queue to the console.
 //-----------------------------------------------------------------------------
@@ -1211,7 +1236,10 @@ void ServiceEventQueue( void )
 	g_EventQueue.ServiceEvents();
 }
 
-
+void RestoreEventQueue( void )
+{
+	g_EventQueue.RestoreEvents();
+}
 
 // save data description for the event queue
 BEGIN_SIMPLE_DATADESC( CEventQueue )

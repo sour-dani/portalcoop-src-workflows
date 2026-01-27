@@ -30,6 +30,7 @@
 	#include "datacache/imdlcache.h"	// For precaching box model
 	#include "weapon_portalgun.h"
 	#include "playerinfomanager.h"
+	#include "IPausable.h"
 
 	#include "achievementmgr.h"
 	extern CAchievementMgr g_AchievementMgrPortal;
@@ -481,6 +482,7 @@ const char *CPortalGameRules::GetGameDescription( void )
 #ifdef GAME_DLL
 		m_iPlayingPlayers = 0;
 		m_bInRestore = false;
+		m_bRestoringPlayer = false;
 		m_bDisableGamePause = false;
 		m_bDisablePlayerRestore = false;
 #endif
@@ -1778,9 +1780,9 @@ void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
 	if ( pcoop_paused.GetBool() )
 		PausePlayer( pPlayer );
 
-	m_bInRestore = true;
+	m_bRestoringPlayer = true;
 	RestorePortalPlayerData( pPlayer );
-	m_bInRestore = false;
+	m_bRestoringPlayer = false;
 }
 
 void CPortalGameRules::ClientDisconnected( edict_t *pClient )
@@ -1848,6 +1850,52 @@ void CPortalGameRules::ClientDisconnected( edict_t *pClient )
 	BaseClass::ClientDisconnected( pClient );
 }
 
+float g_flTimeWhenPaused = 0.0f;
+float g_flServerTimeWhenPaused = 0.0f;
+
+void PausePlayers( void )
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CPortal_Player *pPlayer = GetPortalPlayer( i );
+		if ( !pPlayer )
+			continue;
+
+		PausePlayer( pPlayer );
+	}
+}
+
+void UnPausePlayers( void )
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CPortal_Player *pPlayer = GetPortalPlayer( i );
+		if ( !pPlayer )
+			continue;
+
+		UnpausePlayer( pPlayer );
+	}
+}
+
+void PauseEntities( void )
+{
+	for ( int i = 0; i < g_AllPausables.Count(); ++i )
+	{
+		g_AllPausables[i]->OnPause();
+	}
+}
+
+void UnPauseEntities( void )
+{
+	float flAddedTime = gpGlobals->curtime - g_flTimeWhenPaused;
+	for ( int i = 0; i < g_AllPausables.Count(); ++i )
+	{
+		g_AllPausables[i]->OnUnPause( flAddedTime );
+	}
+}
+
+extern void RestoreEventQueue();
+
 void CPortalGameRules::CheckShouldPause( void )
 {
 	int nRequiredPlayers = GetRequiredPlayers();
@@ -1856,14 +1904,14 @@ void CPortalGameRules::CheckShouldPause( void )
 	{
 		if ( !pcoop_paused.GetBool() )
 		{
-			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
-			{
-				CPortal_Player *pPlayer = GetPortalPlayer( i );
-				if ( !pPlayer )
-					continue;
+			// When the game pauses, do things
+			PausePlayers();
+			PauseEntities();
+			
+			g_flTimeWhenPaused = gpGlobals->curtime;
+			g_flServerTimeWhenPaused = engine->GetServerTime();
 
-				PausePlayer( pPlayer );
-			}
+			// Set the value
 			pcoop_paused.SetValue( true );
 		}
 	}
@@ -1871,14 +1919,15 @@ void CPortalGameRules::CheckShouldPause( void )
 	{
 		if ( pcoop_paused.GetBool() )
 		{
-			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
-			{
-				CPortal_Player *pPlayer = GetPortalPlayer( i );
-				if ( !pPlayer )
-					continue;
+			// When the game unpauses, do things
+			UnPausePlayers();
+			UnPauseEntities();
+			RestoreEventQueue();
 
-				UnpausePlayer( pPlayer );
-			}
+			g_flTimeWhenPaused = 0.0f;
+			g_flServerTimeWhenPaused = 0.0f;
+
+			// Set the value
 			pcoop_paused.SetValue( false );			
 		}
 	}

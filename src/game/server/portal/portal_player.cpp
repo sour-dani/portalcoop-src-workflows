@@ -2084,7 +2084,7 @@ bool CPortal_Player::BumpWeapon(CBaseCombatWeapon* pWeapon)
 	Weapon_Equip(pWeapon);
 	
 	// If we're holding an object before picking up portalgun, drop it
-	if ( pPickupPortalgun && !PortalGameRules()->IsInRestore() )
+	if ( pPickupPortalgun && !PortalGameRules()->IsRestoringPlayer() )
 	{
 		ForceDropOfCarriedPhysObjects(GetPlayerHeldEntity(this));
 	}
@@ -2383,13 +2383,15 @@ void CPortal_Player::PlayerRunCommand(CUserCmd* ucmd, IMoveHelper* moveHelper)
 	BaseClass::PlayerRunCommand(ucmd, moveHelper);
 }
 
+ConVar pcoop_allow_spectate_at_any_time( "pcoop_allow_spectate_at_any_time", "0", FCVAR_CHEAT );
 
 bool CPortal_Player::ClientCommand(const CCommand& args)
 {
 	if (FStrEq(args[0], "spectate"))
 	{
 		// do nothing.
-		return true;
+		if ( !pcoop_allow_spectate_at_any_time.GetBool() )
+			return true;
 	}
 
 	return BaseClass::ClientCommand(args);

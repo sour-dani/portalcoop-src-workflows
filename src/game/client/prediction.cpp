@@ -1753,8 +1753,14 @@ void CPrediction::Update( int startframe, bool validframe,
 {
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF_BUDGET( "CPrediction::Update", VPROF_BUDGETGROUP_PREDICTION );
-
-	m_bEnginePaused = engine->IsPaused();
+#ifdef PORTAL
+	extern ConVar pcoop_paused;
+#endif
+	m_bEnginePaused = engine->IsPaused()
+#ifdef PORTAL
+		|| pcoop_paused.GetBool();
+#endif
+		;
 
 	bool received_new_world_update = true;
 

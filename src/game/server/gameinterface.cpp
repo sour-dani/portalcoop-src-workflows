@@ -3197,6 +3197,13 @@ float CServerGameClients::ProcessUsercmds( edict_t *player, bf_read *buf, int nu
 	{
 		return 0.0f;
 	}
+#ifdef PORTAL
+	extern ConVar pcoop_paused;
+	if ( pcoop_paused.GetBool() )
+	{
+		paused = pcoop_paused.GetBool();
+	}
+#endif
 
 	MDLCACHE_CRITICAL_SECTION();
 	pPlayer->ProcessUsercmds( cmds, numcmds, totalcmds, dropped_packets, paused );
