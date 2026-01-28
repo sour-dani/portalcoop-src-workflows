@@ -150,7 +150,11 @@ protected:
 
 	enum EAdvOption
 	{
-		kEAdvOption_MaxPlayers = 1,
+		kEAdvOption_ServerHost,
+		kEAdvOption_MaxPlayers,
+		kEAdvOption_Respawn,
+		kEAdvOption_RandomCrits,
+		kEAdvOption_DamageSpread
 	};
 
 	struct AdvOption {

@@ -3497,10 +3497,12 @@ DECLARE_SCRIPT_CONST_NAMED( Server, "ConstantNamingConvention", "Constants are n
 REGISTER_SCRIPT_CONST_TABLE( Server )
 #endif
 				g_pScriptVM->SetValue( "Constants", vConstantsTable );
+#ifndef PORTAL // PCOOP_PORT: g_Script_vscript_server isn't being made in the .nut file for some reason
 				if ( scriptLanguage == SL_SQUIRREL )
 				{
 					g_pScriptVM->Run( g_Script_vscript_server );
 				}
+#endif
 				g_VScriptGameEventListener.Init();
 
 				VScriptRunScript( "mapspawn", false );
