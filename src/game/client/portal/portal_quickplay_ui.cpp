@@ -740,8 +740,6 @@ public:
 		, m_timeGMSSearchStarted( 0.0 )
 		, m_timePingServerTimeout( 0.0 )
 		, m_pBusyContainer( NULL )
-		, m_pResultsContainer( NULL )
-		, m_pServerListPanel( NULL )
 		, m_pProgressBar( NULL )
 		, m_ScoringNumbers( steamapicontext ? steamapicontext->SteamUser()->GetSteamID() : CSteamID() )
 	{
@@ -914,46 +912,7 @@ public:
 
 		if ( m_pBusyContainer )
 			m_pBusyContainer->SetVisible( false );
-		if ( m_pResultsContainer )
-			m_pResultsContainer->SetVisible( true );
 		m_adrCurrentPing.Clear();
-
-		if ( m_pServerListPanel )
-		{
-			FOR_EACH_VEC( m_vecServerJoinQueue, idxServer )
-			{
-				int idxMap = m_mapServers.Find( m_vecServerJoinQueue[ idxServer ].m_adr );
-				if ( idxMap < 0 )
-					continue;
-				sortable_gameserveritem_t &s = m_mapServers[ idxMap ];
-				CQPQuickListPanel *pServerPanel = new CQPQuickListPanel( m_pServerListPanel, "QuickListPanel" );
-
-				char szFriendlyName[MAX_MAP_NAME];
-				const char *pszFriendlyGameTypeName = GetServerBrowser()->GetMapFriendlyNameAndGameType( s.server.m_szMap, szFriendlyName, sizeof(szFriendlyName) );
-
-				pServerPanel->SetName( s.server.m_szMap );
-				//pServerPanel->SetMapName( GetMapDisplayName( s.server.m_szMap ) );
-				pServerPanel->SetMapName( s.server.m_szMap );
-				pServerPanel->SetImage( s.server.m_szMap );
-				pServerPanel->SetGameType( pszFriendlyGameTypeName );
-
-				KeyValues *pKV = new KeyValues( "ServerInfo" );
-
-				pKV->SetInt( "ping", s.server.m_nPing );
-				pKV->SetString( "name", s.server.GetName() );
-				pKV->SetString( "players", CFmtStr( "%d/%d", s.server.m_nPlayers, s.server.m_nMaxPlayers ) );
-				pServerPanel->SetServerInfo( pKV, idxMap, 0 );
-				pKV->deleteThis();
-				pServerPanel->InvalidateLayout();
-				pServerPanel->SetVisible( true );
-				m_pServerListPanel->AddItem( NULL, pServerPanel );
-
-				// We need to reset the proportional flag again because the AddItem() call does a SetParent()
-				// call  which copies the parent's proportional setting to the panel being added
-				pServerPanel->SetProportional( false );
-			}
-			m_pServerListPanel->InvalidateLayout( false, true );
-		}
 	}
 
 	void ApplySchemeSettings( vgui::IScheme *pScheme )
@@ -961,18 +920,12 @@ public:
 		CGenericWaitingDialog::ApplySchemeSettings( pScheme );
 
 		m_pBusyContainer = dynamic_cast< vgui::EditablePanel* >( FindChildByName( "BusyContainer" ) );
-		m_pResultsContainer = dynamic_cast< vgui::EditablePanel* >( FindChildByName( "ResultsContainer" ) );
-		if ( m_pBusyContainer == NULL || m_pResultsContainer == NULL )
+		if ( m_pBusyContainer == NULL )
 		{
 			Assert( m_pBusyContainer );
-			Assert( m_pResultsContainer );
 			return;
 		}
 		m_pBusyContainer->SetVisible( true );
-		m_pResultsContainer->SetVisible( false );
-		m_pServerListPanel = dynamic_cast< vgui::PanelListPanel* >( m_pResultsContainer->FindChildByName( "ServerList" ) ); Assert( m_pServerListPanel );
-		if ( m_pServerListPanel )
-			m_pServerListPanel->SetFirstColumnWidth( 0 );
 		m_pProgressBar = dynamic_cast< vgui::ProgressBar* >( m_pBusyContainer->FindChildByName( "Progress" ) ); Assert( m_pProgressBar );
 
 		vgui::Label *pTitle = dynamic_cast< vgui::Label* >( m_pBusyContainer->FindChildByName( "TitleLabel" ) ); Assert( pTitle );
@@ -980,10 +933,6 @@ public:
 
 		vgui::Panel *pPanel;
 		pPanel = m_pBusyContainer->FindChildByName( "CloseButton" ); Assert( pPanel );
-		if ( pPanel ) pPanel->AddActionSignalTarget( this );
-		pPanel = m_pResultsContainer->FindChildByName( "ConnectButton" ); Assert( pPanel );
-		if ( pPanel ) pPanel->AddActionSignalTarget( this );
-		pPanel = m_pResultsContainer->FindChildByName( "CancelButton" ); Assert( pPanel );
 		if ( pPanel ) pPanel->AddActionSignalTarget( this );
 	}
 
@@ -1020,7 +969,6 @@ public:
 	{
 		if ( FStrEq( pCommand, "ConnectToServer" ) )
 		{
-			UserConnectToServer();
 			return;
 		}
 		BaseClass::OnCommand( pCommand );
@@ -1058,8 +1006,6 @@ protected:
 	double m_timePingServerTimeout;
 	netadr_t m_adrCurrentPing;
 	vgui::EditablePanel *m_pBusyContainer;
-	vgui::EditablePanel *m_pResultsContainer;
-	vgui::PanelListPanel *m_pServerListPanel;
 	vgui::ProgressBar *m_pProgressBar;
 
 	// Piecewise linear data points for ping->score function
@@ -1794,19 +1740,6 @@ protected:
 		m_timeGCScoreTimeout = Plat_FloatTime() + 10.0f;
 	}
 
-	void UserConnectToServer()
-	{
-		Assert( m_eCurrentStep == k_EStep_SelectServerUI );
-		if ( m_adrCurrentPing.IsValid() )
-			return;
-		CQPQuickListPanel *pPanel = dynamic_cast<CQPQuickListPanel*>( m_pServerListPanel->GetSelectedPanel() );
-		if ( pPanel == NULL )
-			return;
-		int idx = pPanel->GetListID();
-		m_adrCurrentPing = m_mapServers.Key( idx );
-		PingServer();
-	}
-
 	void QuickpickPingFailed( const char *pszLocTok )
 	{
 		//ShowMessageBox( "#TF_Quickplay_Error", pszLocTok, "#GameUI_OK" );
@@ -1817,17 +1750,11 @@ protected:
 			if ( m_vecServerJoinQueue[i].m_adr == m_adrCurrentPing )
 			{
 				m_vecServerJoinQueue.Remove(i);
-				if ( m_pServerListPanel )
-					m_pServerListPanel->RemoveItem(i);
 				break;
 			}
 		}
 
 		m_adrCurrentPing.Clear();
-
-		// !KLUDGE! If the list goes empty, then just act like they hit ESC.
-		if ( m_pServerListPanel && m_pServerListPanel->GetItemCount() == 0 )
-			OnCommand( "user_close" );
 	}
 
 	void PingNextBestServer()
@@ -2446,8 +2373,7 @@ public:
 	virtual void OnCommand( const char *pCommand )
 	{
 		//C_CTFGameStats::ImmediateWriteInterfaceEvent( "on_command(quickplay)", pCommand );
-
-		if ( FStrEq( pCommand, "playnow" ) || FStrEq( pCommand, "show_servers" ) )
+		if ( FStrEq( pCommand, "playnow" ) )
 		{
 			SaveSettings();
 			Close();
@@ -2461,6 +2387,12 @@ public:
 			opt.m_eSelectedGameType = m_vecItems[m_iCurrentItem].gameType;
 			opt.m_eMaxPlayers = (QuickplaySearchOptions::EMaxPlayers)( tf_quickplay_pref_increased_maxplayers.GetInt() );
 			ShowWaitingDialog( new CQuickplayWaitDialog( FStrEq( pCommand, "playnow" ), opt ), NULL, true, true, 0.0f );
+		}
+		else if ( FStrEq( pCommand, "show_servers" ) )
+		{
+			Close();
+			SaveSettings();
+			engine->ClientCmd_Unrestricted( "gamemenucommand openserverbrowser" );
 		}
 		else if ( FStrEq( pCommand, "cancel" ) )
 		{
