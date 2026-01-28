@@ -47,8 +47,6 @@ ConVar tf_matchmaking_debug( "tf_matchmaking_spew_level",
 #endif
 FCVAR_NONE, "Set to 1 for basic console spew of quickplay-related decisions.  4 for maximum verbosity." );
 
-ConVar tf_quickplay_pref_community_servers( "tf_quickplay_pref_community_servers", "0", FCVAR_ARCHIVE, "0=Valve only, 1=Community only, 2=Either" );
-
 #define TF_MATCHMAKING_SPEW( lvl, pStrFmt, ...) \
 	if ( tf_matchmaking_debug.GetInt() >= lvl ) \
 	{ \
@@ -127,11 +125,7 @@ static int FindRecentlyMatchedServer( uint32 ip, uint16 port )
 }
 
 ConVar tf_quickplay_pref_increased_maxplayers( "tf_quickplay_pref_increased_maxplayers", "0", FCVAR_ARCHIVE, "0=Default only, 1=Yes, 2=Don't care" );
-ConVar tf_quickplay_pref_disable_random_crits( "tf_quickplay_pref_disable_random_crits", "0", FCVAR_ARCHIVE, "0=Random crits enabled, 1=Random crits disabled, 2=Don't care" );
-ConVar tf_quickplay_pref_enable_damage_spread( "tf_quickplay_pref_enable_damage_spread", "0", FCVAR_ARCHIVE, "0=Damage spread disabled, 1=Damage spread enabled, 2=Don't care" );
-ConVar tf_quickplay_pref_respawn_times( "tf_quickplay_pref_respawn_times", "0", FCVAR_ARCHIVE, "0=Default respawn times only, 1=Instant respawn times ('norespawn' tag), 2=Don't care" );
 ConVar tf_quickplay_pref_advanced_view( "tf_quickplay_pref_advanced_view", "0", FCVAR_NONE, "0=Default to simplified view, 1=Default to more detailed options view" );
-ConVar tf_quickplay_pref_beta_content( "tf_quickplay_pref_beta_content", "0", FCVAR_ARCHIVE, "0=No beta content, 1=Only beta content" );
 
 
 static bool BHasTag( const CUtlStringList &TagList, const char *tag )
@@ -148,63 +142,8 @@ static bool BHasTag( const CUtlStringList &TagList, const char *tag )
 
 static void GetQuickplayTags( const QuickplaySearchOptions &opt, CUtlStringList &requiredTags, CUtlStringList &illegalTags )
 {
-	// Always required
-	requiredTags.CopyAndAddToTail( "_registered" );
-
 	// Always illegal
-	illegalTags.CopyAndAddToTail( "friendlyfire" );
-	illegalTags.CopyAndAddToTail( "highlander" );
 	illegalTags.CopyAndAddToTail( "noquickplay" );
-	illegalTags.CopyAndAddToTail( "trade" );
-
-	switch ( opt.m_eRespawnTimes )
-	{
-		case QuickplaySearchOptions::eRespawnTimesDefault:
-			illegalTags.CopyAndAddToTail( "respawntimes" );
-			illegalTags.CopyAndAddToTail( "norespawntime" );
-			break;
-
-		case QuickplaySearchOptions::eRespawnTimesInstant:
-			requiredTags.CopyAndAddToTail( "norespawntime" );
-			break;
-
-		default:
-			Assert( false );
-		case QuickplaySearchOptions::eRespawnTimesDontCare:
-			break;
-	}
-
-	switch ( opt.m_eRandomCrits )
-	{
-		case QuickplaySearchOptions::eRandomCritsYes:
-			illegalTags.CopyAndAddToTail( "nocrits" );
-			break;
-
-		case QuickplaySearchOptions::eRandomCritsNo:
-			requiredTags.CopyAndAddToTail( "nocrits" );
-			break;
-
-		default:
-			Assert( false );
-		case QuickplaySearchOptions::eRandomCritsDontCare:
-			break;
-	}
-
-	switch ( opt.m_eDamageSpread )
-	{
-		case QuickplaySearchOptions::eDamageSpreadYes:
-			requiredTags.CopyAndAddToTail( "dmgspread" );
-			break;
-
-		case QuickplaySearchOptions::eDamageSpreadNo:
-			illegalTags.CopyAndAddToTail( "dmgspread" );
-			break;
-
-		default:
-			Assert( false );
-		case QuickplaySearchOptions::eDamageSpreadDontCare:
-			break;
-	}
 
 	switch ( opt.m_eMaxPlayers )
 	{
@@ -219,21 +158,6 @@ static void GetQuickplayTags( const QuickplaySearchOptions &opt, CUtlStringList 
 		default:
 			Assert( false );
 		case QuickplaySearchOptions::eMaxPlayersDontCare:
-			break;
-	}
-
-	switch ( opt.m_eBetaContent )
-	{
-		case QuickplaySearchOptions::eBetaYes:
-			requiredTags.CopyAndAddToTail( "beta" );
-			break;
-
-		case QuickplaySearchOptions::eBetaNo:
-			illegalTags.CopyAndAddToTail( "beta" );
-			break;
-
-		default:
-			Assert( false );
 			break;
 	}
 }
@@ -323,12 +247,12 @@ public:
 };
 
 // !KLUDGE! This is duplicated from serverbrowserQuickListPanel.h
-class CQuickListPanel : public vgui::EditablePanel
+class CQPQuickListPanel : public vgui::EditablePanel
 {
-	DECLARE_CLASS_SIMPLE( CQuickListPanel, vgui::EditablePanel );
+	DECLARE_CLASS_SIMPLE( CQPQuickListPanel, vgui::EditablePanel );
 
 public:
-	CQuickListPanel( vgui::Panel *parent, const char *panelName );
+	CQPQuickListPanel( vgui::Panel *parent, const char *panelName );
 
 	virtual void ApplySchemeSettings(vgui::IScheme *pScheme);
 	void SetMapName( const char *pMapName );
@@ -395,7 +319,7 @@ private:
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-CQuickListPanel::CQuickListPanel( vgui::Panel* pParent, const char *pElementName ) : BaseClass( pParent, pElementName )
+CQPQuickListPanel::CQPQuickListPanel( vgui::Panel* pParent, const char *pElementName ) : BaseClass( pParent, pElementName )
 {
 	SetParent( pParent );
 
@@ -431,7 +355,7 @@ CQuickListPanel::CQuickListPanel( vgui::Panel* pParent, const char *pElementName
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CQuickListPanel::ApplySchemeSettings(IScheme *pScheme)
+void CQPQuickListPanel::ApplySchemeSettings(IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 	
@@ -444,7 +368,7 @@ void CQuickListPanel::ApplySchemeSettings(IScheme *pScheme)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CQuickListPanel::SetRefreshing( void )
+void CQPQuickListPanel::SetRefreshing( void )
 {
 	if ( m_pServerNameLabel )
 	{
@@ -479,7 +403,7 @@ void CQuickListPanel::SetRefreshing( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CQuickListPanel::SetMapName( const char *pMapName )
+void CQPQuickListPanel::SetMapName( const char *pMapName )
 {
 	Q_strncpy( m_szMapName, pMapName, sizeof( m_szMapName ) );
 
@@ -493,7 +417,7 @@ void CQuickListPanel::SetMapName( const char *pMapName )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CQuickListPanel::SetGameType( const char *pGameType )
+void CQPQuickListPanel::SetGameType( const char *pGameType )
 {
 	if ( strlen ( pGameType ) == 0 )
 	{
@@ -510,7 +434,7 @@ void CQuickListPanel::SetGameType( const char *pGameType )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CQuickListPanel::SetServerInfo ( KeyValues *pKV, int iListID, int iTotalServers )
+void CQPQuickListPanel::SetServerInfo ( KeyValues *pKV, int iListID, int iTotalServers )
 {
 	if ( pKV == NULL )
 		return;
@@ -582,7 +506,7 @@ void CQuickListPanel::SetServerInfo ( KeyValues *pKV, int iListID, int iTotalSer
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CQuickListPanel::SetImage( const char *pMapName )
+void CQPQuickListPanel::SetImage( const char *pMapName )
 {
 	char path[ 512 ];
 	Q_snprintf( path, sizeof( path ), "materials/vgui/maps/menu_thumb_%s.vmt", pMapName );
@@ -612,7 +536,7 @@ void CQuickListPanel::SetImage( const char *pMapName )
 	}							
 }
 
-void CQuickListPanel::OnMousePressed( vgui::MouseCode code )
+void CQPQuickListPanel::OnMousePressed( vgui::MouseCode code )
 {
 	if ( m_pListPanelParent )
 	{
@@ -632,7 +556,7 @@ void CQuickListPanel::OnMousePressed( vgui::MouseCode code )
 	}
 }
 
-void CQuickListPanel::OnMouseDoublePressed( vgui::MouseCode code )
+void CQPQuickListPanel::OnMouseDoublePressed( vgui::MouseCode code )
 {
 	if ( code == MOUSE_RIGHT )
 		return;
@@ -874,11 +798,7 @@ public:
 		// Setup search filters
 		CUtlVector<MatchMakingKeyValuePair_t> vecServerFilters;
 		AddFilter( vecServerFilters, "gamedir", COM_GetModDirectory() );
-		if ( GetUniverse() == k_EUniversePublic )
-		{
-			AddFilter( vecServerFilters, "secure", "1" );
-			AddFilter( vecServerFilters, "dedicated", "1" );
-		}
+
 		AddFilter( vecServerFilters, "full", "1" ); // actually means "not full"
 
 		GetQuickplayTags( m_options, m_vecStrRequiredTags, m_vecStrRejectTags );
@@ -915,22 +835,7 @@ public:
 					break;
 			}
 		}
-#if 0
-		AddFilter( vecServerFilters, "ngametype", GetCommaDelimited( m_vecStrRejectTags ) );
-		AddFilter( vecServerFilters, "gametype", GetCommaDelimited( m_vecStrRequiredTags ) );
-		AddFilter( vecServerFilters, "steamblocking", "1" );
 
-		if ( m_options.m_eServers == QuickplaySearchOptions::eServersOfficial )
-		{
-			AddFilter( vecServerFilters, "white", "1" );
-		}
-		else if ( m_options.m_eServers == QuickplaySearchOptions::eServersCommunity )
-		{
-			// community servers *ONLY*
-			AddFilter( vecServerFilters, "nor", "1" );
-			AddFilter( vecServerFilters, "white", "1" );
-		}
-#endif
 		// Remember when we started
 		m_timeGMSSearchStarted = Plat_FloatTime();
 
@@ -964,6 +869,95 @@ public:
 
 	virtual const char* GetResFile() const { return "Resource/UI/QuickPlayBusyDialog.res"; }
 
+	void OnReceivedGCScores( void )
+	{
+
+		// Make sure we're expecting them
+		if ( m_eCurrentStep != k_EStep_GCScore )
+		{
+			Warning(" Received CGCTFQuickplay_ScoreServers_Response, but not expecting them (current step = %d)?\n", m_eCurrentStep );
+			return;
+		}
+
+		m_vecServerJoinQueue.RemoveAll();
+
+		// Do we have any GC scores?
+		{
+			TF_MATCHMAKING_SPEW(1, "Using client-only scoring (no reputation data)\n" );
+
+			// Just add all of the servers that we thought were good enough to send to the GC
+			// to even request a score into the list of possible ones to join
+			FOR_EACH_MAP( m_mapServers, i )
+			{
+				sortable_gameserveritem_t &s = m_mapServers[i];
+				if ( s.m_eStatus >= TF_Gamestats_QuickPlay_t::k_Server_RequestedScore )
+				{
+					gameserver_ping_queue_entry_t item;
+					item.m_adr.SetIPAndPort( s.server.m_NetAdr.GetIP(), s.server.m_NetAdr.GetConnectionPort() );
+					item.m_fTotalScore = s.TotalScore(); // client-side score only, no reputation data
+					m_vecServerJoinQueue.InsertNoSort( item );
+				}
+			}
+		}
+		m_vecServerJoinQueue.RedoSort();
+
+		// Show some UI
+		if ( !m_bFeelingLucky )
+		{
+			ShowSelectServerUI();
+			return;
+		}
+
+		// OK, we have some candidates, but let's only try the first few.
+		// If they all fail, we probably have some bigger problem.
+		// !GAH! CUtlVector SetCount will not truncate an existing list,
+		// it will always fill the list with N dummy entries.  I have
+		// no idea why.
+		while ( m_vecServerJoinQueue.Count() > 5 )
+		{
+			m_vecServerJoinQueue.Remove( m_vecServerJoinQueue.Count()-1 );
+		}
+
+//		// !FIXME! Server pinging not working for some reason.
+//		// Just try to connect to the best one.
+		
+		// Get a list of all the servers worth joining, and sort them
+
+		gameserveritem_t *pServer = NULL;
+
+		float fScoreThreshold = -FLT_MAX; // !FIXME! Put into convar
+		FOR_EACH_MAP_FAST( m_mapServers, idx )
+		{
+			sortable_gameserveritem_t *pItem = &m_mapServers[idx];
+			if ( pItem->TotalScore() > fScoreThreshold )
+			{
+				fScoreThreshold = pItem->TotalScore();
+				pServer = &pItem->server;
+			}
+		}
+
+		if ( pServer )
+		{
+			m_eCurrentStep = k_EStep_PingCheckNotFull;
+			
+			netadr_t netAdr( pServer->m_NetAdr.GetIP(), pServer->m_NetAdr.GetConnectionPort() );
+			ConnectToServer( netAdr.GetIPHostByteOrder(), netAdr.GetPort() );
+			
+			return;
+		}
+
+
+		// Allright, begin loop pinging servers in order
+		// until we find one that is still OK to join.
+		// Hopefully and usually, the first one will
+		// still be available.  But we sometimes waited
+		// too long and something happened on that server
+		// during the search and we need to go with our
+		// 2nd choice
+		m_eCurrentStep = k_EStep_PingCheckNotFull;
+		PingNextBestServer();
+	}
+
 	void ShowSelectServerUI()
 	{
 		m_eCurrentStep = k_EStep_SelectServerUI;
@@ -982,7 +976,7 @@ public:
 				if ( idxMap < 0 )
 					continue;
 				sortable_gameserveritem_t &s = m_mapServers[ idxMap ];
-				CQuickListPanel *pServerPanel = new CQuickListPanel( m_pServerListPanel, "QuickListPanel" );
+				CQPQuickListPanel *pServerPanel = new CQPQuickListPanel( m_pServerListPanel, "QuickListPanel" );
 
 				char szFriendlyName[MAX_MAP_NAME];
 				const char *pszFriendlyGameTypeName = GetServerBrowser()->GetMapFriendlyNameAndGameType( s.server.m_szMap, szFriendlyName, sizeof(szFriendlyName) );
@@ -1250,14 +1244,21 @@ protected:
 		// Joined recently?
 		CalculateRecentMatchPenalty( item );
 
+		const int ERROR_FILTER =		(1<<15);
+		const int ERROR_TAGS =			(1<<14);
+		const int ERROR_ALLOWED =		(1<<13);
+		const int ERROR_CATEGORY =		(1<<12);
+		const int ERROR_PLAYERS =		(1<<11);
+		const int ERROR_BLACKLISTED =	(1<<10);
+
 		// Do some basic filtering.  We put an extremely low score in there if the server fails
 		// to match the criteria.  The actual value isn't important here, but it's handy to have
 		// different values for different failure criteria for stats.
 		int failureCodes = 0;
-		if ( !PassesFilter( item.server ) ) failureCodes |= (1<<15);
-		if ( !HasAppropriateTags(TagList) ) failureCodes |= (1<<14);
+		if ( !PassesFilter( item.server ) ) failureCodes |= ERROR_FILTER;
+		if ( !HasAppropriateTags(TagList) ) failureCodes |= ERROR_TAGS;
 		if ( !bAllowed )
-			failureCodes |= (1<<13); // unknown map
+			failureCodes |= ERROR_ALLOWED; // unknown map
 		else
 		{
 
@@ -1271,11 +1272,11 @@ protected:
 				default:
 					// Must match requested game mode
 					if ( GetCategoryForMap( item.server.m_szMap ) != m_options.m_eSelectedGameType )
-						failureCodes |= (1<<12);
+						failureCodes |= ERROR_CATEGORY;
 			}
 		}
-		if ( server.m_nPlayers >= server.m_nMaxPlayers ) failureCodes |= (1<<11);
-		if ( m_blackList.IsServerBlacklisted( server ) ) failureCodes |= (1<<10);
+		if ( server.m_nPlayers >= server.m_nMaxPlayers ) failureCodes |= ERROR_PLAYERS;
+		if ( m_blackList.IsServerBlacklisted( server ) ) failureCodes |= ERROR_BLACKLISTED;
 
 		if ( failureCodes != 0 )
 		{
@@ -1283,9 +1284,34 @@ protected:
 			item.m_eStatus = TF_Gamestats_QuickPlay_t::k_Server_Ineligible;
 
 			// Check for certain failures that a valve server should never have
-			if ( item.m_bValve && ( failureCodes & ( (1<<15) | (1<<14) | (1<<13) ) ) )
+			if ( item.m_bValve && ( failureCodes & ( ERROR_FILTER | ERROR_TAGS | ERROR_ALLOWED ) ) )
 			{
 				Warning( "Valve-hosted server '%s' does not meet quickplay criteria?\n", server.GetName() );
+			}
+
+			if ( failureCodes & ERROR_FILTER )
+			{
+				Msg("ERROR_FILTER\n");
+			}
+			if ( failureCodes & ERROR_TAGS )
+			{
+				Msg("ERROR_TAGS\n");
+			}
+			if ( failureCodes & ERROR_ALLOWED )
+			{
+				Msg("ERROR_ALLOWED\n");
+			}
+			if ( failureCodes & ERROR_CATEGORY )
+			{
+				Msg("ERROR_CATEGORY\n");
+			}
+			if ( failureCodes & ERROR_PLAYERS )
+			{
+				Msg("ERROR_PLAYERS\n");
+			}
+			if ( failureCodes & ERROR_BLACKLISTED )
+			{
+				Msg("ERROR_BLACKLISTED\n");
 			}
 		}
 		else
@@ -1322,44 +1348,6 @@ protected:
 
 			// Add in recently-joined cooldown factor
 			item.userScore -= item.m_fRecentMatchPenalty;
-
-			// Penalty for rule changes
-			//item.userScore -= QuickplayCalculateRuleChangePenalty( TagList );
-#if 0
-			//
-			// Experiment
-			//
-			switch ( m_ScoringNumbers.m_eExperimentGroup )
-			{
-				default:
-					Assert( !"Bogus experiment group" );
-				case TF2ScoringNumbers_t::k_ExperimentGroup_Experiment1_Control:
-				case TF2ScoringNumbers_t::k_ExperimentGroup_Experiment1_ValveBiasInactive:
-				case TF2ScoringNumbers_t::k_ExperimentGroup_Experiment1_CommunityBiasInactive:
-					// No modifications
-					break;
-
-				case TF2ScoringNumbers_t::k_ExperimentGroup_Experiment1_ValveBias:
-
-					// Give valve servers with a good ping a significant bonus
-					item.userScore -= 1.0f;
-					if ( item.m_bValve )
-					{
-						item.userScore += fPingScore;
-					}
-					break;
-
-				case TF2ScoringNumbers_t::k_ExperimentGroup_Experiment1_CommunityBias:
-
-					// Give community servers with a good ping a significant bonus
-					item.userScore -= 1.0f;
-					if ( !item.m_bValve )
-					{
-						item.userScore += fPingScore;
-					}
-					break;
-			}
-#endif
 		}
 
 		netadr_t netAdr( server.m_NetAdr.GetIP(), server.m_NetAdr.GetConnectionPort() );
@@ -1386,7 +1374,7 @@ protected:
 			{
 
 				// !TEST! Simulate server filling up
-				//failureCodes |= (1<<11);
+				//failureCodes |= ERROR_PLAYERS;
 
 				// Find it in the server list; update the result
 				int iServerIndex = m_mapServers.Find( m_adrCurrentPing );
@@ -1417,7 +1405,7 @@ protected:
 					TF_MATCHMAKING_SPEW(2, "Reply ping from %s, but no longer joinable!\n", netAdr.ToString() );
 					if ( m_eCurrentStep == k_EStep_SelectServerUI )
 					{
-						if ( failureCodes & (1<<11) )
+						if ( failureCodes & ERROR_PLAYERS )
 							QuickpickPingFailed( "#TF_Quickplay_SelectedServer_Full" );
 						else
 							QuickpickPingFailed( "#TF_Quickplay_SelectedServer_NoLongerMeetsCriteria" );
@@ -1485,7 +1473,10 @@ protected:
 		FOR_EACH_VEC( m_vecStrRejectTags, idx )
 		{
 			if ( BHasTag( TagList, m_vecStrRejectTags[idx] ) )
+			{
+				Msg( "Rejected Tag %s\n", m_vecStrRejectTags[idx] );
 				return false;
+			}
 		}
 		return true;
 	}
@@ -1555,17 +1546,12 @@ protected:
 		
 		if ( server.m_bPassword )
 			return false;
-		
-		if ( GetUniverse() == k_EUniversePublic )
-		{
-			if ( server.m_bSecure == false )
-				return false;
-		}
 
 		if ( server.m_nMaxPlayers > kTFQuickPlayMaxPlayers )
 			return false;
 		if ( server.m_nMaxPlayers < kTFQuickPlayMinMaxNumberOfPlayers )
 			return false;
+#if 0
 		switch ( m_options.m_eMaxPlayers )
 		{
 			case QuickplaySearchOptions::eMaxPlayers24:
@@ -1583,7 +1569,7 @@ protected:
 			case QuickplaySearchOptions::eMaxPlayersDontCare:
 				break;
 		}
-
+#endif
 		if ( server.m_steamID.BGameServerAccount() == false )
 			return false;		
 
@@ -1642,7 +1628,7 @@ protected:
 					Warning( "Timed out waiting to get scores back from GC, proceding without reputation data.\n" );
 
 					//CMsgTFQuickplay_ScoreServersResponse emptyMsg;
-					//OnReceivedGCScores( emptyMsg );
+					OnReceivedGCScores( );
 				}
 				break;
 
@@ -1875,26 +1861,7 @@ protected:
 			NoServersFoundFailure();
 			return;
 		}
-#if 0
-		// send message to GC
-		GCSDK::CProtoBufMsg< CMsgTFQuickplay_ScoreServers > msg( k_EMsgGC_QP_ScoreServers );
-		for ( int i = 0; i < iNumServersToScore; ++i )
-		{
-			sortable_gameserveritem_t *pItem = vecGameServers[i];
-			gameserveritem_t &server = pItem->server;
-			Assert( pItem->m_eStatus == TF_Gamestats_QuickPlay_t::k_Server_Eligible );
-			pItem->m_eStatus = TF_Gamestats_QuickPlay_t::k_Server_RequestedScore;
 
-			CMsgTFQuickplay_ScoreServers_ServerInfo *pServerInfo = msg.Body().add_servers();
-			pServerInfo->set_server_address( server.m_NetAdr.GetIP() );
-			pServerInfo->set_server_port( server.m_NetAdr.GetConnectionPort() );
-			pServerInfo->set_num_users( server.m_nPlayers - server.m_nBotPlayers );
-			pServerInfo->set_max_users( server.m_nMaxPlayers );
-			pServerInfo->set_user_score( pItem->userScore );
-			pServerInfo->set_steam_id( server.m_steamID.ConvertToUint64() );
-
-		}
-#endif
 		m_eCurrentStep = k_EStep_GCScore;
 
 		//// !TEST! Skip scoring
@@ -1913,7 +1880,7 @@ protected:
 		Assert( m_eCurrentStep == k_EStep_SelectServerUI );
 		if ( m_adrCurrentPing.IsValid() )
 			return;
-		CQuickListPanel *pPanel = dynamic_cast<CQuickListPanel*>( m_pServerListPanel->GetSelectedPanel() );
+		CQPQuickListPanel *pPanel = dynamic_cast<CQPQuickListPanel*>( m_pServerListPanel->GetSelectedPanel() );
 		if ( pPanel == NULL )
 			return;
 		int idx = pPanel->GetListID();
@@ -2256,14 +2223,6 @@ void CQuickplayPanelBase::SetupMoreOptions()
 //	pTemplateSettings->deleteThis();
 
 	AdvOption *pOpt;
-	COMPILE_TIME_ASSERT( kEAdvOption_ServerHost == 0 );
-	pOpt = &m_vecAdvOptions[ m_vecAdvOptions.AddToTail() ];
-	pOpt->m_pszContainerName = "ValveServerOption";
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_ServerHost_Official" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_ServerHost_Official_Summary" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_ServerHost_Community" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_ServerHost_Community_Summary" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_ServerHost_DontCare" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_ServerHost_DontCare_Summary" );
-	pOpt->m_pConvar = &tf_quickplay_pref_community_servers;
-
 	COMPILE_TIME_ASSERT( kEAdvOption_MaxPlayers == 1 );
 	pOpt = &m_vecAdvOptions[ m_vecAdvOptions.AddToTail() ];
 	pOpt->m_pszContainerName = "IncreasedPlayerCountOption";
@@ -2271,30 +2230,6 @@ void CQuickplayPanelBase::SetupMoreOptions()
 	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_MaxPlayers_Increased" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_MaxPlayers_Increased_Summary" );
 	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_MaxPlayers_DontCare" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_MaxPlayers_DontCare_Summary" );
 	pOpt->m_pConvar = &tf_quickplay_pref_increased_maxplayers;
-
-	COMPILE_TIME_ASSERT( kEAdvOption_Respawn == 2 );
-	pOpt = &m_vecAdvOptions[ m_vecAdvOptions.AddToTail() ];
-	pOpt->m_pszContainerName = "RespawnTimesOption";
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_RespawnTimes_Default" ); pOpt->m_vecOptionSummaryNames.AddToTail( "" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_RespawnTimes_Instant" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_RespawnTimes_Instant_Summary" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_RespawnTimes_DontCare" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_RespawnTimes_DontCare_Summary" );
-	pOpt->m_pConvar = &tf_quickplay_pref_respawn_times;
-
-	COMPILE_TIME_ASSERT( kEAdvOption_RandomCrits == 3 );
-	pOpt = &m_vecAdvOptions[ m_vecAdvOptions.AddToTail() ];
-	pOpt->m_pszContainerName = "RandomCritsOption";
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_RandomCrits_Default" ); pOpt->m_vecOptionSummaryNames.AddToTail( "" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_RandomCrits_Disabled" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_RandomCrits_Disabled_Summary" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_RandomCrits_DontCare" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_RandomCrits_DontCare_Summary" );
-	pOpt->m_pConvar = &tf_quickplay_pref_disable_random_crits;
-
-	COMPILE_TIME_ASSERT( kEAdvOption_DamageSpread == 4 );
-	pOpt = &m_vecAdvOptions[ m_vecAdvOptions.AddToTail() ];
-	pOpt->m_pszContainerName = "DamageSpreadOption";
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_DamageSpread_Default" ); pOpt->m_vecOptionSummaryNames.AddToTail( "" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_DamageSpread_Enabled" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_DamageSpread_Enabled_Summary" );
-	pOpt->m_vecOptionNames.AddToTail( "#TF_Quickplay_DamageSpread_DontCare" ); pOpt->m_vecOptionSummaryNames.AddToTail( "#TF_Quickplay_DamageSpread_DontCare_Summary" );
-	pOpt->m_pConvar = &tf_quickplay_pref_enable_damage_spread;
 
 	FOR_EACH_VEC( m_vecAdvOptions, idxAdvOpt )
 	{
@@ -2394,7 +2329,7 @@ void CQuickplayPanelBase::GetOptionsAndSummaryText( wchar_t *pwszSummary )
 			}
 		}
 		
-		int nChoice = ( tf_quickplay_pref_beta_content.GetBool() ? 0 : pOpt->m_nChoice );
+		int nChoice = ( pOpt->m_nChoice );
 		AppendOptionInfo( pwszSummary, pOpt->m_vecOptionSummaryNames[nChoice] );
 	}
 }
@@ -2421,7 +2356,7 @@ void CQuickplayPanelBase::OnRadioButtonChecked( vgui::Panel *panel )
 
 			// Check if they change the server hosting to valve servers,
 			// then slam their choices to vanilla
-			if ( idxAdvOpt == kEAdvOption_ServerHost && idxBtn == QuickplaySearchOptions::eServersOfficial )
+			if ( idxAdvOpt == kEAdvOption_ServerHost )
 			{
 				FOR_EACH_VEC( m_vecAdvOptions, idxSlam )
 				{
@@ -2506,7 +2441,7 @@ public:
 		m_pContainer = new vgui::EditablePanel( this, "Container" );
 		m_pBetaCheckButton = new vgui::CheckButton( m_pContainer, "BetaCheckButton", "BetaToggle" );
 		m_pBetaCheckButton->AddActionSignalTarget( this );
-		m_pBetaCheckButton->SetSelected( tf_quickplay_pref_beta_content.GetInt() == 1 );
+		m_pBetaCheckButton->SetSelected( false );
 		m_pTauntsExplanationPopup = new CExplanationPopup( m_pContainer, "BetaExplanation" );
 
 		//C_CTFGameStats::ImmediateWriteInterfaceEvent( "interface_open", "quickplay" );
@@ -2546,7 +2481,6 @@ public:
 		SetPos(x + ((ww - wide) / 2), y + ((wt - tall) / 2));
 		
 		m_pMoreOptionsButton->SetVisible( !m_pBetaCheckButton->IsSelected() );
-		tf_quickplay_pref_beta_content.SetValue( m_pBetaCheckButton->IsSelected() ? 1 : 0 );
 		// @todo setup 
 	}
 
@@ -2604,18 +2538,9 @@ public:
 				return;
 			}
 
-			bool bBetaContent = tf_quickplay_pref_beta_content.GetBool();
-
 			QuickplaySearchOptions opt;
 			opt.m_eSelectedGameType = m_vecItems[m_iCurrentItem].gameType;
-			opt.m_eServers = (QuickplaySearchOptions::EServers)( bBetaContent ? 
-				0 :
-				tf_quickplay_pref_community_servers.GetInt() );
-			opt.m_eRandomCrits = (QuickplaySearchOptions::ERandomCrits)( bBetaContent ? 2 : tf_quickplay_pref_disable_random_crits.GetInt() );
-			opt.m_eDamageSpread = (QuickplaySearchOptions::EDamageSpread)( bBetaContent ? 2 : tf_quickplay_pref_enable_damage_spread.GetInt() );
-			opt.m_eRespawnTimes = (QuickplaySearchOptions::ERespawnTimes)( bBetaContent ? 2 : tf_quickplay_pref_respawn_times.GetInt() );
-			opt.m_eMaxPlayers = (QuickplaySearchOptions::EMaxPlayers)( bBetaContent ? 2 : tf_quickplay_pref_increased_maxplayers.GetInt() );
-			opt.m_eBetaContent = (QuickplaySearchOptions::EBetaContent)tf_quickplay_pref_beta_content.GetInt();
+			opt.m_eMaxPlayers = (QuickplaySearchOptions::EMaxPlayers)( tf_quickplay_pref_increased_maxplayers.GetInt() );
 			ShowWaitingDialog( new CQuickplayWaitDialog( FStrEq( pCommand, "playnow" ), opt ), NULL, true, true, 0.0f );
 		}
 		else if ( FStrEq( pCommand, "cancel" ) )
@@ -2631,7 +2556,6 @@ public:
 			{
 				// Disable the advanced filtering if beta box is checked
 				m_pMoreOptionsButton->SetVisible( !m_pBetaCheckButton->IsSelected() );
-				tf_quickplay_pref_beta_content.SetValue( m_pBetaCheckButton->IsSelected() ? 1 : 0 );
 
 				WriteOptionCombosAndSummary();
 
@@ -2841,13 +2765,8 @@ static void CL_OpenQuickplayDialogForMap( const CCommand &args )
 		return;
 
 	QuickplaySearchOptions opt;
-	opt.m_eServers = QuickplaySearchOptions::eServersOfficial; // Quests only work on official.
 	// Default settings
-	opt.m_eRandomCrits = QuickplaySearchOptions::ERandomCrits::eRandomCritsYes;
-	opt.m_eDamageSpread = QuickplaySearchOptions::EDamageSpread::eDamageSpreadNo;
-	opt.m_eRespawnTimes = QuickplaySearchOptions::ERespawnTimes::eRespawnTimesDefault;
 	opt.m_eMaxPlayers = QuickplaySearchOptions::EMaxPlayers::eMaxPlayers24;
-	opt.m_eBetaContent = QuickplaySearchOptions::EBetaContent::eBetaNo;
 	opt.m_strMapName = args.Arg(1); // Use the map name passed in
 	opt.m_eSelectedGameType =  kGameCategory_Quickplay;
 			

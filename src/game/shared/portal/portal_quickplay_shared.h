@@ -15,7 +15,7 @@ class CUtlStringList;
 
 const int kTFMaxQuickPlayServersToScore = 25;
 const int kTFQuickPlayIdealMaxNumberOfPlayers = 24;
-const int kTFQuickPlayMinMaxNumberOfPlayers = 18; // don't auto match to servers with max players set too low
+const int kTFQuickPlayMinMaxNumberOfPlayers = 2; // don't auto match to servers with max players set too low
 const int kTFQuickPlayMaxPlayers = 33;
 
 extern float QuickplayCalculateServerScore( int numHumans, int numBots, int maxPlayers, int nNumInSearchParty );
@@ -41,30 +41,6 @@ struct QuickplaySearchOptions
 {
 	EGameCategory m_eSelectedGameType;
 
-	enum EServers
-	{
-		eServersOfficial,
-		eServersCommunity,
-		eServersDontCare
-	};
-	EServers m_eServers;
-
-	enum ERandomCrits
-	{
-		eRandomCritsYes,
-		eRandomCritsNo,
-		eRandomCritsDontCare
-	};
-	ERandomCrits m_eRandomCrits;
-
-	enum EDamageSpread
-	{
-		eDamageSpreadNo,
-		eDamageSpreadYes,
-		eDamageSpreadDontCare
-	};
-	EDamageSpread m_eDamageSpread;
-
 	enum EMaxPlayers
 	{
 		eMaxPlayers24,
@@ -72,21 +48,6 @@ struct QuickplaySearchOptions
 		eMaxPlayersDontCare
 	};
 	EMaxPlayers m_eMaxPlayers;
-
-	enum ERespawnTimes
-	{
-		eRespawnTimesDefault,
-		eRespawnTimesInstant,
-		eRespawnTimesDontCare
-	};
-	ERespawnTimes m_eRespawnTimes;
-
-	enum EBetaContent
-	{
-		eBetaNo,
-		eBetaYes
-	};
-	EBetaContent m_eBetaContent;
 
 	CUtlString m_strMapName;
 };
