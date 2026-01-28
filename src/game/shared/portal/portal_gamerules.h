@@ -78,6 +78,8 @@ public:
 	virtual void	ClientSettingsChanged( CBasePlayer *pPlayer );
 	virtual void	GoToIntermission( void );
 #ifndef CLIENT_DLL
+	virtual void	GetTaggedConVarList( KeyValues *pCvarTagList );
+
 	virtual void	LevelInitPreEntity( void ) OVERRIDE;
 	virtual bool	ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen );
 	virtual bool	ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target );
@@ -95,7 +97,6 @@ public:
 	virtual void	ClientDisconnected( edict_t *pClient );
 
 	void			CheckShouldPause( void );
-
 #endif
 	bool			ShouldPauseGame( void );
 

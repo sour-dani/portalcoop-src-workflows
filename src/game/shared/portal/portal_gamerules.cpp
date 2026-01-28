@@ -2115,6 +2115,70 @@ void CPortalGameRules::GoToIntermission( void )
 #endif
 	
 }
+#ifdef GAME_DLL
+ConVar pcoop_tags_2player( "pcoop_tags_2player", "0", FCVAR_DEVELOPMENTONLY );
+ConVar pcoop_tags_3player( "pcoop_tags_3player", "0", FCVAR_DEVELOPMENTONLY );
+ConVar pcoop_tags_2player_rexaura( "pcoop_tags_2player_rexaura", "0", FCVAR_DEVELOPMENTONLY );
+
+void SetupTagConVars()
+{
+	pcoop_tags_2player.SetValue( "0" );
+	pcoop_tags_3player.SetValue( "0" );
+	pcoop_tags_2player_rexaura.SetValue( "0" );
+
+	const char *pszMapName = gpGlobals->mapname.ToCStr();
+	if ( Map_Is2Player( pszMapName ) )
+	{
+		if ( Map_IsRexaura( pszMapName ) )
+		{
+			pcoop_tags_2player_rexaura.SetValue( "1" );
+		}
+		else
+		{
+			pcoop_tags_2player.SetValue( "1" );
+		}
+	}
+	else if ( Map_Is3Player( pszMapName ) )
+	{
+		pcoop_tags_2player.SetValue( "1" );
+	}
+}
+
+struct convar_tags_t
+{
+	const char *pszConVar;
+	const char *pszTag;
+};
+
+// The list of convars that automatically turn on tags when they're changed.
+// Convars in this list need to have the FCVAR_NOTIFY flag set on them, so the
+// tags are recalculated and uploaded to the master server when the convar is changed.
+convar_tags_t convars_to_check_for_tags[] =
+{
+	{ "pcoop_tags_2player",			"2player" },
+	{ "pcoop_tags_3player",			"3player" },
+	{ "pcoop_tags_2player_rexaura",	"2player_rexaura" },
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: Engine asks for the list of convars that should tag the server
+//-----------------------------------------------------------------------------
+void CPortalGameRules::GetTaggedConVarList( KeyValues *pCvarTagList )
+{
+	SetupTagConVars();
+
+	BaseClass::GetTaggedConVarList( pCvarTagList );
+
+	for ( int i = 0; i < ARRAYSIZE(convars_to_check_for_tags); i++ )
+	{
+		KeyValues *pKV = new KeyValues( "tag" );
+		pKV->SetString( "convar", convars_to_check_for_tags[i].pszConVar );
+		pKV->SetString( "tag", convars_to_check_for_tags[i].pszTag );
+
+		pCvarTagList->AddSubKey( pKV );
+	}
+}
+#endif
 
 #ifdef GAME_DLL
 CON_COMMAND(displaychallengetype_server, "Shows what challenge the gamerules is running")

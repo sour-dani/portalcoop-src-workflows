@@ -3,8 +3,15 @@
 // Purpose: Encapsulates real world (wall clock) time
 //
 //=============================================================================
-
+#ifndef CLIENT_DLL
 #include "stdafx.h"
+#else
+#define Assert( a )
+#define AssertMsg( a, b )
+#define DbgVerify( a )
+#include "strtools.h"
+#include "../gcsdk/steamextra/tier0/t0constants.h"
+#endif
 #ifdef POSIX
 #include <sys/time.h>
 #else
@@ -246,13 +253,13 @@ void CRTime::UpdateRealTime()
 	// BUGBUG Alfred: update this less often than once per frame?
 	RTime32 nTimePrev = sm_nTimeCur;
 	sm_nTimeCur = time(NULL);
-
+#ifndef CLIENT_DLL
 	if ( sm_nTimeCur < nTimePrev )
 	{
 		// time can go backwards sometimes if clock sync adjusts system time; warn when this happens
 		EmitInfo( SPEW_SYSTEM_MISC, SPEW_ALWAYS, LOG_ALWAYS, "Warning: system time went backward by %d seconds\n", ( nTimePrev - sm_nTimeCur ) );
 	}
-
+#endif
 	// update our time from file time once per second
 	if ( sm_nTimeCur - sm_nTimeLastSystemTimeUpdate >= 1 )
 	{
