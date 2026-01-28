@@ -1033,7 +1033,7 @@ void CPortal_Player::OnPause( void )
 	color.a = 255;
 	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
 
-	BaseClass::OnPause();
+	//BaseClass::OnPause();
 }
 
 void CPortal_Player::OnUnPause( float flAddedTime )
@@ -1046,7 +1046,7 @@ void CPortal_Player::OnUnPause( float flAddedTime )
 	color.a = 0;
 	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
 
-	BaseClass::OnUnPause( flAddedTime );
+	//BaseClass::OnUnPause( flAddedTime );
 }
 #endif
 void CPortal_Player::NotifySystemEvent(CBaseEntity* pNotify, notify_system_event_t eventType, const notify_system_event_params_t& params)
@@ -1398,6 +1398,14 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			CBaseEntity *pParent = pAnimating->GetParent();
 			if ( pParent )
 			{
+#if 0
+				while ( pParent->GetParent() != NULL )
+				{
+					if ( pParent->GetParent() )
+						pParent = pParent->GetParent();
+				}
+#endif
+				Assert( pParent );
 				PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true );
 			}
 			else
