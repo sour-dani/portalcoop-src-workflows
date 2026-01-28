@@ -715,25 +715,6 @@ float QuickplayCalculateServerScore( int numHumans, int numBots, int maxPlayers,
 		}
 	}
 
-// Don't apply a penalty anymore.  Instead, we just let players express their preference
-//	// Give a penalty for servers that increase the max player
-//	// number above the ideal.
-//	if ( maxPlayers > kTFQuickPlayIdealMaxNumberOfPlayers )
-//	{
-//		// Max penalty, if they increased it up all the way to
-//		// kTFQuickPlayMaxPlayers.  (Above this, we reject them completely)
-//		int nExcessPlayers = maxPlayers - kTFQuickPlayIdealMaxNumberOfPlayers;
-//		const int kMaxExcessPlayers = kTFQuickPlayMaxPlayers - kTFQuickPlayIdealMaxNumberOfPlayers;
-//		float penalty = tf_matchmaking_numbers_increase_maxplayers_penalty.GetFloat() * (float)nExcessPlayers / (float)kMaxExcessPlayers;
-//		score -= penalty;
-//	}
-
-	//// being tagged as quickplay is roughly the same weight as best ping and best ratio of player numbers
-	//if ( bHasQuickplayTag )
-	//{
-	//	item.score += 2.0f;
-	//}
-
 	return score;
 }
 
@@ -917,35 +898,6 @@ public:
 		{
 			m_vecServerJoinQueue.Remove( m_vecServerJoinQueue.Count()-1 );
 		}
-
-//		// !FIXME! Server pinging not working for some reason.
-//		// Just try to connect to the best one.
-		
-		// Get a list of all the servers worth joining, and sort them
-
-		gameserveritem_t *pServer = NULL;
-
-		float fScoreThreshold = -FLT_MAX; // !FIXME! Put into convar
-		FOR_EACH_MAP_FAST( m_mapServers, idx )
-		{
-			sortable_gameserveritem_t *pItem = &m_mapServers[idx];
-			if ( pItem->TotalScore() > fScoreThreshold )
-			{
-				fScoreThreshold = pItem->TotalScore();
-				pServer = &pItem->server;
-			}
-		}
-
-		if ( pServer )
-		{
-			m_eCurrentStep = k_EStep_PingCheckNotFull;
-			
-			netadr_t netAdr( pServer->m_NetAdr.GetIP(), pServer->m_NetAdr.GetConnectionPort() );
-			ConnectToServer( netAdr.GetIPHostByteOrder(), netAdr.GetPort() );
-			
-			return;
-		}
-
 
 		// Allright, begin loop pinging servers in order
 		// until we find one that is still OK to join.
@@ -1133,32 +1085,6 @@ protected:
 
 		// Duration of total process
 		m_Stats.m_fSearchTime = Plat_FloatTime() - m_timeGMSSearchStarted;
-
-		// Populate the server list
-		FOR_EACH_MAP( m_mapServers, i )
-		{
-			sortable_gameserveritem_t &item = m_mapServers[i];
-			TF_Gamestats_QuickPlay_t::Server_t &s = m_Stats.m_vecServers[m_Stats.m_vecServers.AddToTail()];
-			Assert( item.m_eStatus != TF_Gamestats_QuickPlay_t::k_Server_Invalid );
-			s.m_eStatus = item.m_eStatus;
-			s.m_ip = item.server.m_NetAdr.GetIP();
-			s.m_port = item.server.m_NetAdr.GetConnectionPort();
-			s.m_bSecure = item.server.m_bSecure;
-			s.m_bRegistered = item.m_bRegistered;
-			s.m_bValve = item.m_bValve;
-			s.m_nPlayers = item.server.m_nPlayers;
-			s.m_nMaxPlayers = item.server.m_nMaxPlayers;
-			s.m_sMapName = item.server.m_szMap;
-			s.m_sTags = item.server.m_szGameTags;
-			s.m_iPing = item.server.m_nPing;
-			s.m_bMapIsQuickPlayOK = s.m_bMapIsQuickPlayOK;
-			s.m_fScoreClient = item.userScore;
-			s.m_fScoreServer = item.serverScore;
-			s.m_fScoreGC = item.m_fTotalScoreFromGC;
-		}
-
-		// Send em
-		//C_CTF_GameStats.QuickplayResults( m_Stats );
 	}
 
 //
@@ -1348,6 +1274,8 @@ protected:
 
 			// Add in recently-joined cooldown factor
 			item.userScore -= item.m_fRecentMatchPenalty;
+
+			item.m_eStatus = TF_Gamestats_QuickPlay_t::k_Server_Scored;
 		}
 
 		netadr_t netAdr( server.m_NetAdr.GetIP(), server.m_NetAdr.GetConnectionPort() );
@@ -1863,13 +1791,6 @@ protected:
 		}
 
 		m_eCurrentStep = k_EStep_GCScore;
-
-		//// !TEST! Skip scoring
-		//CMsgTFQuickplay_ScoreServersResponse emptyMsg;
-		//OnReceivedGCScores( emptyMsg );
-		//return;
-
-		//GCClientSystem()->BSendMessage( msg );
 
 		// Give the GC some time to respond.  It usually wil respond very quickly
 		m_timeGCScoreTimeout = Plat_FloatTime() + 10.0f;
