@@ -480,7 +480,6 @@ const char *CPortalGameRules::GetGameDescription( void )
 		g_pCVar->FindVar( "sv_maxreplay" )->SetValue( "1.5" );
 #ifdef GAME_DLL
 		m_iPlayingPlayers = 0;
-		m_bInRestore = false;
 		m_bRestoringPlayer = false;
 		m_bDisableGamePause = false;
 		m_bDisablePlayerRestore = false;
