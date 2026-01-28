@@ -1710,10 +1710,6 @@ protected:
 			{
 				vecGameServers.InsertNoSort( pItem );
 			}
-			else
-			{
-				//Msg( "The score %i is too high!\n", pItem->TotalScore() );
-			}
 		}
 		vecGameServers.RedoSort();
 
