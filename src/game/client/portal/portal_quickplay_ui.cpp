@@ -668,7 +668,7 @@ float QuickplayCalculateServerScore( int numHumans, int numBots, int maxPlayers,
 	float score = 0.0;
 
 	// Check for completely full server
-	int newNumHumans = numHumans + nNumInSearchParty;
+	int newNumHumans = numHumans + nNumInSearchParty-1;
 	int newNumTotalPlayers = newNumHumans + numBots;
 	if ( newNumTotalPlayers + tf_matchmaking_numbers_serverfull_headroom.GetInt() > maxPlayers )
 	{
@@ -1158,7 +1158,7 @@ protected:
 			{
 				Warning( "Valve-hosted server '%s' does not meet quickplay criteria?\n", server.GetName() );
 			}
-
+#if 0
 			if ( failureCodes & ERROR_FILTER )
 			{
 				Msg("ERROR_FILTER\n");
@@ -1183,6 +1183,7 @@ protected:
 			{
 				Msg("ERROR_BLACKLISTED\n");
 			}
+#endif
 		}
 		else
 		{
