@@ -8,6 +8,10 @@ $Macro SRCDIR		"..\.."
 $Macro GAMENAME 	"portalcoop"
 
 $Include "$SRCDIR\game\server\server_base.vpc"
+$Include "$SRCDIR\gcsdk\gcsdk_game_include.vpc"
+$Include "$SRCDIR\game\shared\base_gcmessages_include.vpc"
+$include "$SRCDIR\game\shared\portal\portal_gcmessages_include.vpc"
+$include "$SRCDIR\game\shared\portal\portal_proto_def_messages_include.vpc"
 
 $Configuration
 {
@@ -390,6 +394,20 @@ $Project "Server (Portal)"
 				$File	"$SRCDIR\game\shared\portal\weapon_shotgun.cpp"
 				$File	"$SRCDIR\game\shared\portal\weapon_smg1.cpp"
 			}
+		}
+		
+		$Folder	"Matchmaking"
+		{
+			$File	"$SRCDIR\game\server\portal\portal_gc_server.cpp"
+			$File	"$SRCDIR\game\server\portal\portal_gc_server.h"
+			$File	"$SRCDIR\game\shared\portal\portal_gc_shared.h"
+			$File	"$SRCDIR\game\shared\portal\portal_gc_shared.cpp"
+		}
+		
+		$Folder "Common"
+		{
+			$File	"$SRCDIR\common\protoutils.cpp"
+			$File	"$SRCDIR\common\protoutils.h"
 		}
 	}
 }
