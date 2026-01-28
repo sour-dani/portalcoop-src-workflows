@@ -8,18 +8,13 @@ $Macro SRCDIR		"..\.."
 $Macro GAMENAME 	"portalcoop"
 
 $Include "$SRCDIR\game\server\server_base.vpc"
-$Include "$SRCDIR\gcsdk\gcsdk_game_include.vpc"
-$Include "$SRCDIR\game\shared\base_gcmessages_include.vpc"
-$include "$SRCDIR\game\shared\portal\portal_gcmessages_include.vpc"
-$include "$SRCDIR\game\shared\portal\portal_proto_def_messages_include.vpc"
 
 $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\portal;.\hl2;.\episodic;$SRCDIR\game\shared\Multiplayer;$SRCDIR\game\shared\hl2;$SRCDIR\gcsdk\steamextra;$SRCDIR\game\shared\portal;.\portal"
+		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\portal;.\hl2;.\episodic;$SRCDIR\game\shared\Multiplayer;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\portal;.\portal"
 		$PreprocessorDefinitions		"$BASE;PORTAL;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE;GLOWS_ENABLE"
-		$PreprocessorDefinitions		"$BASE;DISABLE_GC_CONNECTION;DISABLE_IN_SOURCESDK" [$SOURCESDK]
 	}
 }
 

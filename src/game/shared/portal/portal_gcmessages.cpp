@@ -4,12 +4,25 @@
 //
 //=============================================================================
 
-
 #include "cbase.h"
-#ifndef CLIENT_DLL // It's really bad that these can't be included
-#include "gcsdk/gcsdk_auto.h"
-#include "portal_gcmessages.h"
-#endif
 
-// memdbgon must be the last include file in a .cpp file!!!
-#include "tier0/memdbgon.h"
+#ifdef USE_GC_IN_PORTAL1
+#include "gcsdk/gcsdk.h"
+#include "portal_gcmessages.h"
+
+//-----------------------------------------------------------------------------
+// Purpose: A big array of message types for keeping track of their names
+//-----------------------------------------------------------------------------
+GCSDK::MsgInfo_t g_MsgInfo[] =
+{
+	DECLARE_GC_MSG( k_EMsgGCReportWarKill ),
+
+	DECLARE_GC_MSG( k_EMsgGCDev_GrantWarKill ),
+};
+
+void InitGCPortalMessageTypes()
+{
+	static GCSDK::CMessageListRegistration m_reg( g_MsgInfo, Q_ARRAYSIZE(g_MsgInfo) );
+}
+
+#endif //#ifdef USE_GC_IN_PORTAL1
