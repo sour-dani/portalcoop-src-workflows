@@ -8,6 +8,10 @@ $Macro SRCDIR		"..\.."
 $Macro GAMENAME 	"portalcoop"
 
 $Include "$SRCDIR\game\client\client_base.vpc"
+$include "$SRCDIR\game\shared\portal\portal_gcmessages_include.vpc"
+$include "$SRCDIR\game\shared\portal\portal_proto_def_messages_include.vpc"
+$Include "$SRCDIR\gcsdk\gcsdk_game_include.vpc"
+$Include "$SRCDIR\game\shared\base_gcmessages_include.vpc"
 
 $Configuration
 {
@@ -15,6 +19,7 @@ $Configuration
 	{
 		$AdditionalIncludeDirectories	".\hl2;.\hl2\elements;.\portal;.\portal\vgui;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\Multiplayer;$SRCDIR\gcsdk\steamextra;$SRCDIR\game\shared\portal;$BASE"
 		$PreprocessorDefinitions		"$BASE;PORTAL;HL2_EPISODIC;HL2_CLIENT_DLL;GLOWS_ENABLE"
+		$PreprocessorDefinitions		"$BASE;DISABLE_GC_CONNECTION;DISABLE_IN_SOURCESDK" [$SOURCESDK]
 	}
 }
 
@@ -31,17 +36,6 @@ $Project "Client (Portal)"
 		$File	"$SRCDIR\game\shared\player_pickup.h"
 		$File	"$SRCDIR\game\shared\player_pickup.cpp"
 		
-		$File	"$SRCDIR\gcsdk\steamextra\rtime.cpp"
-			{
-				$Configuration
-				{
-					$Compiler
-					{
-						$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
-					}
-				}
-			}
-
 		$Folder	"HL2 DLL"
 		{
 			$File 	"episodic\flesh_internal_material_proxy.cpp"
