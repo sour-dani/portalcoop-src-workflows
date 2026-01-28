@@ -201,7 +201,6 @@ struct sortable_gameserveritem_t
 		userScore = -999.9f;
 		serverScore = -999.9f;
 		m_fRecentMatchPenalty = -999.9f;
-		m_fTotalScoreFromGC = -9999.9f;
 		m_eStatus = TF_Gamestats_QuickPlay_t::k_Server_Invalid;
 		m_nOptionsScoreFromGC = INT_MAX;
 	}
@@ -213,7 +212,6 @@ struct sortable_gameserveritem_t
 	float userScore;
 	float serverScore;
 	float m_fRecentMatchPenalty;
-	float m_fTotalScoreFromGC;
 	TF_Gamestats_QuickPlay_t::eServerStatus m_eStatus;
 	int m_nOptionsScoreFromGC;
 
