@@ -114,8 +114,6 @@ BEGIN_PREDICTION_DATA(C_Prop_Portal)
 	
 END_PREDICTION_DATA()
 
-extern ConVar use_server_portal_particles;
-
 static ConVar portal_demohack( "portal_demohack", "0", FCVAR_ARCHIVE, "Do the demo_legacy_rollback setting to help during demo playback of going through portals." );
 
 class C_PortalInitHelper : public CAutoGameSystem
@@ -1478,8 +1476,6 @@ void C_Prop_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSe
 	Assert( prediction->InPrediction() );
 	if ( !prediction->IsFirstTimePredicted() )
 		return;
-	if ( use_server_portal_particles.GetBool() )
-		return;
 
 	Vector m_vAudioOrigin = ( ( bDelayedPos ) ? ( m_vDelayedPosition ) : ( GetAbsOrigin() ) );
 
@@ -1906,9 +1902,6 @@ void C_Prop_Portal::CreateAttachedParticles( void )
 	DestroyAttachedParticles();
 
 	SetupPortalColorSet();
-
-	if ( use_server_portal_particles.GetBool() )
-		return;
 
 	// create a new effect for this portal
 	mdlcache->BeginLock();
