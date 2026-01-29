@@ -692,13 +692,13 @@ CWeaponList g_WeaponList( "CWeaponList" );
 
 void OnBaseCombatWeaponCreated( CBaseCombatWeapon *pWeapon )
 {
-	//AddToPauseList( pWeapon );
+	AddToPauseList( pWeapon );
 	g_WeaponList.AddWeapon( pWeapon );
 }
 
 void OnBaseCombatWeaponDestroyed( CBaseCombatWeapon *pWeapon )
 {
-	//RemoveFromPauseList( pWeapon );
+	RemoveFromPauseList( pWeapon );
 	g_WeaponList.RemoveWeapon( pWeapon );
 }
 
@@ -798,11 +798,6 @@ void CBaseCombatWeapon::SetCustomViewModelModelIndex( int nCustomViewModelModelI
 #ifdef PORTAL
 void CBaseCombatWeapon::OnUnPause( float flAddedTime )
 {
-	// Disabling for now, it causes problems for players who just joined connected
-	
-	BaseClass::OnUnPause(flAddedTime);
-	return;
-
 	m_flNextPrimaryAttack += flAddedTime;
 	m_flNextSecondaryAttack += flAddedTime;
 	m_flNextEmptySoundTime += flAddedTime;

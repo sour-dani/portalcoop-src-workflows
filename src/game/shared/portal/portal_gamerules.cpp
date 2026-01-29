@@ -1862,7 +1862,21 @@ void UnPauseEntities( void )
 	float flAddedTime = gpGlobals->curtime - g_flTimeWhenPaused;
 	for ( int i = 0; i < g_AllPausables.Count(); ++i )
 	{
+		CPortal_Player *pPortalPlayer = ToPortalPlayer( g_AllPausables[i]->GetOwnerEntity() );
+		if ( pPortalPlayer && !pPortalPlayer->m_bWasPaused )
+		{
+			continue;
+		}
 		g_AllPausables[i]->OnUnPause( flAddedTime );
+	}
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CPortal_Player *pPlayer = (CPortal_Player*)UTIL_PlayerByIndex( i );
+		if ( !pPlayer )
+			continue;
+
+		pPlayer->m_bWasPaused = false;
 	}
 }
 

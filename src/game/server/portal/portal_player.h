@@ -271,8 +271,10 @@ public:
 
 	CNetworkQAngle( m_angEyeAngles );
 
+	bool m_bWasPaused;
+
 private:
-	
+
 	bool m_bLookingForUseEntity;
 	bool m_bLookForUseEntity;
 	float m_flLookForUseEntityTime;

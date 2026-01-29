@@ -808,6 +808,8 @@ CPortal_Player::CPortal_Player()
 	m_bInvisible = false;
 
 	AddToPauseList( this );
+
+	m_bWasPaused = false;
 }
 
 CPortal_Player::~CPortal_Player(void)
@@ -1033,11 +1035,16 @@ void CPortal_Player::OnPause( void )
 	color.a = 255;
 	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
 
-	//BaseClass::OnPause();
+	m_bWasPaused = true;
+
+	BaseClass::OnPause();
 }
 
 void CPortal_Player::OnUnPause( float flAddedTime )
 {
+	if ( !m_bWasPaused )
+		return;
+
 	UnlockPlayer();			
 	color32_s color;
 	color.r = 0;
@@ -1046,7 +1053,7 @@ void CPortal_Player::OnUnPause( float flAddedTime )
 	color.a = 0;
 	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
 
-	//BaseClass::OnUnPause( flAddedTime );
+	BaseClass::OnUnPause( flAddedTime );
 }
 #endif
 void CPortal_Player::NotifySystemEvent(CBaseEntity* pNotify, notify_system_event_t eventType, const notify_system_event_params_t& params)
