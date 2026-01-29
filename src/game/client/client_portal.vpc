@@ -227,6 +227,8 @@ $Project "Client (Portal)"
 			$File	"portal\portal_quickplay.h"
 			$File	"$SRCDIR\game\shared\portal\portal_quickplay_shared.cpp"
 			$File	"$SRCDIR\game\shared\portal\portal_quickplay_shared.h"
+			$File	"portal\portal_newgamedialog.cpp"
+			$File	"portal\portal_newgamedialog.h"
 			
 			$File	"econ\econ_controls.cpp"
 			$File	"econ\econ_controls.h"
