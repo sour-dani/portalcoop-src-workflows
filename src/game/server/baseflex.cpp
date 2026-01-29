@@ -163,8 +163,8 @@ CBaseFlex::~CBaseFlex( void )
 #ifdef PORTAL
 void CBaseFlex::OnUnPause( float flAddedTime )
 {
-	AdjustUnPauseTime( m_flAllowResponsesEndTime, flAddedTime );
-	AdjustUnPauseTime( m_flLastFlexAnimationTime, flAddedTime );
+	AdjustUnPauseTime( m_flAllowResponsesEndTime, flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flLastFlexAnimationTime, flAddedTime, ADJUST_CHECK_VAR );
 
 	BaseClass::OnUnPause( flAddedTime );
 }

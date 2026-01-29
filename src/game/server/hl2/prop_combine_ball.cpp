@@ -969,7 +969,7 @@ void CPropCombineBall::StopLoopingSounds()
 #ifdef PORTAL
 void CPropCombineBall::OnUnPause( float flAddedTime )
 {
-	AdjustUnPauseTime( m_flLastBounceTime, flAddedTime );
+	AdjustUnPauseTime( m_flLastBounceTime, flAddedTime, ADJUST_CHECK_VAR );
 	AdjustUnPauseTime( m_flNextDamageTime, flAddedTime );
 	AdjustUnPauseTime( m_flLastCaptureTime, flAddedTime );
 
