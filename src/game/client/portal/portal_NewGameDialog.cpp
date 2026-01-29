@@ -30,6 +30,7 @@
 #include "cdll_int.h"
 #include "cdll_client_int.h"
 #include "ienginevgui.h"
+#include "clientsteamcontext.h"
 
 #include <stdio.h>
 
@@ -118,7 +119,7 @@ class CGameChapterPanel : public vgui::EditablePanel
 	ImagePanel *m_pLevelPicBorder;
 	ImagePanel *m_pLevelPic;
 	ImagePanel *m_pCommentaryIcon;
-	Label *m_pChapterLabel;
+	//Label *m_pChapterLabel;
 	Label *m_pChapterNameLabel;
 
 	Color m_TextColor;
@@ -155,12 +156,12 @@ public:
 
 		if ( !m_bCommentaryMode )
 		{
-			m_pChapterLabel = new Label( this, "ChapterLabel", text );
+			//m_pChapterLabel = new Label( this, "ChapterLabel", text );
 			m_pChapterNameLabel = new Label( this, "ChapterNameLabel", chapterName );
 		}
 		else
 		{
-			m_pChapterLabel = new Label( this, "ChapterLabel", chapterName );
+			//m_pChapterLabel = new Label( this, "ChapterLabel", chapterName );
 			m_pChapterNameLabel = new Label( this, "ChapterNameLabel", "#GameUI_LoadCommentary" );
 		}
 
@@ -206,10 +207,10 @@ public:
 		BaseClass::ApplySchemeSettings( pScheme );
 
 		// Hide chapter numbers for new episode teasers
-		if ( m_bTeaserChapter )
-		{
-			m_pChapterLabel->SetVisible( false );
-		}
+		//if ( m_bTeaserChapter )
+		//{
+			//m_pChapterLabel->SetVisible( false );
+		//}
 		
 		m_pCommentaryIcon = dynamic_cast<ImagePanel*>( FindChildByName( "CommentaryIcon" ) );
 		if ( m_pCommentaryIcon )
@@ -225,7 +226,7 @@ public:
 		// update the text/border colors
 		if ( !IsEnabled() )
 		{
-			m_pChapterLabel->SetFgColor( m_DisabledColor );
+			//m_pChapterLabel->SetFgColor( m_DisabledColor );
 			m_pChapterNameLabel->SetFgColor( Color(0, 0, 0, 0) );
 			m_pLevelPicBorder->SetFillColor( m_DisabledColor );
 			m_pLevelPic->SetAlpha( 128 );
@@ -234,13 +235,13 @@ public:
 
 		if ( state )
 		{
-			m_pChapterLabel->SetFgColor( m_SelectedColor );
+			//m_pChapterLabel->SetFgColor( m_SelectedColor );
 			m_pChapterNameLabel->SetFgColor( m_SelectedColor );
 			m_pLevelPicBorder->SetFillColor( m_SelectedColor );
 		}
 		else
 		{
-			m_pChapterLabel->SetFgColor( m_TextColor );
+			//m_pChapterLabel->SetFgColor( m_TextColor );
 			m_pChapterNameLabel->SetFgColor( m_TextColor );
 			m_pLevelPicBorder->SetFillColor( m_FillColor );
 		}
@@ -455,7 +456,7 @@ void CPortalNewGameMapSetPage::ApplySettings( KeyValues *inResourceData )
 {
 	BaseClass::ApplySettings( inResourceData );
 
-	int ypos = inResourceData->GetInt( "chapterypos", 10 );
+	int ypos = inResourceData->GetInt( "chapterypos", 0 );
 	for ( int i = 0; i < NUM_SLOTS; ++i )
 	{
 		m_PanelYPos[i] = ypos;
@@ -873,7 +874,7 @@ void CPortalNewGameMapSetPage::StartGame( void )
 	{
 		char mapcommand[512];
 		mapcommand[0] = 0;
-		Q_snprintf( mapcommand, sizeof( mapcommand ), "disconnect\nexec %s\n", m_GamePanels[m_iSelectedGame]->GetConfigFile() );
+		Q_snprintf( mapcommand, sizeof( mapcommand ), "wait\nwait\nexec %s\n", m_GamePanels[m_iSelectedGame]->GetConfigFile() );
 
 		// Set commentary
 		ConVarRef commentary( "commentary" );
@@ -1057,6 +1058,25 @@ void CPortalNewGameMapSetPage::OnThink()
 	BaseClass::OnThink();
 }
 
+CPortalNewGameOptionsDialog::CPortalNewGameOptionsDialog( vgui::Panel *parent ) : BaseClass( parent, "" )
+{
+	ConVarRef sv_use_steam_networking( "sv_use_steam_networking" );
+	
+	char sHostname[64];
+	V_sprintf_safe( sHostname, "%s's Server", steamapicontext->SteamFriends()->GetPersonaName() );
+
+	m_pHostnameTextEntry = new vgui::TextEntry( this, "HostNameTextEntry" );
+	m_pHostnameTextEntry->SetText( sHostname );
+
+	m_pPasswordTextEntry = new vgui::TextEntry(this, "PasswordTextEntry");
+	m_pPasswordTextEntry->SetText( "" );
+	
+	m_pSteamNetworkingCheck = new vgui::CheckButton(this, "SteamNetworkingCheck", "#Start_Server_SteamNetworking");
+	m_pSteamNetworkingCheck->SetSelected( sv_use_steam_networking.GetBool() );
+
+	LoadControlSettings( "Resource/PortalNewGameOptionsDialog.res", NULL );
+}
+
 CPortalNewGameDialog::CPortalNewGameDialog( vgui::Panel *parent, bool bCommentaryMode ) : BaseClass(parent, "PortalNewGameDialog")
 {
 	g_pPortalNewGameDialog = this;
@@ -1075,12 +1095,10 @@ CPortalNewGameDialog::CPortalNewGameDialog( vgui::Panel *parent, bool bCommentar
 	
 	m_pMapSetPage = new CPortalNewGameMapSetPage( this, bCommentaryMode );
 	AddPage(m_pMapSetPage, "#portalcoop_gameui_MapSet");
-
-	
-	m_pMapGameOptions = new CPortalNewGameMapSetPage( this, bCommentaryMode );
+		
+	m_pMapGameOptions = new CPortalNewGameOptionsDialog( this );
 	AddPage(m_pMapGameOptions, "#GameUI_Game");
-	
-	
+		
 	// Hide the property buttons
 	{
 		Panel *PropButton = FindChildByName( "OKButton" );
@@ -1118,8 +1136,30 @@ void CPortalNewGameDialog::OnCommand( const char *command )
 {
 	if ( !stricmp( command, "Play" ) )
 	{
+		char szBuffer[64];
+
+		ConVarRef hostname( "hostname" );
+		m_pMapGameOptions->GetHostNameText()->GetText( szBuffer, sizeof( szBuffer ) );
+		hostname.SetValue( szBuffer );
+		
+		ConVarRef sv_password( "sv_password" );
+		m_pMapGameOptions->GetPasswordText()->GetText( szBuffer, sizeof( szBuffer ) );
+		sv_password.SetValue( szBuffer );
+		
+		ConVarRef sv_use_steam_networking( "sv_use_steam_networking" );
+		sv_use_steam_networking.SetValue( m_pMapGameOptions->IsSteamNetworkingEnabled() );
+		
+		// This is for the maxplayers commands in the cfg files
+		engine->ClientCmd_Unrestricted( "disconnect\n" );
+
 		m_pMapSetPage->StartGame();
 	}
+	else if ( !stricmp( command, "OpenLegacyServerCreator" ) )
+	{
+		engine->ClientCmd_Unrestricted( "gamemenucommand opencreatemultiplayergamedialog" );
+		OnCommand( "Close" );
+	}
+
 
 	BaseClass::OnCommand( command );
 }

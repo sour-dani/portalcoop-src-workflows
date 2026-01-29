@@ -16,6 +16,7 @@
 #include "vgui_controls/Button.h"
 #include "vgui_controls/PropertyDialog.h"
 #include "vgui_controls/PropertyPage.h"
+#include "vgui_controls/CheckButton.h"
 #include "utlvector.h"
 
 class CGameChapterPanel;
@@ -146,6 +147,25 @@ private:
 	vgui::CKeyRepeatHandler	m_KeyRepeat;
 };
 
+class CPortalNewGameOptionsDialog : public vgui::PropertyPage
+{
+	DECLARE_CLASS_SIMPLE( CPortalNewGameOptionsDialog, vgui::PropertyPage );
+
+public:
+	
+	CPortalNewGameOptionsDialog( vgui::Panel *parent );
+	
+	vgui::TextEntry *GetHostNameText() { return m_pHostnameTextEntry; }
+	vgui::TextEntry *GetPasswordText() { return m_pPasswordTextEntry; }
+	bool IsSteamNetworkingEnabled() { return m_pSteamNetworkingCheck->IsSelected(); }
+
+private:
+	
+	vgui::TextEntry *m_pHostnameTextEntry;
+	vgui::TextEntry *m_pPasswordTextEntry;
+	vgui::CheckButton *m_pSteamNetworkingCheck;
+};
+
 //-----------------------------------------------------------------------------
 // Purpose: Handles starting a new game, skill and chapter selection
 //-----------------------------------------------------------------------------
@@ -166,7 +186,7 @@ public:
 private:
 	
 	CPortalNewGameMapSetPage *m_pMapSetPage;
-	CPortalNewGameMapSetPage *m_pMapGameOptions;
+	CPortalNewGameOptionsDialog *m_pMapGameOptions;
 };
 
 #endif // NEWGAMEDIALOG_H
