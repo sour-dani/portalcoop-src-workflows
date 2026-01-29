@@ -653,7 +653,16 @@ void CPredictionCopy::DescribeEHandle( difftype_t dt, EHANDLE *outvalue, EHANDLE
 	if ( dt == DIFFERS )
 	{
 		int i = 0;
+#if 1
 		ReportFieldsDiffer( "EHandles differ (net) 0x%p (pred) 0x%p\n", (void const *)invalue[ i ].Get(), (void *)outvalue[ i ].Get() );
+#else
+		CBaseEntity *pEntityIn = invalue->Get();
+		CBaseEntity *pEntityOut = outvalue->Get();
+
+		const char *inName = pEntityIn ? pEntityIn->GetClassname() : "null";
+		const char *outName = pEntityOut ? pEntityOut->GetClassname() : "null";
+		ReportFieldsDiffer( "EHandles differ (net) 0x%p %s (pred) 0x%p %s\n", (void const *)invalue[ i ].Get(), inName, (void *)outvalue[ i ].Get(), outName );
+#endif
 	}
 
 #if defined( CLIENT_DLL )

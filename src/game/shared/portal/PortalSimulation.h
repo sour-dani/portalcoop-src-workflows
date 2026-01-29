@@ -293,7 +293,13 @@ public:
 	virtual void	UpdateOnRemove( void );
 	virtual	bool	ShouldCollide( int collisionGroup, int contentsMask ) const;
 
+	void			SetOwningSimulator( CPortalSimulator *pSimulator ) { m_pOwningSimulator = pSimulator; }
+
 #ifdef GAME_DLL
+	virtual int UpdateTransmitState()
+	{
+		return SetTransmitState( FL_EDICT_ALWAYS );
+	}
 	
 	virtual void	VPhysicsCollision( int index, gamevcollisionevent_t *pEvent ) {}
 	virtual void	VPhysicsFriction( IPhysicsObject *pObject, float energy, int surfaceProps, int surfacePropsHit ) {}

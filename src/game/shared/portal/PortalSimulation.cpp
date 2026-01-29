@@ -3275,10 +3275,6 @@ static bool s_PortalSimulatorCollisionEntities[MAX_EDICTS] = { false };
 
 CPSCollisionEntity::CPSCollisionEntity( void )
 {
-#ifdef GAME_DLL
-	SetTransmitState(FL_EDICT_ALWAYS);
-#endif
-
 	m_pOwningSimulator = NULL;
 }
 

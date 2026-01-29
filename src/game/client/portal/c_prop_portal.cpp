@@ -990,6 +990,11 @@ void C_Prop_Portal::HandleNetworkChanges( void )
 			m_PortalSimulator.MoveTo( m_ptOrigin, m_qAbsAngle );
 		}
 	}
+	
+	if (m_PortalSimulator.GetInternalData().Simulation.hCollisionEntity)
+	{
+		m_PortalSimulator.GetInternalData().Simulation.hCollisionEntity->SetOwningSimulator( &m_PortalSimulator );
+	}
 
 	if( bNewLinkage || bPortalMoved || bActivityChanged )
 	{
