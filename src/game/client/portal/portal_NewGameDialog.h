@@ -86,6 +86,7 @@ public:
 	virtual void	PaintBackground();
 	void			SetSelectedChapterIndex( int index );
 	void			SetSelectedChapter( const char *chapter );
+	void			SetupGamePanels( int index );
 
 	void			SetCommentaryMode( bool bCommentary ) { m_bCommentaryMode = bCommentary; }
 

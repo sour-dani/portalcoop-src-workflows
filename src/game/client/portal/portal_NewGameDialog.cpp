@@ -556,24 +556,7 @@ void CPortalNewGameMapSetPage::SetSelectedChapterIndex( int index )
 		GetPropertyParent()->m_pPlayButton->SetEnabled( true );
 	}
 
-	// Setup panels to the left of the selected panel
-	int selectedSlot = index % 3 + 1;
-	int currIdx = index;
-	for ( int i = selectedSlot; i >= 0 && currIdx >= 0; --i )
-	{
-		m_PanelIndex[i] = currIdx;
-		--currIdx;
-		InitPanelIndexForDisplay( i );
-	}
-
-	// Setup panels to the right of the selected panel
-	currIdx = index + 1;
-	for ( int i = selectedSlot + 1; i < NUM_SLOTS && currIdx < m_GamePanels.Count(); ++i )
-	{
-		m_PanelIndex[i] = currIdx;
-		++currIdx;
-		InitPanelIndexForDisplay( i );
-	}
+	SetupGamePanels( index );
 
 	UpdateMenuComponents( SCROLL_NONE );
 }
@@ -600,6 +583,28 @@ void CPortalNewGameMapSetPage::SetSelectedChapter( const char *chapter )
 	if ( GetPropertyParent()->m_pPlayButton )
 	{
 		GetPropertyParent()->m_pPlayButton->SetEnabled( true );
+	}
+}
+
+void CPortalNewGameMapSetPage::SetupGamePanels( int index )
+{
+	// Setup panels to the left of the selected panel
+	int selectedSlot = index % 3 + 1;
+	int currIdx = index;
+	for ( int i = selectedSlot; i >= 0 && currIdx >= 0; --i )
+	{
+		m_PanelIndex[i] = currIdx;
+		--currIdx;
+		InitPanelIndexForDisplay( i );
+	}
+
+	// Setup panels to the right of the selected panel
+	currIdx = index + 1;
+	for ( int i = selectedSlot + 1; i < NUM_SLOTS && currIdx < m_GamePanels.Count(); ++i )
+	{
+		m_PanelIndex[i] = currIdx;
+		++currIdx;
+		InitPanelIndexForDisplay( i );
 	}
 }
 
@@ -1046,6 +1051,9 @@ void CPortalNewGameMapSetPage::OnThink()
 		OnKeyCodeTyped( code );
 	}
 
+	// PCOOP: This is a horrible hack
+	SetupGamePanels( 0 );
+
 	BaseClass::OnThink();
 }
 
@@ -1065,7 +1073,7 @@ CPortalNewGameDialog::CPortalNewGameDialog( vgui::Panel *parent, bool bCommentar
 	vgui::Button *cancel = new vgui::Button( this, "Cancel", "#GameUI_Cancel" );
 	cancel->SetCommand( "Close" );
 	
-	m_pMapSetPage = new CPortalNewGameMapSetPage( parent, bCommentaryMode );
+	m_pMapSetPage = new CPortalNewGameMapSetPage( this, bCommentaryMode );
 	AddPage(m_pMapSetPage, "#portalcoop_gameui_MapSet");
 
 	
