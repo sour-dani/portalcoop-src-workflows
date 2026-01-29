@@ -213,7 +213,7 @@ bool CBaseToggle::KeyValue( const char *szKeyName, const char *szValue )
 #ifdef PORTAL
 void CBaseToggle::OnUnPause( float flAddedTime )
 {
-	m_flMoveTargetTime += flAddedTime;
+	AdjustUnPauseTime( m_flMoveTargetTime.GetForModify(), flAddedTime);
 	BaseClass::OnUnPause( flAddedTime );
 }
 #endif

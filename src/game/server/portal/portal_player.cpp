@@ -1053,6 +1053,8 @@ void CPortal_Player::OnUnPause( float flAddedTime )
 	color.a = 0;
 	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
 
+	AdjustUnPauseTime( m_fTimeLastHurt, flAddedTime, ADJUST_CHECK_VAR );
+
 	BaseClass::OnUnPause( flAddedTime );
 }
 #endif
@@ -1636,7 +1638,7 @@ void CPortal_Player::PostThink(void)
 	SetLocalAngles(angles);
 
 	// Regenerate heath after 3 seconds
-	if (IsAlive() && GetHealth() < GetMaxHealth())
+	if (IsAlive() && GetHealth() < GetMaxHealth() && !PortalGameRules()->ShouldPauseGame() )
 	{
 		// Color to overlay on the screen while the player is taking damage
 		color32 hurtScreenOverlay = { 64,0,0,64 };

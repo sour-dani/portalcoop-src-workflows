@@ -521,7 +521,7 @@ void CBaseAnimating::OnRestore()
 #ifdef PORTAL
 void CBaseAnimating::OnUnPause( float flAddedTime )
 {
-	m_flDissolveStartTime += flAddedTime;
+	AdjustUnPauseTime( m_flDissolveStartTime, flAddedTime );
 
 	BaseClass::OnUnPause( flAddedTime );
 }

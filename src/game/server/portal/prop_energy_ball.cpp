@@ -171,7 +171,7 @@ void CPropEnergyBall::Activate( void )
 #ifdef PORTAL
 void CPropEnergyBall::OnUnPause( float flAddedTime )
 {
-	m_fTimeTillDeath += flAddedTime;
+	AdjustUnPauseTime( m_fTimeTillDeath.GetForModify(), flAddedTime );
 
 	BaseClass::OnUnPause( flAddedTime );
 }

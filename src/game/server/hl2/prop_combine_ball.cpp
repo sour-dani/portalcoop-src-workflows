@@ -969,9 +969,9 @@ void CPropCombineBall::StopLoopingSounds()
 #ifdef PORTAL
 void CPropCombineBall::OnUnPause( float flAddedTime )
 {
-	m_flLastBounceTime += flAddedTime;
-	m_flNextDamageTime += flAddedTime;
-	m_flLastCaptureTime += flAddedTime;
+	AdjustUnPauseTime( m_flLastBounceTime, flAddedTime );
+	AdjustUnPauseTime( m_flNextDamageTime, flAddedTime );
+	AdjustUnPauseTime( m_flLastCaptureTime, flAddedTime );
 
 	BaseClass::OnUnPause( flAddedTime );
 }
@@ -1800,7 +1800,7 @@ void CFuncCombineBallSpawner::OnUnPause( float flAddedTime )
 {
 	for ( int i = 0; i < m_BallRespawnTime.Count(); ++i )
 	{
-		m_BallRespawnTime[i] += flAddedTime;
+		AdjustUnPauseTime( m_BallRespawnTime[i], flAddedTime, ADJUST_CHECK_VAR );
 	}
 
 	BaseClass::OnUnPause( flAddedTime );

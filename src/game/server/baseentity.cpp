@@ -3773,17 +3773,65 @@ void CBaseEntity::OnUnPause( float flAddedTime )
 	int iAddedTicks = gpGlobals->tickcount - g_iPauseTick;
 
 	// Restore the think timers
-	m_nNextThinkTick += iAddedTicks;
-	m_nLastThinkTick += iAddedTicks;
+	AdjustUnPauseTick( m_nNextThinkTick.GetForModify(), iAddedTicks, ADJUST_CHECK_VAR );
+	AdjustUnPauseTick( m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR );
 	for ( int i = 0; i < m_aThinkFunctions.Count(); ++i )
 	{
-		m_aThinkFunctions[i].m_nNextThinkTick += iAddedTicks;
-		m_aThinkFunctions[i].m_nLastThinkTick += iAddedTicks;
+		AdjustUnPauseTick( m_aThinkFunctions[i].m_nNextThinkTick, iAddedTicks, ADJUST_CHECK_VAR );
+		AdjustUnPauseTick( m_aThinkFunctions[i].m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR );
 	}
 
 	// Restore the anim times
-	m_flAnimTime += flAddedTime;
+	AdjustUnPauseTime( m_flAnimTime.GetForModify(), flAddedTime, ADJUST_CHECK_MORE_THAN_CURTIME | ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flPrevAnimTime, flAddedTime, ADJUST_CHECK_MORE_THAN_CURTIME | ADJUST_CHECK_VAR );
 }
+
+void CBaseEntity::AdjustUnPauseTime( float &var, float flAddedTime, int iAdjustFlags )
+{
+	if ( iAdjustFlags & ADJUST_CHECK_LESS_THAN_CURTIME )
+	{
+		if ( var < gpGlobals->curtime )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_MORE_THAN_CURTIME )
+	{
+		if ( var > gpGlobals->curtime )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_VAR )
+	{
+		if ( var <= 0.0f )
+			return;
+	}
+
+	var += flAddedTime;
+}
+
+void CBaseEntity::AdjustUnPauseTick( int &var, int iAddedTicks, int iAdjustFlags )
+{
+	if ( iAdjustFlags & ADJUST_CHECK_LESS_THAN_CURTIME )
+	{
+		if ( var < gpGlobals->tickcount )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_MORE_THAN_CURTIME )
+	{
+		if ( var > gpGlobals->tickcount )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_VAR )
+	{
+		if ( var <= 0.0f )
+			return;
+	}
+
+	var += iAddedTicks;
+}
+
 #endif
 //-----------------------------------------------------------------------------
 // Purpose: Recursively restores all the classes in an object, in reverse order (top down)

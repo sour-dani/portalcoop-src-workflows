@@ -1011,8 +1011,8 @@ void CTriggerHurt::Touch( CBaseEntity *pOther )
 #ifdef PORTAL
 void CTriggerHurt::OnUnPause( float flAddedTime )
 {
-	m_flLastDmgTime += flAddedTime;
-	m_flDmgResetTime += flAddedTime;
+	AdjustUnPauseTime( m_flLastDmgTime, flAddedTime );
+	AdjustUnPauseTime( m_flDmgResetTime, flAddedTime );
 
 	BaseClass::OnUnPause( flAddedTime );
 }
