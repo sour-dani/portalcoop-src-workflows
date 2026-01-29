@@ -48,8 +48,6 @@ public:
 
 	virtual void Spawn( void );
 
-	virtual void CreateSounds( void );
-	virtual void StopLoopingSounds( void );
 	void ClientThink( void );
 	void FixTeleportationRoll( void );
 	void PostThink( void );
@@ -128,7 +126,6 @@ public:
 
 	
 	void UpdatePortalPlaneSounds( void );
-	void UpdateWooshSounds( void );
 	
 	bool UseFoundEntity( CBaseEntity *pUseEntity );
 	CBaseEntity*	FindUseEntity( void );
@@ -225,7 +222,6 @@ public:
 	
 	float GetLatestServerTeleport() { return m_fLatestServerTeleport; }
 
-	CSoundPatch		*m_pWooshSound;
 	bool	m_bIntersectingPortalPlane;
 
 protected:

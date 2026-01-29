@@ -1785,6 +1785,9 @@ void CPortal_Player::InputDoPingHudHint( inputdata_t &inputdata )
 
 void CPortal_Player::UpdatePortalPlaneSounds(void)
 {
+	if ( IsObserver() )
+		return;
+
 	CProp_Portal* pPortal = m_hPortalEnvironment;
 	if (pPortal && pPortal->IsActive())
 	{
@@ -1868,8 +1871,16 @@ void CPortal_Player::UpdateWooshSounds(void)
 	if (m_pWooshSound)
 	{
 		CSoundEnvelopeController& controller = CSoundEnvelopeController::GetController();
-
-		float fWooshVolume = GetAbsVelocity().Length() - MIN_FLING_SPEED;
+		
+		float fWooshVolume;
+		if ( IsObserver() )
+		{
+			fWooshVolume = -1.0f;
+		}
+		else
+		{
+			fWooshVolume = GetAbsVelocity().Length() - MIN_FLING_SPEED;
+		}
 
 		if (fWooshVolume < 0.0f)
 		{
