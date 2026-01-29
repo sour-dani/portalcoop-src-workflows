@@ -521,7 +521,7 @@ int C_BaseCombatWeapon::CalcOverrideModelIndex()
 
 bool C_BaseCombatWeapon::PredictionErrorShouldResetLatchedForAllPredictables( void )
 {
-#ifdef HL2MP
+#if defined ( HL2MP )
 	// misyl: Although I have tried to fix many of the pred errors in HL2MP.
 	// Still many remain, and many things remain unpredictable without a rewrite of the weapon code.
 	//
@@ -529,6 +529,13 @@ bool C_BaseCombatWeapon::PredictionErrorShouldResetLatchedForAllPredictables( vo
 	// Don't reset every latched var for every predictable ever if we have a pred error on a weapon.
 	//
 	// This might be useful for other games as well, but needs wider testing there.
+#define DONT_RESET_LATCHED_FOR_ALL
+#elif defined ( PORTAL )
+	// Without substantial changes to the weapon index code, this is going to cause a lot of problems
+#define DONT_RESET_LATCHED_FOR_ALL
+#endif
+
+#ifdef DONT_RESET_LATCHED_FOR_ALL
 	if ( GetOwner() )
 		return false;
 #endif
