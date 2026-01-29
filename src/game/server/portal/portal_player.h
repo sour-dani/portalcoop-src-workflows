@@ -24,6 +24,8 @@ class CPortal_Player;
 #include "func_liquidportal.h"
 #include "ai_speech.h"			// For expresser host
 
+#define PINGTIME 3.0
+
 class CEntityPortalledNetworkMessage
 {
 public:

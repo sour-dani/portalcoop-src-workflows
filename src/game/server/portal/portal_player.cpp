@@ -1282,8 +1282,6 @@ void CPortal_Player::ClearExpression(void)
 	m_flExpressionLoopTime = gpGlobals->curtime;
 }
 
-#define PINGTIME 3.0
-
 void ShowAnnotation( Vector location, int follow_entindex, int entindex, int forcedpingicon = -1 )
 {
 	IGameEvent *pEvent = gameeventmanager->CreateEvent( "show_annotation" );
@@ -1438,7 +1436,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 
 				if ( pPingLinker )
 				{
-					pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+					pPingLinker->PingLinkedEntities( vColor, this );
 				}
 				else
 				{
@@ -1540,7 +1538,7 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 
 	if (pPingLinker)
 	{
-		pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+		pPingLinker->PingLinkedEntities( vColor, this );
 	}
 	else if ( !bShouldCreateCrosshair ) // Ping Linkers fire their own events
 	{
