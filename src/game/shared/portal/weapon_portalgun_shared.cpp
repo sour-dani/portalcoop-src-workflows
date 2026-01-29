@@ -1341,21 +1341,11 @@ void CWeaponPortalgun::Think( void )
 
 float CWeaponPortalgun::GetPortal1Placablity(void)
 {
-#ifdef CLIENT_DLL
-	// Spectators need to use the networked value
-	if ( GetOwner() != C_BasePlayer::GetLocalPlayer() )
-		return m_fCanPlacePortal2OnThisSurfaceNetworked;
-#endif
 	return m_fCanPlacePortal1OnThisSurface;
 }
 
 float CWeaponPortalgun::GetPortal2Placablity(void)
 {
-#ifdef CLIENT_DLL
-	// Spectators need to use the networked value
-	if ( GetOwner() != C_BasePlayer::GetLocalPlayer() )
-		return m_fCanPlacePortal2OnThisSurfaceNetworked;
-#endif
 	return m_fCanPlacePortal2OnThisSurface;
 }
 

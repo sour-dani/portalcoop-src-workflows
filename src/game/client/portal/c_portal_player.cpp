@@ -640,8 +640,6 @@ CStudioHdr *C_Portal_Player::OnNewModel( void )
 * Orient head and eyes towards m_lookAt.
 */
 
-#define HL2DM_LOOKAT 0
-
 void C_Portal_Player::UpdateLookAt( void )
 {
 	//Only I can see me looking at myself
@@ -827,8 +825,20 @@ void C_Portal_Player::ClientThink( void )
 	HandleSpeedChanges();
 
 	FixTeleportationRoll();
-		
-
+	
+	CBasePlayer *pPlayerTarget = ToBasePlayer( GetObserverTarget() );
+	if ( IsLocalPlayer() && pPlayerTarget && GetObserverMode() == OBS_MODE_IN_EYE )
+	{
+		C_BaseCombatWeapon *pWeapon = pPlayerTarget->GetActiveWeapon();
+		if ( pWeapon && !V_strcmp( pWeapon->GetClassname(), "weapon_portalgun" ) )
+		{
+			C_WeaponPortalgun* pPortalgun = (C_WeaponPortalgun*)pWeapon;
+			float flPortal1Placability = ( ( pPortalgun->CanFirePortal1() ) ? ( pPortalgun->FirePortal( false, 0, 1 ) ) : ( 0.0f ) );
+			float flPortal2Placability = ( ( pPortalgun->CanFirePortal2() ) ? ( pPortalgun->FirePortal( true, 0, 2 ) ) : ( 0.0f ) );
+			pPortalgun->SetPortal1Placablity( flPortal1Placability );
+			pPortalgun->SetPortal2Placablity( flPortal2Placability );
+		}
+	}
 	//QAngle vAbsAngles = EyeAngles();
 
 	// Look at the thing that killed you
@@ -910,55 +920,6 @@ void C_Portal_Player::ClientThink( void )
 		}
 		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCDeathHandle, m_flDeathCCWeight );
 	}
-#endif
-
-	//HL2DM LOOKAT CODE
-#if HL2DM_LOOKAT
-
-	if (!IsLocalPlayer())
-	{		
-		bool bFoundViewTarget = false;
-	
-		Vector vForward;
-		AngleVectors( GetLocalAngles(), &vForward );
-
-		for( int i = 1; i <= gpGlobals->maxClients; ++i )
-		{
-			C_BasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-			if( !pPlayer )
-				continue;
-
-			if ( pPlayer->entindex() == entindex() )
-				continue;
-
-			if ( pPlayer == this )
-				continue;
-
-			Vector vTargetOrigin = pPlayer->GetAbsOrigin();
-			Vector vMyOrigin =  GetAbsOrigin();
-
-			Vector vDir = vTargetOrigin - vMyOrigin;
-		
-			if ( vDir.Length() > 128 ) 
-				continue;
-
-			VectorNormalize( vDir );
-
-			if ( DotProduct( vForward, vDir ) < 0.0f )
-				 continue;
-
-			m_vLookAtTarget = pPlayer->EyePosition();
-			bFoundViewTarget = true;
-			break;
-		}
-
-		if ( bFoundViewTarget == false )
-		{
-			m_vLookAtTarget = GetAbsOrigin() + vForward * 512;
-		}
-
-	}
-
 #endif
 
 	UpdateIDTarget();
@@ -2551,6 +2512,9 @@ void C_Portal_Player::UpdatePortalEyeInterpolation( void )
 
 Vector C_Portal_Player::EyePosition()
 {
+	if ( !IsLocalPlayer() )
+		return BaseClass::EyePosition();
+
 	return PortalEyeInterpolation.m_vEyePosition_Interpolated;  
 }
 
