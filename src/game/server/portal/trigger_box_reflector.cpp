@@ -48,6 +48,13 @@ CTriggerBoxReflector::CTriggerBoxReflector()
 	m_flTemporaryDetachTime = 0;
 	m_flTemporaryEndTime = 0;
 	m_flBeamBrightness = 0;
+	
+	AddToPauseList( this );
+}
+
+CTriggerBoxReflector::~CTriggerBoxReflector()
+{
+	RemoveFromPauseList( this );
 }
 
 void CTriggerBoxReflector::Spawn( void )
@@ -313,6 +320,14 @@ void CTriggerBoxReflector::BeamUpdateThink( void )
 	
 	// Using old + a 0.5 second delay is more useful for players
 	SetNextThink( gpGlobals->curtime + sv_box_reflector_beamupdate_thinkrate.GetFloat(), g_pszBeamUpdateThink );
+}
+
+void CTriggerBoxReflector::OnUnPause( float flAddedTime )
+{
+	AdjustUnPauseTime( m_flTemporaryDetachTime, flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flTemporaryEndTime, flAddedTime, ADJUST_CHECK_VAR );
+
+	BaseClass::OnUnPause( flAddedTime );
 }
 
 // Global Savedata for base trigger
