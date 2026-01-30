@@ -1558,7 +1558,26 @@ const char *CPortalGameRules::GetGameDescription( void )
 		// No fall damage in Portal!
 		return 0.0f;
 	}
-
+	
+	//-----------------------------------------------------------------------------
+	// Purpose: 
+	//-----------------------------------------------------------------------------
+	const char *CPortalGameRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
+	{
+		if ( !pPlayer )  // dedicated server output
+		{
+			return NULL;
+		}
+		
+		if ( pPlayer->GetTeamNumber() != TEAM_SPECTATOR )
+		{
+			return "Portal_Chat_All";	
+		}
+		else
+		{
+			return "Portal_Chat_AllSpec";
+		}
+	}
 
 #endif //} !CLIENT_DLL
 

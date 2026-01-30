@@ -1389,16 +1389,12 @@ Color CBaseHudChat::GetClientColor( int clientIndex )
 	{
 		return g_ColorGreen;
 	}
-#ifndef PORTAL
 	else if( g_PR )
 	{
 		return g_ColorGrey;
 	}
 
 	return g_ColorYellow;
-#else
-	return g_PR->GetPortalgunColor( clientIndex );
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1824,7 +1820,7 @@ void CBaseHudChat::ChatPrintf( int iPlayerIndex, int iFilter, const char *fmt, .
 	if ( wbuf )
 	{
 		Color clrNameColor = GetClientColor( iPlayerIndex );
-
+		
 		line->SetExpireTime();
 
 		g_pVGuiLocalize->ConvertANSIToUnicode( pmsg, wbuf, bufSize);

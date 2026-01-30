@@ -161,7 +161,9 @@ private:
 	// Ammo
 	virtual void			PlayerThink( CBasePlayer *pPlayer );
 	virtual float			GetAmmoDamage( CBaseEntity *pAttacker, CBaseEntity *pVictim, int nAmmoType );
-
+#ifndef CLIENT_DLL
+	const char				*GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
+#endif
 	virtual bool			ShouldBurningPropsEmitLight();
 
 	bool ShouldRemoveRadio( void );
