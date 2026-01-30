@@ -1862,7 +1862,9 @@ void UnPauseEntities( void )
 	float flAddedTime = gpGlobals->curtime - g_flTimeWhenPaused;
 	for ( int i = 0; i < g_AllPausables.Count(); ++i )
 	{
-		CPortal_Player *pPortalPlayer = ToPortalPlayer( g_AllPausables[i]->GetOwnerEntity() );
+		CPortal_Player *pPortalPlayer = ToPortalPlayer( g_AllPausables[i] );
+		if ( !pPortalPlayer )
+			pPortalPlayer = ToPortalPlayer( g_AllPausables[i]->GetOwnerEntity() );
 		if ( pPortalPlayer && !pPortalPlayer->m_bWasPaused )
 		{
 			continue;

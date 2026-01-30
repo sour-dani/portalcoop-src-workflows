@@ -3770,20 +3770,22 @@ void CBaseEntity::OnPause( void )
 
 void CBaseEntity::OnUnPause( float flAddedTime )
 {
+#if 0 // For now, don't change any of this
 	int iAddedTicks = gpGlobals->tickcount - g_iPauseTick;
 
 	// Restore the think timers
-	AdjustUnPauseTick( m_nNextThinkTick.GetForModify(), iAddedTicks, ADJUST_CHECK_VAR );
-	AdjustUnPauseTick( m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR );
+	AdjustUnPauseTick( m_nNextThinkTick.GetForModify(), iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME );
+	AdjustUnPauseTick( m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME  );
 	for ( int i = 0; i < m_aThinkFunctions.Count(); ++i )
 	{
-		AdjustUnPauseTick( m_aThinkFunctions[i].m_nNextThinkTick, iAddedTicks, ADJUST_CHECK_VAR );
-		AdjustUnPauseTick( m_aThinkFunctions[i].m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR );
+		AdjustUnPauseTick( m_aThinkFunctions[i].m_nNextThinkTick, iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME );
+		AdjustUnPauseTick( m_aThinkFunctions[i].m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME );
 	}
 
 	// Restore the anim times
 	AdjustUnPauseTime( m_flAnimTime.GetForModify(), flAddedTime, ADJUST_CHECK_MORE_THAN_CURTIME | ADJUST_CHECK_VAR );
 	AdjustUnPauseTime( m_flPrevAnimTime, flAddedTime, ADJUST_CHECK_MORE_THAN_CURTIME | ADJUST_CHECK_VAR );
+#endif
 }
 
 void CBaseEntity::AdjustUnPauseTime( float &var, float flAddedTime, int iAdjustFlags )
