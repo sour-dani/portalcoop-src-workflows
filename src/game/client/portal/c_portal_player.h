@@ -312,8 +312,6 @@ private:
 
 public:
 
-	unsigned char m_iPortalLinkageGroupID; //which portal linkage group this gun is tied to, usually set by mapper, or inherited from owning player's index
-
 	bool	m_bPitchReorientation;
 	float	m_fReorientationRate;
 	bool	m_bEyePositionIsTransformedByPortal; //when the eye and body positions are not on the same side of a portal
