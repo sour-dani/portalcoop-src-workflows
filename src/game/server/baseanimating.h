@@ -65,6 +65,9 @@ public:
 	void				AddGlowEffect(void);
 	void				RemoveGlowEffect(void);
 	bool				IsGlowEffectActive(void);
+	
+	// Do NOT call this directly. Use DispatchUpdateTransmitState.
+	virtual int			UpdateTransmitState();
 #endif // GLOWS_ENABLE
 
 	CStudioHdr *GetModelPtr( void );

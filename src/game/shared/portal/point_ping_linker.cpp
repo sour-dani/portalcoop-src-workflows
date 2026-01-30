@@ -39,21 +39,15 @@ CPointPingLinker::CPointPingLinker()
 #ifdef GAME_DLL
 void CPointPingLinker::PingLinkedEntity( const char *pszName, Vector vColor )
 {
+	extern void PingBaseAnimating( CBaseAnimating *pAnimating, Vector vColor );
 	CBaseEntity *pEntity = NULL;
 	while ( ( pEntity = gEntList.FindEntityByName( pEntity, pszName ) ) != NULL )
 	{
 		CBaseAnimating *pAnimating = pEntity ? pEntity->GetBaseAnimating() : NULL;
 		if ( !pAnimating )
-			continue;
-		
-		if (pAnimating->m_bGlowEnabled)
-		{
-			pAnimating->RemoveGlowEffect();
-		}
+			continue;	
 
-		pAnimating->SetGlowEffectColor(vColor.x, vColor.y, vColor.z);
-		pAnimating->AddGlowTime(gpGlobals->curtime);
-		pAnimating->RemoveGlowTime(PINGTIME);
+		PingBaseAnimating( pAnimating, vColor );
 	}
 }
 
