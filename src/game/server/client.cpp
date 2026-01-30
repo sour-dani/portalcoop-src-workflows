@@ -760,7 +760,7 @@ void kill_helper( const CCommand &args, bool bExplode )
 	}
 }
 
-ConVar sv_allow_suicide_commands("sv_allow_suicide_commands", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "\nSets if players can use the kill or explode commands (Disabled by default because they can cause crashes)");
+ConVar sv_allow_suicide_commands("sv_allow_suicide_commands", "0", FCVAR_CHEAT | FCVAR_NOTIFY, "\nSets if players can use the kill or explode commands (Disabled by default because they can cause crashes)");
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

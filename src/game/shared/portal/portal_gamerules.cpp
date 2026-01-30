@@ -41,10 +41,11 @@ extern void ResetPortalPlayerData( void );
 #include "tier0/memdbgon.h"
 	
 extern ConVar physcannon_mega_enabled;
-ConVar sv_spawn_with_suit( "sv_spawn_with_suit", "0", FCVAR_REPLICATED, "Sets whether or not players should spawn with the HEV suit" );
-ConVar sv_portalgun_spawn( "sv_portalgun_spawn", "0", FCVAR_REPLICATED, "Sets if the player should spawn with the portalgun" );
-ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_REPLICATED, "Sets what portalgun colors players spawn with. 0 = Primary, 1 = Secondary, 2 = Both" );
-
+#ifdef GAME_DLL
+ConVar sv_spawn_with_suit( "sv_spawn_with_suit", "0", FCVAR_CHEAT, "Sets whether or not players should spawn with the HEV suit" );
+ConVar sv_portalgun_spawn( "sv_portalgun_spawn", "0", FCVAR_CHEAT, "Sets if the player should spawn with the portalgun" );
+ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_CHEAT, "Sets what portalgun colors players spawn with. 0 = Primary, 1 = Secondary, 2 = Both" );
+#endif
 ConVar sv_restart_server( "sv_restart_server", "0", FCVAR_REPLICATED, "When all players disconnect, the game will change the map back to the first map in the map set" );
 ConVar sv_restart_server_map( "sv_restart_server_map", "", FCVAR_REPLICATED, "Map to change when all players disconnect (requires sv_restart_server to be 1)" );
 ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "1", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );

@@ -882,6 +882,18 @@ void CPortalNewGameMapSetPage::StartGame( void )
 
 		ConVarRef sv_cheats( "sv_cheats" );
 		sv_cheats.SetValue( m_bCommentaryMode );
+		
+		// Also set certain convars that are necessary for a vanilla experience
+		{
+			ConVarRef pcoop_spectate_after_past_required_players( "pcoop_spectate_after_past_required_players" );
+			pcoop_spectate_after_past_required_players.SetValue( true );
+		
+			ConVarRef pcoop_require_all_players( "pcoop_require_all_players" );
+			pcoop_require_all_players.SetValue( true );
+		
+			ConVarRef pcoop_require_all_players_force_amount( "pcoop_require_all_players_force_amount" );
+			pcoop_require_all_players_force_amount.SetValue( -2 );
+		}	
 
 		if ( IsPC() )
 		{

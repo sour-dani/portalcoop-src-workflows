@@ -10,7 +10,7 @@
 #include "replay/IEngineReplay.h"
 #endif
 
-ConVar pcoop_require_all_players( "pcoop_require_all_players", "1", FCVAR_REPLICATED | FCVAR_ARCHIVE | FCVAR_NOTIFY, "Effectively pauses the game when there are not enough players in the server" );
+ConVar pcoop_require_all_players( "pcoop_require_all_players", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Effectively pauses the game when there are not enough players in the server" );
 ConVar pcoop_require_all_players_force_amount( "pcoop_require_all_players_force_amount", "-2", FCVAR_NOTIFY | FCVAR_REPLICATED, "Force a certain amount of required players instead of using max players. -1 = use max players\n-2 = use the map's data file", true, -2, true, MAX_PLAYERS );
 
 #ifdef GAME_DLL

@@ -438,7 +438,7 @@ END_DATADESC()
 
 ConVar sv_regeneration_wait_time("sv_regeneration_wait_time", "1.0", FCVAR_REPLICATED);
 
-ConVar pcoop_spectate_after_past_required_players( "pcoop_spectate_after_past_required_players", "1", FCVAR_NOTIFY | FCVAR_ARCHIVE, "If set, players who connect after the amount of required players joined will become spectators" );
+ConVar pcoop_spectate_after_past_required_players( "pcoop_spectate_after_past_required_players", "1", FCVAR_NOTIFY, "If set, players who connect after the amount of required players joined will become spectators" );
 
 #define MAX_COMBINE_MODELS 4
 #define MODEL_CHANGE_INTERVAL 5.0f
