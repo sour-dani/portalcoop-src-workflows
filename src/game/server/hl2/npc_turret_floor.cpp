@@ -176,6 +176,16 @@ CNPC_FloorTurret::CNPC_FloorTurret( void ) :
 	m_vecGoalAngles.Init();
 
 	m_vecEnemyLKP = vec3_invalid;
+
+	AddToPauseList( this );
+}
+
+//-----------------------------------------------------------------------------
+// Deconstructor
+//-----------------------------------------------------------------------------
+CNPC_FloorTurret::~CNPC_FloorTurret( void )
+{
+	RemoveFromPauseList( this );
 }
 
 //-----------------------------------------------------------------------------

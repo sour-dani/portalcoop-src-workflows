@@ -3761,8 +3761,80 @@ void CBaseEntity::OnRestore()
 	// We're not save/loading the PVS dirty state. Assume everything is dirty after a restore
 	NetworkProp()->MarkPVSInformationDirty();
 }
+#ifdef PORTAL
+extern int g_iPauseTick;
+void CBaseEntity::OnPause( void )
+{
 
+}
 
+void CBaseEntity::OnUnPause( float flAddedTime )
+{
+#if 0 // For now, don't change any of this
+	int iAddedTicks = gpGlobals->tickcount - g_iPauseTick;
+
+	// Restore the think timers
+	AdjustUnPauseTick( m_nNextThinkTick.GetForModify(), iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME );
+	AdjustUnPauseTick( m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME  );
+	for ( int i = 0; i < m_aThinkFunctions.Count(); ++i )
+	{
+		AdjustUnPauseTick( m_aThinkFunctions[i].m_nNextThinkTick, iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME );
+		AdjustUnPauseTick( m_aThinkFunctions[i].m_nLastThinkTick, iAddedTicks, ADJUST_CHECK_VAR | ADJUST_CHECK_MORE_THAN_CURTIME );
+	}
+
+	// Restore the anim times
+	AdjustUnPauseTime( m_flAnimTime.GetForModify(), flAddedTime, ADJUST_CHECK_MORE_THAN_CURTIME | ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flPrevAnimTime, flAddedTime, ADJUST_CHECK_MORE_THAN_CURTIME | ADJUST_CHECK_VAR );
+#endif
+}
+
+void CBaseEntity::AdjustUnPauseTime( float &var, float flAddedTime, int iAdjustFlags )
+{
+	if ( iAdjustFlags & ADJUST_CHECK_LESS_THAN_CURTIME )
+	{
+		if ( var < gpGlobals->curtime )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_MORE_THAN_CURTIME )
+	{
+		if ( var > gpGlobals->curtime )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_VAR )
+	{
+		if ( var <= 0.0f )
+			return;
+	}
+
+	var += flAddedTime;
+}
+
+void CBaseEntity::AdjustUnPauseTick( int &var, int iAddedTicks, int iAdjustFlags )
+{
+	if ( iAdjustFlags & ADJUST_CHECK_LESS_THAN_CURTIME )
+	{
+		if ( var < gpGlobals->tickcount )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_MORE_THAN_CURTIME )
+	{
+		if ( var > gpGlobals->tickcount )
+			return;
+	}
+	
+	if ( iAdjustFlags & ADJUST_CHECK_VAR )
+	{
+		if ( var <= 0.0f )
+			return;
+	}
+
+	var += iAddedTicks;
+}
+
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Recursively restores all the classes in an object, in reverse order (top down)
 // Output : int 0 on failure, 1 on success

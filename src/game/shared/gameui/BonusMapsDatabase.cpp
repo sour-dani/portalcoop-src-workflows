@@ -762,6 +762,7 @@ void CBonusMapsDatabase::BuildSubdirectoryList( const char *pCurrentPath, bool b
 			 Q_strcmp( pDirFileName, "." ) == 0 || 
 			 Q_strcmp( pDirFileName, ".." ) == 0 ||
 			 Q_stricmp( pDirFileName, "soundcache" ) == 0 ||
+			 Q_stricmp( pDirFileName, "mapdata" ) == 0 ||
 			 Q_stricmp( pDirFileName, "graphs" ) == 0 )
 		{
 			pDirFileName = g_pFullFileSystem->FindNext( dirHandle );

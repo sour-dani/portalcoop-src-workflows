@@ -374,8 +374,8 @@ CBaseAnimating::~CBaseAnimating()
 //-----------------------------------------------------------------------------
 void CBaseAnimating::AddGlowEffect( void )
 {
-	SetTransmitState( FL_EDICT_ALWAYS );
 	m_bGlowEnabled.Set( true );
+	DispatchUpdateTransmitState();
 }
 
 
@@ -385,6 +385,7 @@ void CBaseAnimating::AddGlowEffect( void )
 void CBaseAnimating::RemoveGlowEffect( void )
 {
 	m_bGlowEnabled.Set( false );
+	DispatchUpdateTransmitState();
 }
 
 //-----------------------------------------------------------------------------
@@ -418,10 +419,12 @@ void CBaseAnimating::SetGlowEffectColor(Color color)
 void CBaseAnimating::SetGlowEnabled(inputdata_t& inputdata)
 {
 	m_bGlowEnabled.Set(true);
+	DispatchUpdateTransmitState();
 }
 void CBaseAnimating::SetGlowDisabled(inputdata_t& inputdata)
 {
 	m_bGlowEnabled.Set(false);
+	DispatchUpdateTransmitState();
 }
 void CBaseAnimating::SetGlowColorRed(inputdata_t& inputdata)
 {
@@ -439,6 +442,15 @@ void CBaseAnimating::SetGlowColor(inputdata_t& inputdata)
 {
 	color32 color = inputdata.value.Color32();
 	SetGlowEffectColor(color.r / 255, color.g / 255, color.b / 255);
+}
+int CBaseAnimating::UpdateTransmitState()
+{
+	if ( m_bGlowEnabled )
+	{
+		return SetTransmitState( FL_EDICT_ALWAYS );
+	}
+
+	return BaseClass::UpdateTransmitState();
 }
 
 #endif // GLOWS_ENABLE
@@ -518,8 +530,14 @@ void CBaseAnimating::OnRestore()
 	m_flEstIkFloor = GetLocalOrigin().z;
 	PopulatePoseParameters();
 }
+#ifdef PORTAL
+void CBaseAnimating::OnUnPause( float flAddedTime )
+{
+	AdjustUnPauseTime( m_flDissolveStartTime, flAddedTime );
 
-
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CBaseAnimating::Spawn()

@@ -24,6 +24,8 @@ class CPortal_Player;
 #include "func_liquidportal.h"
 #include "ai_speech.h"			// For expresser host
 
+#define PINGTIME 3.0
+
 class CEntityPortalledNetworkMessage
 {
 public:
@@ -109,6 +111,9 @@ public:
 	virtual void Spawn( void );
 	virtual void OnRestore( void );
 	virtual void Activate( void );
+	
+	virtual void OnPause( void ) OVERRIDE;
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
 
 	virtual void NotifySystemEvent( CBaseEntity *pNotify, notify_system_event_t eventType, const notify_system_event_params_t &params );
 
@@ -268,8 +273,10 @@ public:
 
 	CNetworkQAngle( m_angEyeAngles );
 
+	bool m_bWasPaused;
+
 private:
-	
+
 	bool m_bLookingForUseEntity;
 	bool m_bLookForUseEntity;
 	float m_flLookForUseEntityTime;

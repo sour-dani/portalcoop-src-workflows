@@ -54,6 +54,9 @@ public:
 
 	virtual int	 Restore( IRestore &restore );
 	virtual void OnRestore();
+#ifdef PORTAL
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 
 #ifdef GLOWS_ENABLE
 	// Glows
@@ -62,6 +65,9 @@ public:
 	void				AddGlowEffect(void);
 	void				RemoveGlowEffect(void);
 	bool				IsGlowEffectActive(void);
+	
+	// Do NOT call this directly. Use DispatchUpdateTransmitState.
+	virtual int			UpdateTransmitState();
 #endif // GLOWS_ENABLE
 
 	CStudioHdr *GetModelPtr( void );

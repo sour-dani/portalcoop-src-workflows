@@ -87,17 +87,6 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 	AngleVectors( qAngles, &vForward );
 
 	m_ptAimPoint = m_ptCreationPoint + vForward * m_ptCreationPoint.DistTo( m_ptDeathPoint );
-#if 0
-	Msg("/======================================\n");
-	Msg("/ C_PortalBlast::Init \n");
-	Msg("/======================================\n\n");
-
-	Msg("m_ptCreationPoint: %f %f %f\n", m_ptCreationPoint.x, m_ptCreationPoint.y, m_ptCreationPoint.z);
-	Msg("m_ptDeathPoint: %f %f %f\n", m_ptDeathPoint.x, m_ptDeathPoint.y, m_ptDeathPoint.z);
-	Warning("m_ptAimPoint: %f %f %f\n", m_ptAimPoint.x, m_ptAimPoint.y, m_ptAimPoint.z);
-	Msg("vForward: %f %f %f\n", vForward.x, vForward.y, vForward.z);
-	Msg("qAngles: %f %f %f\n", qAngles[0], qAngles[1], qAngles[2]);
-#endif
 
 	C_BasePlayer *pPlayer = ToBasePlayer(hEntity.Get());
 

@@ -141,9 +141,27 @@ private:
 
 extern CMapInfo g_MapInfo;
 
+extern const char *g_pszAllPcoopMaps[];
+
+int GetPCoopMapCount();
+
 int GetRequiredPlayers();
 
 bool PlayerShouldPlay( int index );
+
+bool Map_IsQuickplayAllowed( const char *pMapName );
+bool Map_Is2Player( const char *pMapName );
+bool Map_Is3Player( const char *pMapName );
+
+inline bool Map_IsNormal( const char *pMapName )
+{
+	return V_stristr( pMapName, "p2coop_" ) || V_stristr( pMapName, "p3coop_" );
+}
+
+inline bool Map_IsRexaura( const char *pMapName )
+{
+	return V_stristr( pMapName, "rex2c_" ) || V_stristr( pMapName, "rex3c_" ) || V_stristr( pMapName, "rex_" );
+}
 
 #define INSTALL_BITS_PORTAL		(1<<0)
 #define INSTALL_BITS_REXAURA	(1<<1)

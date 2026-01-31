@@ -454,7 +454,9 @@ public:
 
 	void					SetCustomViewModel( const char *pszCustomViewModel );
 	void					SetCustomViewModelModelIndex( int nCustomViewModelModelIndex );
-
+#ifdef PORTAL
+	virtual void			OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 // Client only methods
 #else
 

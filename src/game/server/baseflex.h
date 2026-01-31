@@ -51,7 +51,9 @@ public:
 	// Construction
 						CBaseFlex( void );
 						~CBaseFlex( void );
-
+#ifdef PORTAL
+	virtual void		OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 	virtual void		SetModel( const char *szModelName );
 
 	void Blink( );

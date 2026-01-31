@@ -440,12 +440,10 @@ void CPointTemplate::InputForceSpawn( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void ScriptInstallPreSpawnHook()
 {
-#ifndef PORTAL // PCOOP_PORT: g_Script_spawn_helper isn't being made in the .nut file for some reason
 	if ( g_pScriptVM && !g_pScriptVM->ValueExists( "__ExecutePreSpawn" ) )
 	{
 		g_pScriptVM->Run( g_Script_spawn_helper );
 	}
-#endif
 }
 
 //-----------------------------------------------------------------------------

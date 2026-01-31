@@ -32,11 +32,16 @@ public:
 	DECLARE_DATADESC();
 	DECLARE_SERVERCLASS();
 
+	CPropCombineBall();
+	~CPropCombineBall();
+
 	virtual void Precache();
 	virtual void Spawn();
 	virtual void UpdateOnRemove();
 	void StopLoopingSounds();
-
+#ifdef PORTAL
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 	virtual void OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason );
 	virtual void OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason );
 	virtual void VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
@@ -203,10 +208,13 @@ class CFuncCombineBallSpawner : public CBaseEntity
 
 public:
 	CFuncCombineBallSpawner();
+	~CFuncCombineBallSpawner();
 
 	virtual void Spawn();
 	virtual void Precache();
-
+#ifdef PORTAL
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 	// Balls call this to figure out where to bounce to
 	void GetTargetEndpoint( bool bForward, Vector *pVecEndpoint );
 

@@ -1148,6 +1148,7 @@ COptionsSubVideo::COptionsSubVideo(vgui::Panel *parent) : PropertyPage(parent, N
 	{
 		m_pWindowed->AddItem( "#GameUI_Fullscreen", NULL );
 		m_pWindowed->AddItem( "#GameUI_Windowed", NULL );
+		m_pWindowed->AddItem( "#GameUI_NoWindowBorder", NULL );
 	}
 	else
 	{
@@ -1173,6 +1174,7 @@ COptionsSubVideo::COptionsSubVideo(vgui::Panel *parent) : PropertyPage(parent, N
 
 	m_pWindowed->AddItem( "#GameUI_Fullscreen", NULL );
 	m_pWindowed->AddItem( "#GameUI_Windowed", NULL );
+	m_pWindowed->AddItem( "#GameUI_NoWindowBorder", NULL );
 #endif
 
 	LoadControlSettings("Resource\\OptionsSubVideo2.res");
@@ -1554,7 +1556,10 @@ void COptionsSubVideo::OnApplyChanges()
 
 	// windowed
 	bool bConfigChanged = false;
-	bool windowed = ( m_pWindowed->GetActiveItem() == ( m_pWindowed->GetItemCount() - 1 ) ) ? true : false;
+	bool noborder = ( m_pWindowed->GetActiveItem() == ( m_pWindowed->GetItemCount() - 1 ) ) ? true : false;
+	bool windowed = ( m_pWindowed->GetActiveItem() == ( m_pWindowed->GetItemCount() - 2 ) ) ? true : false;
+	windowed |= noborder;
+
 	const MaterialSystem_Config_t &config = materials->GetCurrentConfigForVideoCard();
 #if SUPPORT_VR
 	bool bVRMode = m_pVRMode->GetActiveItem() != 0;
@@ -1573,7 +1578,8 @@ void COptionsSubVideo::OnApplyChanges()
 	// make sure there is a change
 	if ( config.m_VideoMode.m_Width != width
 		|| config.m_VideoMode.m_Height != height
-		|| config.Windowed() != windowed )
+		|| config.Windowed() != windowed
+		|| config.NoWindowBorder() != noborder )
 	{
 		bConfigChanged = true;
 	}
@@ -1615,7 +1621,7 @@ void COptionsSubVideo::OnApplyChanges()
 	{
 		// set mode
 		char szCmd[ 256 ];
-		Q_snprintf( szCmd, sizeof( szCmd ), "mat_setvideomode %i %i %i\n", width, height, windowed ? 1 : 0 );
+		Q_snprintf( szCmd, sizeof( szCmd ), "mat_setvideomode %i %i %i %i\n", width, height, windowed ? 1 : 0, noborder ? 1 : 0 );
 		engine->ClientCmd_Unrestricted( szCmd );
 	}
 

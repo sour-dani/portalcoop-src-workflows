@@ -14,6 +14,7 @@
 #include "prop_box.h"
 #include "trigger_box_reflector.h"
 #include "portal_gamerules.h"
+#include "portal_physics_collisionevent.h"
 
 // resource file names
 #define IMPACT_DECAL_NAME	"decals/smscorch1model"
@@ -34,7 +35,9 @@ public:
 	virtual void StopLoopingSounds( void );
 	virtual void Spawn();
 	virtual void Activate( void );
-
+#ifdef PORTAL
+	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
+#endif
 	// Overload for unlimited bounces and predictable movement
 	virtual void VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
 	// Overload for less sound, no shake.
@@ -165,7 +168,14 @@ void CPropEnergyBall::Activate( void )
 
 	CreateSounds();
 }
+#ifdef PORTAL
+void CPropEnergyBall::OnUnPause( float flAddedTime )
+{
+	AdjustUnPauseTime( m_fTimeTillDeath.GetForModify(), flAddedTime );
 
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Keep a constant velocity despite collisions, make impact sounds and effects
 //-----------------------------------------------------------------------------
@@ -255,7 +265,7 @@ void CPropEnergyBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEven
 		// Only place decals and draw effects if we hit something valid
 		if ( pEntity )
 		{
-			bDoEffects = HandleSpecialEntityImpact( pEntity, true );
+			bDoEffects = HandleSpecialEntityImpact( pEntity, false );
 
 			if ( bDoEffects )
 			{
@@ -360,10 +370,10 @@ bool CPropEnergyBall::HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAn
 	}
 	else
 	{
-		if ( bDoAnything )
+		CFuncBoxReflectorShield *pShield = dynamic_cast<CFuncBoxReflectorShield*>( pOther );
+		if ( pShield )
 		{
-			CFuncBoxReflectorShield *pShield = dynamic_cast<CFuncBoxReflectorShield*>( pOther );
-			if ( pShield )
+			if ( bDoAnything )
 			{
 				pShield->EnergyBallHit( this );
 			}
@@ -470,18 +480,8 @@ void CPropEnergyBall::StartTouch( CBaseEntity *pOther )
 		// Destruct when we hit the player
 		SetContextThink( &CPropEnergyBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
 	}
-	
-	//HandleSpecialEntityImpact( pOther, true );
 
-	/*CPropBox *pBox = dynamic_cast<CPropBox*>( pOther );
-	if ( pBox )
-	{
-		if ( pBox->m_hAttached )
-		{
-			SetContextThink( &CPropCombineBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
-		}
-		pBox->EnergyBallHit( this );
-	}*/
+	HandleSpecialEntityImpact( pOther, true );
 
 	CProp_Portal* pPortal = dynamic_cast<CProp_Portal*>(pOther);
 	// If toucher is a prop portal

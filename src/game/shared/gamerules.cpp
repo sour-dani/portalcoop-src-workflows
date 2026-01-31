@@ -132,6 +132,11 @@ BEGIN_SIMPLE_DATADESC( CGameRules )
 END_DATADESC()
 
 #ifdef GAME_DLL
+#ifndef PORTAL // stubs
+void AddToPauseList( CBaseEntity *pEntity ) {}
+void RemoveFromPauseList( CBaseEntity *pEntity ) {}
+#endif
+
 void CGameRules::PauseBonusProgress( bool bPause )
 {
 	m_bPauseBonusProgress = bPause;

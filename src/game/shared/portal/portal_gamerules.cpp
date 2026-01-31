@@ -41,10 +41,11 @@ extern void ResetPortalPlayerData( void );
 #include "tier0/memdbgon.h"
 	
 extern ConVar physcannon_mega_enabled;
-ConVar sv_spawn_with_suit( "sv_spawn_with_suit", "0", FCVAR_REPLICATED, "Sets whether or not players should spawn with the HEV suit" );
-ConVar sv_portalgun_spawn( "sv_portalgun_spawn", "0", FCVAR_REPLICATED, "Sets if the player should spawn with the portalgun" );
-ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_REPLICATED, "Sets what portalgun colors players spawn with. 0 = Primary, 1 = Secondary, 2 = Both" );
-
+#ifdef GAME_DLL
+ConVar sv_spawn_with_suit( "sv_spawn_with_suit", "0", FCVAR_CHEAT, "Sets whether or not players should spawn with the HEV suit" );
+ConVar sv_portalgun_spawn( "sv_portalgun_spawn", "0", FCVAR_CHEAT, "Sets if the player should spawn with the portalgun" );
+ConVar sv_portalgun_color( "sv_portalgun_color", "2", FCVAR_CHEAT, "Sets what portalgun colors players spawn with. 0 = Primary, 1 = Secondary, 2 = Both" );
+#endif
 ConVar sv_restart_server( "sv_restart_server", "0", FCVAR_REPLICATED, "When all players disconnect, the game will change the map back to the first map in the map set" );
 ConVar sv_restart_server_map( "sv_restart_server_map", "", FCVAR_REPLICATED, "Map to change when all players disconnect (requires sv_restart_server to be 1)" );
 ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "1", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );
@@ -480,7 +481,7 @@ const char *CPortalGameRules::GetGameDescription( void )
 		g_pCVar->FindVar( "sv_maxreplay" )->SetValue( "1.5" );
 #ifdef GAME_DLL
 		m_iPlayingPlayers = 0;
-		m_bInRestore = false;
+		m_bRestoringPlayer = false;
 		m_bDisableGamePause = false;
 		m_bDisablePlayerRestore = false;
 #endif
@@ -1557,7 +1558,26 @@ const char *CPortalGameRules::GetGameDescription( void )
 		// No fall damage in Portal!
 		return 0.0f;
 	}
-
+	
+	//-----------------------------------------------------------------------------
+	// Purpose: 
+	//-----------------------------------------------------------------------------
+	const char *CPortalGameRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
+	{
+		if ( !pPlayer )  // dedicated server output
+		{
+			return NULL;
+		}
+		
+		if ( pPlayer->GetTeamNumber() != TEAM_SPECTATOR )
+		{
+			return "Portal_Chat_All";	
+		}
+		else
+		{
+			return "Portal_Chat_AllSpec";
+		}
+	}
 
 #endif //} !CLIENT_DLL
 
@@ -1740,28 +1760,6 @@ void CPortalGameRules::LevelShutdown( void )
 extern void SavePortalPlayerData( CPortal_Player *pPlayer );
 extern void RestorePortalPlayerData( CPortal_Player *pPlayer );
 
-void PausePlayer( CBasePlayer *pPlayer )
-{
-	pPlayer->LockPlayerInPlace();
-	color32_s color;
-	color.r = 0;
-	color.g = 0;
-	color.b = 0;
-	color.a = 255;
-	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
-}
-
-void UnpausePlayer( CBasePlayer *pPlayer )
-{
-	pPlayer->UnlockPlayer();			
-	color32_s color;
-	color.r = 0;
-	color.g = 0;
-	color.b = 0;
-	color.a = 0;
-	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
-}
-
 void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
 {
 	if ( PlayerShouldPlay( pPlayer->entindex() ) )
@@ -1776,11 +1774,11 @@ void CPortalGameRules::ClientActive( CPortal_Player *pPlayer )
 	CheckShouldPause();
 	
 	if ( pcoop_paused.GetBool() )
-		PausePlayer( pPlayer );
+		pPlayer->OnPause();
 
-	m_bInRestore = true;
+	m_bRestoringPlayer = true;
 	RestorePortalPlayerData( pPlayer );
-	m_bInRestore = false;
+	m_bRestoringPlayer = false;
 }
 
 void CPortalGameRules::ClientDisconnected( edict_t *pClient )
@@ -1841,12 +1839,78 @@ void CPortalGameRules::ClientDisconnected( edict_t *pClient )
 	SavePortalPlayerData( pPlayer );
 
 	CheckShouldPause();
-
-	if ( pcoop_paused.GetBool() )
-		PausePlayer( pPlayer );
+	
+	// This doesn't seem necessary
+	//if ( pcoop_paused.GetBool() )
+	//	pPlayer->OnPause();
 
 	BaseClass::ClientDisconnected( pClient );
 }
+
+float g_flTimeWhenPaused = 0.0f;
+float g_flServerTimeWhenPaused = 0.0f;
+int g_iPauseTick = 0;
+CUtlVector<CBaseEntity*> g_AllPausables;
+
+void ResetAllPauseData( void )
+{
+	g_flTimeWhenPaused = 0.0f;
+	g_flServerTimeWhenPaused = 0.0f;
+	g_iPauseTick = 0;
+}
+
+void AddToPauseList( CBaseEntity *pEntity )
+{
+	g_AllPausables.AddToTail( pEntity );
+}
+
+void RemoveFromPauseList( CBaseEntity *pEntity )
+{
+	g_AllPausables.FindAndRemove( pEntity );
+}
+
+void PauseEntities( void )
+{
+	for ( int i = 0; i < g_AllPausables.Count(); ++i )
+	{
+		g_AllPausables[i]->OnPause();
+	}
+}
+
+void UnPauseEntities( void )
+{
+	float flAddedTime = gpGlobals->curtime - g_flTimeWhenPaused;
+	for ( int i = 0; i < g_AllPausables.Count(); ++i )
+	{
+		CPortal_Player *pPortalPlayer = ToPortalPlayer( g_AllPausables[i] );
+		if ( !pPortalPlayer )
+			pPortalPlayer = ToPortalPlayer( g_AllPausables[i]->GetOwnerEntity() );
+		if ( pPortalPlayer && !pPortalPlayer->m_bWasPaused )
+		{
+			continue;
+		}
+		g_AllPausables[i]->OnUnPause( flAddedTime );
+	}
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CPortal_Player *pPlayer = (CPortal_Player*)UTIL_PlayerByIndex( i );
+		if ( !pPlayer )
+			continue;
+
+		pPlayer->m_bWasPaused = false;
+	}
+}
+
+CON_COMMAND_F( dump_pausable_entities, "Lists every entity that gets restored after unpausing", FCVAR_CHEAT )
+{
+	for ( int i = 0; i < g_AllPausables.Count(); ++i )
+	{
+		Msg( "%i : %s\n", g_AllPausables[i]->entindex(), g_AllPausables[i]->GetClassname() );
+	}
+}
+
+extern void RestoreEventQueue();
 
 void CPortalGameRules::CheckShouldPause( void )
 {
@@ -1856,14 +1920,14 @@ void CPortalGameRules::CheckShouldPause( void )
 	{
 		if ( !pcoop_paused.GetBool() )
 		{
-			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
-			{
-				CPortal_Player *pPlayer = GetPortalPlayer( i );
-				if ( !pPlayer )
-					continue;
+			// When the game pauses, do things
+			PauseEntities();
+			
+			g_flTimeWhenPaused = gpGlobals->curtime;
+			g_flServerTimeWhenPaused = engine->GetServerTime();
+			g_iPauseTick = gpGlobals->tickcount;
 
-				PausePlayer( pPlayer );
-			}
+			// Set the value
 			pcoop_paused.SetValue( true );
 		}
 	}
@@ -1871,14 +1935,13 @@ void CPortalGameRules::CheckShouldPause( void )
 	{
 		if ( pcoop_paused.GetBool() )
 		{
-			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
-			{
-				CPortal_Player *pPlayer = GetPortalPlayer( i );
-				if ( !pPlayer )
-					continue;
+			// When the game unpauses, do things
+			UnPauseEntities();
+			RestoreEventQueue();
+			
+			ResetAllPauseData();
 
-				UnpausePlayer( pPlayer );
-			}
+			// Set the value
 			pcoop_paused.SetValue( false );			
 		}
 	}
@@ -2087,6 +2150,70 @@ void CPortalGameRules::GoToIntermission( void )
 #endif
 	
 }
+#ifdef GAME_DLL
+ConVar pcoop_tags_2player( "pcoop_tags_2player", "0", FCVAR_DEVELOPMENTONLY );
+ConVar pcoop_tags_3player( "pcoop_tags_3player", "0", FCVAR_DEVELOPMENTONLY );
+ConVar pcoop_tags_2player_rexaura( "pcoop_tags_2player_rexaura", "0", FCVAR_DEVELOPMENTONLY );
+
+void SetupTagConVars()
+{
+	pcoop_tags_2player.SetValue( "0" );
+	pcoop_tags_3player.SetValue( "0" );
+	pcoop_tags_2player_rexaura.SetValue( "0" );
+
+	const char *pszMapName = gpGlobals->mapname.ToCStr();
+	if ( Map_Is2Player( pszMapName ) )
+	{
+		if ( Map_IsRexaura( pszMapName ) )
+		{
+			pcoop_tags_2player_rexaura.SetValue( "1" );
+		}
+		else
+		{
+			pcoop_tags_2player.SetValue( "1" );
+		}
+	}
+	else if ( Map_Is3Player( pszMapName ) )
+	{
+		pcoop_tags_2player.SetValue( "1" );
+	}
+}
+
+struct convar_tags_t
+{
+	const char *pszConVar;
+	const char *pszTag;
+};
+
+// The list of convars that automatically turn on tags when they're changed.
+// Convars in this list need to have the FCVAR_NOTIFY flag set on them, so the
+// tags are recalculated and uploaded to the master server when the convar is changed.
+convar_tags_t convars_to_check_for_tags[] =
+{
+	{ "pcoop_tags_2player",			"2player" },
+	{ "pcoop_tags_3player",			"3player" },
+	{ "pcoop_tags_2player_rexaura",	"2player_rexaura" },
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: Engine asks for the list of convars that should tag the server
+//-----------------------------------------------------------------------------
+void CPortalGameRules::GetTaggedConVarList( KeyValues *pCvarTagList )
+{
+	SetupTagConVars();
+
+	BaseClass::GetTaggedConVarList( pCvarTagList );
+
+	for ( int i = 0; i < ARRAYSIZE(convars_to_check_for_tags); i++ )
+	{
+		KeyValues *pKV = new KeyValues( "tag" );
+		pKV->SetString( "convar", convars_to_check_for_tags[i].pszConVar );
+		pKV->SetString( "tag", convars_to_check_for_tags[i].pszTag );
+
+		pCvarTagList->AddSubKey( pKV );
+	}
+}
+#endif
 
 #ifdef GAME_DLL
 CON_COMMAND(displaychallengetype_server, "Shows what challenge the gamerules is running")

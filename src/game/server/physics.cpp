@@ -374,6 +374,11 @@ bool CPhysicsHook::FindOrAddVehicleScript( const char *pScriptName, vehicleparam
 void CPhysicsHook::FrameUpdatePostEntityThink( ) 
 {
 	VPROF_BUDGET( "CPhysicsHook::FrameUpdatePostEntityThink", VPROF_BUDGETGROUP_PHYSICS );
+#ifdef PORTAL
+	extern ConVar pcoop_paused;
+	if ( pcoop_paused.GetBool() )
+		return;
+#endif
 
 	// Tracker 24846:  If game is paused, don't simulate vphysics
 	float interval = ( gpGlobals->frametime > 0.0f ) ? TICK_INTERVAL : 0.0f;

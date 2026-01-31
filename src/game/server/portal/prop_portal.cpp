@@ -43,7 +43,6 @@ CCallQueue *GetPortalCallQueue();
 ConVar sv_portal_debug_touch("sv_portal_debug_touch", "0", FCVAR_REPLICATED );
 ConVar sv_portal_placement_never_fail("sv_portal_placement_never_fail", "0", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar sv_portal_new_velocity_check("sv_portal_new_velocity_check", "1", FCVAR_REPLICATED | FCVAR_CHEAT);
-extern ConVar use_server_portal_particles;
 
 CUtlVector<CProp_Portal *> s_PortalLinkageGroups[256];
 
@@ -408,30 +407,6 @@ void CProp_Portal::OnRestore()
 	BaseClass::OnRestore();
 
 	SetupPortalColorSet();
-
-	if ( IsActive() && use_server_portal_particles.GetBool() )
-	{
-		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
-		{
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_particles" ) : ( "portal_lightblue_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_edge" ) : ( "portal_lightblue_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
-		{			
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_particles" ) : ( "portal_yellow_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_edge" ) : ( "portal_yellow_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
-		{			
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_particles" ) : ( "portal_green_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_edge" ) : ( "portal_green_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-		else
-		{
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_particles" ) : ( "portal_1_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_edge" ) : ( "portal_1_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-	}
 }
 
 void DumpActiveCollision( const CPortalSimulator *pPortalSimulator, const char *szFileName );
@@ -1681,29 +1656,6 @@ void CProp_Portal::NewLocation( const Vector &vOrigin, const QAngle &qAngles )
 		CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
 		controller.SoundChangeVolume( m_pAmbientSound, 0.4, 0.1 );
 	}
-	if (use_server_portal_particles.GetBool())
-	{
-		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
-		{
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_particles" ) : ( "portal_lightblue_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_edge" ) : ( "portal_lightblue_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
-		{			
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_particles" ) : ( "portal_yellow_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_edge" ) : ( "portal_yellow_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
-		{			
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_particles" ) : ( "portal_green_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_edge" ) : ( "portal_green_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-		else
-		{
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_particles" ) : ( "portal_1_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-			DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_edge" ) : ( "portal_1_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-		}
-	}
 	//if the other portal should be static, let's not punch stuff resting on it
 	bool bOtherShouldBeStatic = false;
 	if( !m_hLinkedPortal )
@@ -1855,29 +1807,6 @@ void CProp_Portal::InputSetActivatedState( inputdata_t &inputdata )
 				CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
 
 				controller.SoundChangeVolume( m_pAmbientSound, 0.4, 0.1 );
-			}
-			if (use_server_portal_particles.GetBool())
-			{
-				if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
-				{
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_particles" ) : ( "portal_lightblue_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_edge" ) : ( "portal_lightblue_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-				}
-				else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
-				{			
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_particles" ) : ( "portal_yellow_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_edge" ) : ( "portal_yellow_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-				}
-				else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
-				{			
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_particles" ) : ( "portal_green_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_edge" ) : ( "portal_green_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-				}
-				else
-				{
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_particles" ) : ( "portal_1_particles" ) ), PATTACH_POINT_FOLLOW, this, "particles_2", true );
-					DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_edge" ) : ( "portal_1_edge" ) ), PATTACH_POINT_FOLLOW, this, "particlespin" );
-				}
 			}
 			if ( m_bIsPortal2 )
 			{

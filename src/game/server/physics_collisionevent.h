@@ -116,6 +116,8 @@ public:
 
 	void GetListOfPenetratingEntities( CBaseEntity *pSearch, CUtlVector<CBaseEntity *> &list );
 	bool IsInCallback() { return m_inCallback > 0 ? true : false; }
+	
+	void AddTouchEvent( CBaseEntity *pEntity0, CBaseEntity *pEntity1, int touchType, const Vector &point, const Vector &normal );
 
 private:
 #if _DEBUG
@@ -128,7 +130,6 @@ private:
 	void UpdatePenetrateEvents( void );
 	void UpdateFluidEvents();
 	void UpdateRemoveObjects();
-	void AddTouchEvent( CBaseEntity *pEntity0, CBaseEntity *pEntity1, int touchType, const Vector &point, const Vector &normal );
 	penetrateevent_t &FindOrAddPenetrateEvent( CBaseEntity *pEntity0, CBaseEntity *pEntity1 );
 	float DeltaTimeSinceLastFluid( CBaseEntity *pEntity );
 

@@ -984,11 +984,11 @@ bool CServerGameDLL::IsRestoring()
 ConVar pcoop_ignore_installed_games_check( "pcoop_ignore_installed_games_check", "0", FCVAR_NONE, "Ignores the game install check for maps that depend on another mod being mounted" );
 void UpdatePortalGameType( const char *pMapName )
 {
-	/*if ( V_stristr( pMapName, "p2coop_" ) || V_stristr( pMapName, "p3coop_" ) )
+	/*if ( Map_Is2Player( pMapName ) )
 	{
 		sv_portal_game.SetValue( PORTAL_GAME_PORTAL );
 	}
-	else*/ if ( V_stristr( pMapName, "rex2c_" ) || V_stristr( pMapName, "rex3c_" ) || V_stristr( pMapName, "rex_" ) )
+	else*/ if ( Map_IsRexaura( pMapName ) )
 	{
 		if ( !pcoop_ignore_installed_games_check.GetBool() && (g_fInstalledGames & INSTALL_BITS_REXAURA) == 0 )
 		{
@@ -1523,6 +1523,10 @@ void CServerGameDLL::LevelShutdown( void )
 		TheNavMesh->Reset();
 	}
 #endif
+#endif
+#ifdef PORTAL
+	extern void ResetAllPauseData( void );
+	ResetAllPauseData();
 #endif
 }
 
@@ -3197,6 +3201,13 @@ float CServerGameClients::ProcessUsercmds( edict_t *player, bf_read *buf, int nu
 	{
 		return 0.0f;
 	}
+//#ifdef PORTAL
+//	extern ConVar pcoop_paused;
+//	if ( pcoop_paused.GetBool() )
+//	{
+//		paused = pcoop_paused.GetBool();
+//	}
+//#endif
 
 	MDLCACHE_CRITICAL_SECTION();
 	pPlayer->ProcessUsercmds( cmds, numcmds, totalcmds, dropped_packets, paused );

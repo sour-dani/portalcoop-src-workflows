@@ -48,8 +48,6 @@ public:
 
 	virtual void Spawn( void );
 
-	virtual void CreateSounds( void );
-	virtual void StopLoopingSounds( void );
 	void ClientThink( void );
 	void FixTeleportationRoll( void );
 	void PostThink( void );
@@ -128,7 +126,6 @@ public:
 
 	
 	void UpdatePortalPlaneSounds( void );
-	void UpdateWooshSounds( void );
 	
 	bool UseFoundEntity( CBaseEntity *pUseEntity );
 	CBaseEntity*	FindUseEntity( void );
@@ -225,7 +222,6 @@ public:
 	
 	float GetLatestServerTeleport() { return m_fLatestServerTeleport; }
 
-	CSoundPatch		*m_pWooshSound;
 	bool	m_bIntersectingPortalPlane;
 
 protected:
@@ -315,8 +311,6 @@ private:
 	bool m_bToolMode_EyeHasPortalled_LastRecord; //when recording, keep track of whether we teleported the camera position last capture or not. Need to avoid interpolating when switching
 
 public:
-
-	unsigned char m_iPortalLinkageGroupID; //which portal linkage group this gun is tied to, usually set by mapper, or inherited from owning player's index
 
 	bool	m_bPitchReorientation;
 	float	m_fReorientationRate;

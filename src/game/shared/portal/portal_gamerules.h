@@ -78,6 +78,8 @@ public:
 	virtual void	ClientSettingsChanged( CBasePlayer *pPlayer );
 	virtual void	GoToIntermission( void );
 #ifndef CLIENT_DLL
+	virtual void	GetTaggedConVarList( KeyValues *pCvarTagList );
+
 	virtual void	LevelInitPreEntity( void ) OVERRIDE;
 	virtual bool	ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen );
 	virtual bool	ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target );
@@ -95,7 +97,6 @@ public:
 	virtual void	ClientDisconnected( edict_t *pClient );
 
 	void			CheckShouldPause( void );
-
 #endif
 	bool			ShouldPauseGame( void );
 
@@ -160,14 +161,16 @@ private:
 	// Ammo
 	virtual void			PlayerThink( CBasePlayer *pPlayer );
 	virtual float			GetAmmoDamage( CBaseEntity *pAttacker, CBaseEntity *pVictim, int nAmmoType );
-
+#ifndef CLIENT_DLL
+	const char				*GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
+#endif
 	virtual bool			ShouldBurningPropsEmitLight();
 
 	bool ShouldRemoveRadio( void );
 	
 public:
-
-	bool IsInRestore() { return m_bInRestore; }
+	
+	bool IsRestoringPlayer() { return m_bRestoringPlayer; }
 
 	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer );
 
@@ -176,12 +179,16 @@ public:
 	int						DefaultFOV( void ) { return 75; }
 	
 	unsigned char m_iPlayingPlayers; // The amount of players who are actually playing (not spectators)
-	bool m_bInRestore;
+	bool m_bRestoringPlayer;
 	bool m_bDisableGamePause;
 	bool m_bDisablePlayerRestore;
 #endif
 };
 
+#ifdef GAME_DLL
+void AddToPauseList( CBaseEntity *pEntity );
+void RemoveFromPauseList( CBaseEntity *pEntity );
+#endif
 
 //-----------------------------------------------------------------------------
 // Gets us at the Half-Life 2 game rules

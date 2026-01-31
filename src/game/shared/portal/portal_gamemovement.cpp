@@ -1067,7 +1067,7 @@ void CPortalGameMovement::HandlePortallingLegacy( void )
 		// If the player goes too fast, they can go past the portal without
 		// actually being inside it.
 		// Removing this will require further testing, however.
-		if( pPortalSimulator->EntityIsInPortalHole( player ) )
+		//if( pPortalSimulator->EntityIsInPortalHole( player ) )
 		{
 			bPastPortalHole = true;
 		}

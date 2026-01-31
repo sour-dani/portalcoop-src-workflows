@@ -30,8 +30,6 @@
 	#include "view.h"
 #endif
 
-ConVar use_server_portal_particles( "use_server_portal_particles", "0", FCVAR_REPLICATED );
-ConVar use_server_portal_crosshair_test("use_server_portal_crosshair_test", "0", FCVAR_REPLICATED, "Changes if the crosshair placement indicator should be predicted or use the server");
 extern ConVar sv_allow_customized_portal_colors;
 
 #ifdef CLIENT_DLL
@@ -545,14 +543,6 @@ void CWeaponPortalgun::DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iP
 	if ( !prediction->IsFirstTimePredicted() )
 		return;
 #endif
-	if (use_server_portal_particles.GetBool())
-	{
-		IPredictionSystem::SuppressHostEvents( this );
-
-#ifdef CLIENT_DLL
-		return;
-#endif
-	}
 	
 	CEffectData	fxData;
 	fxData.m_vOrigin = ptStart;
@@ -1291,8 +1281,17 @@ void CWeaponPortalgun::Think( void )
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
 	CPortal_Player *pPlayer = ToPortalPlayer( GetOwner() );
+	
+	if ( !pPlayer || pPlayer->GetActiveWeapon() != this )
+	{
+#ifdef CLIENT_DLL
+		m_fCanPlacePortal1OnThisSurface = 1.0f;
+		m_fCanPlacePortal2OnThisSurface = 1.0f;
+#endif
+		return;
+	}
 
-	if (pPlayer)
+	// PCOOP: This should be moved elsewhere
 	{
 		m_iCustomPortalColorSet = pPlayer->m_iCustomPortalColorSet;
 	
@@ -1305,61 +1304,11 @@ void CWeaponPortalgun::Think( void )
 
 	}
 
-	if ( !pPlayer || pPlayer->GetActiveWeapon() != this )
-	{
-#ifdef GAME_DLL
-		if (use_server_portal_crosshair_test.GetBool())
-		{
-			m_fCanPlacePortal1OnThisSurface = 1.0f;
-			m_fCanPlacePortal2OnThisSurface = 1.0f;
-			m_fCanPlacePortal1OnThisSurfaceNetworked = m_fCanPlacePortal1OnThisSurface;
-			m_fCanPlacePortal2OnThisSurfaceNetworked = m_fCanPlacePortal2OnThisSurface;
-		}
-#else
-		if (!use_server_portal_crosshair_test.GetBool() && prediction->InPrediction() )
-		{
-			m_fCanPlacePortal1OnThisSurface = 1.0f;
-			m_fCanPlacePortal2OnThisSurface = 1.0f;
-		}
-		else
-		{
-			m_fCanPlacePortal1OnThisSurface = m_fCanPlacePortal1OnThisSurfaceNetworked;
-			m_fCanPlacePortal2OnThisSurface = m_fCanPlacePortal2OnThisSurfaceNetworked;
-		}
-#endif
-		return;
-	}
-
 	// Test portal placement
-#ifdef GAME_DLL
-
-	// Doing this somehow makes portals more responsive...
-	if (m_bCanFirePortal1)
-		FirePortal(false, 0, 1);
-	if (m_bCanFirePortal2)
-		FirePortal(true, 0, 2);
-
-
-	if (use_server_portal_crosshair_test.GetBool())
-	{
-		m_fCanPlacePortal1OnThisSurface = ( ( m_bCanFirePortal1 ) ? ( FirePortal( false, 0, 1 ) ) : ( 0.0f ) );
-		m_fCanPlacePortal2OnThisSurface = ( ( m_bCanFirePortal2 ) ? ( FirePortal( true, 0, 2 ) ) : ( 0.0f ) );
-		m_fCanPlacePortal1OnThisSurfaceNetworked = m_fCanPlacePortal1OnThisSurface;
-		m_fCanPlacePortal2OnThisSurfaceNetworked = m_fCanPlacePortal2OnThisSurface;
-	}
+#ifdef CLIENT_DLL
+	m_fCanPlacePortal1OnThisSurface = ( ( m_bCanFirePortal1 ) ? ( FirePortal( false, 0, 1 ) ) : ( 0.0f ) );
+	m_fCanPlacePortal2OnThisSurface = ( ( m_bCanFirePortal2 ) ? ( FirePortal( true, 0, 2 ) ) : ( 0.0f ) );
 #else
-	if (!use_server_portal_crosshair_test.GetBool() ) // Use client crosshair test
-	{
-		m_fCanPlacePortal1OnThisSurface = ( ( m_bCanFirePortal1 ) ? ( FirePortal( false, 0, 1 ) ) : ( 0.0f ) );
-		m_fCanPlacePortal2OnThisSurface = ( ( m_bCanFirePortal2 ) ? ( FirePortal( true, 0, 2 ) ) : ( 0.0f ) );
-	}
-	else
-	{
-		m_fCanPlacePortal1OnThisSurface = m_fCanPlacePortal1OnThisSurfaceNetworked;
-		m_fCanPlacePortal2OnThisSurface = m_fCanPlacePortal2OnThisSurfaceNetworked;
-	}
-#endif
-#ifdef GAME_DLL
 	// Draw obtained portal color chips
 	int iSlot1State = ( ( m_bCanFirePortal1 ) ? ( 0 ) : ( 1 ) ); // FIXME: Portal gun might have only red but not blue;
 	int iSlot2State = ( ( m_bCanFirePortal2 ) ? ( 0 ) : ( 1 ) );
@@ -1392,27 +1341,11 @@ void CWeaponPortalgun::Think( void )
 
 float CWeaponPortalgun::GetPortal1Placablity(void)
 {
-#ifdef CLIENT_DLL
-	// Spectators need to use the networked value
-	if ( GetOwner() != C_BasePlayer::GetLocalPlayer() )
-		return m_fCanPlacePortal2OnThisSurfaceNetworked;
-
-	if (use_server_portal_crosshair_test.GetBool())
-		m_fCanPlacePortal1OnThisSurface = m_fCanPlacePortal1OnThisSurfaceNetworked;
-#endif
 	return m_fCanPlacePortal1OnThisSurface;
 }
 
 float CWeaponPortalgun::GetPortal2Placablity(void)
 {
-#ifdef CLIENT_DLL
-	// Spectators need to use the networked value
-	if ( GetOwner() != C_BasePlayer::GetLocalPlayer() )
-		return m_fCanPlacePortal2OnThisSurfaceNetworked;
-
-	if (use_server_portal_crosshair_test.GetBool())
-		m_fCanPlacePortal2OnThisSurface = m_fCanPlacePortal2OnThisSurfaceNetworked;
-#endif
 	return m_fCanPlacePortal2OnThisSurface;
 }
 

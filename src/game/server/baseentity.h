@@ -779,7 +779,20 @@ public:
 	// called before activate
 	// NOTE: Always chain to base class when implementing this!
 	virtual void OnRestore();
+#ifdef PORTAL
+	virtual void OnPause( void );
+	virtual void OnUnPause( float flAddedTime );
 
+	enum
+	{
+		ADJUST_CHECK_LESS_THAN_CURTIME	= (1<<0),
+		ADJUST_CHECK_MORE_THAN_CURTIME	= (1<<1),
+		ADJUST_CHECK_EQUAL_CURTIME		= (1<<2),
+		ADJUST_CHECK_VAR				= (1<<3),
+	};
+	void		AdjustUnPauseTime( float &var, float flAddedTime, int iAdjustFlags = 0 );
+	void		AdjustUnPauseTick( int &var, int iAddedTicks, int iAdjustFlags = 0 );
+#endif
 	int			 GetTextureFrameIndex( void );
 	void		 SetTextureFrameIndex( int iIndex );
 

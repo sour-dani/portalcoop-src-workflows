@@ -438,7 +438,7 @@ END_DATADESC()
 
 ConVar sv_regeneration_wait_time("sv_regeneration_wait_time", "1.0", FCVAR_REPLICATED);
 
-ConVar pcoop_spectate_after_past_required_players( "pcoop_spectate_after_past_required_players", "1", FCVAR_NOTIFY | FCVAR_ARCHIVE, "If set, players who connect after the amount of required players joined will become spectators" );
+ConVar pcoop_spectate_after_past_required_players( "pcoop_spectate_after_past_required_players", "1", FCVAR_NOTIFY, "If set, players who connect after the amount of required players joined will become spectators" );
 
 #define MAX_COMBINE_MODELS 4
 #define MODEL_CHANGE_INTERVAL 5.0f
@@ -806,6 +806,10 @@ CPortal_Player::CPortal_Player()
 	m_bForceBumpWeapon = false;
 
 	m_bInvisible = false;
+
+	AddToPauseList( this );
+
+	m_bWasPaused = false;
 }
 
 CPortal_Player::~CPortal_Player(void)
@@ -831,6 +835,8 @@ CPortal_Player::~CPortal_Player(void)
 		pPortalgun->FizzleOwnedPortals();
 	}
 	*/
+	
+	RemoveFromPauseList( this );
 }
 
 bool g_bRemovingPortalPlayer = false;
@@ -1017,7 +1023,41 @@ void CPortal_Player::Activate(void)
 	const char *pszName = engine->GetClientConVarValue( entindex(), "cl_player_funnel_into_portals" );
 	m_bPortalFunnel = atoi( pszName ) != 0;
 }
+#ifdef PORTAL
+extern int g_iPauseTick;
+void CPortal_Player::OnPause( void )
+{
+	LockPlayerInPlace();
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 255;
+	UTIL_ScreenFadeAll( color, 0.0, 0, FFADE_OUT | FFADE_PURGE | FFADE_STAYOUT );
 
+	m_bWasPaused = true;
+
+	BaseClass::OnPause();
+}
+
+void CPortal_Player::OnUnPause( float flAddedTime )
+{
+	if ( !m_bWasPaused )
+		return;
+
+	UnlockPlayer();			
+	color32_s color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 0;
+	UTIL_ScreenFadeAll( color, 1, 0, FFADE_IN | FFADE_PURGE | FFADE_STAYOUT );
+
+	AdjustUnPauseTime( m_fTimeLastHurt, flAddedTime, ADJUST_CHECK_VAR );
+
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif
 void CPortal_Player::NotifySystemEvent(CBaseEntity* pNotify, notify_system_event_t eventType, const notify_system_event_params_t& params)
 {
 	// On teleport, we send event for tracking fling achievements
@@ -1244,8 +1284,6 @@ void CPortal_Player::ClearExpression(void)
 	m_flExpressionLoopTime = gpGlobals->curtime;
 }
 
-#define PINGTIME 3.0
-
 void ShowAnnotation( Vector location, int follow_entindex, int entindex, int forcedpingicon = -1 )
 {
 	IGameEvent *pEvent = gameeventmanager->CreateEvent( "show_annotation" );
@@ -1367,6 +1405,14 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			CBaseEntity *pParent = pAnimating->GetParent();
 			if ( pParent )
 			{
+#if 0
+				while ( pParent->GetParent() != NULL )
+				{
+					if ( pParent->GetParent() )
+						pParent = pParent->GetParent();
+				}
+#endif
+				Assert( pParent );
 				PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true );
 			}
 			else
@@ -1392,7 +1438,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 
 				if ( pPingLinker )
 				{
-					pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+					pPingLinker->PingLinkedEntities( vColor, this );
 				}
 				else
 				{
@@ -1494,7 +1540,7 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 
 	if (pPingLinker)
 	{
-		pPingLinker->PingLinkedEntities( PINGTIME, vColor, this, COOP_PING_HUD_SOUNDSCRIPT_NAME );
+		pPingLinker->PingLinkedEntities( vColor, this );
 	}
 	else if ( !bShouldCreateCrosshair ) // Ping Linkers fire their own events
 	{
@@ -1592,7 +1638,7 @@ void CPortal_Player::PostThink(void)
 	SetLocalAngles(angles);
 
 	// Regenerate heath after 3 seconds
-	if (IsAlive() && GetHealth() < GetMaxHealth())
+	if (IsAlive() && GetHealth() < GetMaxHealth() && !PortalGameRules()->ShouldPauseGame() )
 	{
 		// Color to overlay on the screen while the player is taking damage
 		color32 hurtScreenOverlay = { 64,0,0,64 };
@@ -1739,6 +1785,9 @@ void CPortal_Player::InputDoPingHudHint( inputdata_t &inputdata )
 
 void CPortal_Player::UpdatePortalPlaneSounds(void)
 {
+	if ( IsObserver() )
+		return;
+
 	CProp_Portal* pPortal = m_hPortalEnvironment;
 	if (pPortal && pPortal->IsActive())
 	{
@@ -1822,8 +1871,16 @@ void CPortal_Player::UpdateWooshSounds(void)
 	if (m_pWooshSound)
 	{
 		CSoundEnvelopeController& controller = CSoundEnvelopeController::GetController();
-
-		float fWooshVolume = GetAbsVelocity().Length() - MIN_FLING_SPEED;
+		
+		float fWooshVolume;
+		if ( IsObserver() )
+		{
+			fWooshVolume = -1.0f;
+		}
+		else
+		{
+			fWooshVolume = GetAbsVelocity().Length() - MIN_FLING_SPEED;
+		}
 
 		if (fWooshVolume < 0.0f)
 		{
@@ -2084,7 +2141,7 @@ bool CPortal_Player::BumpWeapon(CBaseCombatWeapon* pWeapon)
 	Weapon_Equip(pWeapon);
 	
 	// If we're holding an object before picking up portalgun, drop it
-	if ( pPickupPortalgun && !PortalGameRules()->IsInRestore() )
+	if ( pPickupPortalgun && !PortalGameRules()->IsRestoringPlayer() )
 	{
 		ForceDropOfCarriedPhysObjects(GetPlayerHeldEntity(this));
 	}
@@ -2383,13 +2440,15 @@ void CPortal_Player::PlayerRunCommand(CUserCmd* ucmd, IMoveHelper* moveHelper)
 	BaseClass::PlayerRunCommand(ucmd, moveHelper);
 }
 
+ConVar pcoop_allow_spectate_at_any_time( "pcoop_allow_spectate_at_any_time", "0", FCVAR_CHEAT );
 
 bool CPortal_Player::ClientCommand(const CCommand& args)
 {
 	if (FStrEq(args[0], "spectate"))
 	{
 		// do nothing.
-		return true;
+		if ( !pcoop_allow_spectate_at_any_time.GetBool() )
+			return true;
 	}
 
 	return BaseClass::ClientCommand(args);

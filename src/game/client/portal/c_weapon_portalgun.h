@@ -143,6 +143,8 @@ public:
 	virtual bool ShouldDrawCrosshair( void );
 	float GetPortal1Placablity( void );
 	float GetPortal2Placablity( void );
+	void SetPortal1Placablity( float flPlacablity ) { m_fCanPlacePortal1OnThisSurface = flPlacablity; }
+	void SetPortal2Placablity( float flPlacablity ) { m_fCanPlacePortal2OnThisSurface = flPlacablity; }
 	int GetLastFiredPortal( void ) { return m_iLastFiredPortal; }
 	bool IsHoldingObject( void ) { return m_bOpenProngs; }
 

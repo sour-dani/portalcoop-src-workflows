@@ -48,6 +48,13 @@ CTriggerBoxReflector::CTriggerBoxReflector()
 	m_flTemporaryDetachTime = 0;
 	m_flTemporaryEndTime = 0;
 	m_flBeamBrightness = 0;
+	
+	AddToPauseList( this );
+}
+
+CTriggerBoxReflector::~CTriggerBoxReflector()
+{
+	RemoveFromPauseList( this );
 }
 
 void CTriggerBoxReflector::Spawn( void )
@@ -315,6 +322,14 @@ void CTriggerBoxReflector::BeamUpdateThink( void )
 	SetNextThink( gpGlobals->curtime + sv_box_reflector_beamupdate_thinkrate.GetFloat(), g_pszBeamUpdateThink );
 }
 
+void CTriggerBoxReflector::OnUnPause( float flAddedTime )
+{
+	AdjustUnPauseTime( m_flTemporaryDetachTime, flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flTemporaryEndTime, flAddedTime, ADJUST_CHECK_VAR );
+
+	BaseClass::OnUnPause( flAddedTime );
+}
+
 // Global Savedata for base trigger
 BEGIN_DATADESC( CFuncBoxReflectorShield )
 
@@ -333,18 +348,37 @@ void CFuncBoxReflectorShield::Spawn( void )
 {
 	SetMoveType( MOVETYPE_PUSH );  // so it doesn't get pushed by anything
 	SetSolid( SOLID_VPHYSICS );
-	AddSolidFlags( FSOLID_NOT_SOLID );
+	//AddSolidFlags( FSOLID_NOT_SOLID );
 	SetModel( STRING( GetModelName() ) );
 	AddEffects( EF_NODRAW );
-	CreateVPhysics();
-	VPhysicsGetObject()->EnableCollisions( !m_bDisabled );
+	//CreateVPhysics();
+	//VPhysicsGetObject()->EnableCollisions( !m_bDisabled );
+	if ( m_bDisabled )
+	{
+		VPhysicsDestroyObject();
+		SetSolid( SOLID_NONE );
+	}
+	else
+	{
+		SetSolid( SOLID_VPHYSICS );
+		CreateVPhysics();
+	}
 }
 
 
 bool CFuncBoxReflectorShield::CreateVPhysics( void )
 {
-	VPhysicsInitStatic();
-	return true;
+	//VPhysicsInitStatic();
+	// create a normal physics object
+	IPhysicsObject *pPhysicsObject = PhysModelCreate( this, GetModelIndex(), GetAbsOrigin(), GetAbsAngles() );
+	if ( pPhysicsObject )
+	{
+		VPhysicsSetObject( pPhysicsObject );
+
+		return true;
+	}
+
+	return false;
 }
 
 void CFuncBoxReflectorShield::Activate( void ) 
@@ -367,13 +401,15 @@ bool CFuncBoxReflectorShield::ForceVPhysicsCollide( CBaseEntity *pEntity )
 
 void CFuncBoxReflectorShield::InputEnable( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->EnableCollisions(true);
+	SetSolid( SOLID_VPHYSICS );
+	CreateVPhysics();
 	m_bDisabled = false;
 }
 
 void CFuncBoxReflectorShield::InputDisable( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->EnableCollisions(false);
+	VPhysicsDestroyObject();
+	SetSolid( SOLID_NONE );
 	m_bDisabled = true;
 }
 

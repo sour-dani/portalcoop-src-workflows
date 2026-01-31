@@ -11,6 +11,7 @@ public:
 	DECLARE_DATADESC();
 
 	CTriggerBoxReflector();
+	~CTriggerBoxReflector();
 
 	void Spawn( void );
 	void Activate( void );
@@ -34,6 +35,8 @@ public:
 
 	// Accessors
 	CPropBox *GetBox() const { return m_hAttachedBox; }
+	
+	virtual void OnUnPause( float flAddedTime );
 
 private:
 

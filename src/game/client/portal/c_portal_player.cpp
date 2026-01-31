@@ -430,47 +430,18 @@ C_Portal_Player::~C_Portal_Player( void )
 #ifdef CCDEATH
 	g_pColorCorrectionMgr->RemoveColorCorrection( m_CCDeathHandle );
 #endif
-
-	StopLoopingSounds();
-
 }
 
 void C_Portal_Player::Spawn( void )
 {
 	BaseClass::Spawn();
-	CreateSounds();
 }
 
-void C_Portal_Player::CreateSounds( void )
-{
-	if ( !IsLocalPlayer() )
-		return;
-
-	if (!m_pWooshSound)
-	{
-		CSoundEnvelopeController& controller = CSoundEnvelopeController::GetController();
-
-		CPASAttenuationFilter filter(this);
-		filter.UsePredictionRules();
-
-		m_pWooshSound = controller.SoundCreate(filter, entindex(), "PortalPlayer.Woosh");
-		controller.Play(m_pWooshSound, 0, 100);
-	}
-}
-
-void C_Portal_Player::StopLoopingSounds( void )
-{
-	if (m_pWooshSound)
-	{
-		CSoundEnvelopeController& controller = CSoundEnvelopeController::GetController();
-
-		controller.SoundDestroy(m_pWooshSound);
-		m_pWooshSound = NULL;
-	}
-}
 void C_Portal_Player::UpdatePortalPlaneSounds(void)
 {
-#if 1
+	if ( IsObserver() )
+		return;
+
 	CProp_Portal* pPortal = m_hPortalEnvironment;
 	if (pPortal && pPortal->IsActive())
 	{
@@ -479,14 +450,9 @@ void C_Portal_Player::UpdatePortalPlaneSounds(void)
 
 		if (!vVelocity.IsZero())
 		{
-#if 1
 			Vector vMin, vMax;
-			CollisionProp()->WorldSpaceAABB(&vMin, &vMax);
-#else
-			bool bDucked = GetFlags() & FL_DUCKING;
-			Vector vMin = (bDucked ? VEC_DUCK_HULL_MIN_SCALED( this ) : VEC_HULL_MIN_SCALED( this )) + GetNetworkOrigin();
-			Vector vMax = (bDucked ? VEC_DUCK_HULL_MAX_SCALED( this ) : VEC_HULL_MAX_SCALED( this )) + GetNetworkOrigin();
-#endif
+			CollisionProp()->WorldSpaceAABB( &vMin, &vMax );
+
 			Vector vEarCenter = (vMax + vMin) / 2.0f;
 			Vector vDiagonal = vMax - vMin;
 
@@ -557,30 +523,6 @@ void C_Portal_Player::UpdatePortalPlaneSounds(void)
 				EmitSound(filter, entindex(), ep);
 			}
 		}
-	}
-#endif
-}
-
-void C_Portal_Player::UpdateWooshSounds(void)
-{
-	if (m_pWooshSound)
-	{
-		CSoundEnvelopeController& controller = CSoundEnvelopeController::GetController();
-
-		float fWooshVolume = GetAbsVelocity().Length() - MIN_FLING_SPEED;
-
-		if (fWooshVolume < 0.0f)
-		{
-			controller.SoundChangeVolume(m_pWooshSound, 0.0f, 0.1f);
-			return;
-		}
-
-		fWooshVolume /= 2000.0f;
-		if (fWooshVolume > 1.0f)
-			fWooshVolume = 1.0f;
-
-		controller.SoundChangeVolume(m_pWooshSound, fWooshVolume, 0.1f);
-		//		controller.SoundChangePitch( m_pWooshSound, fWooshVolume + 0.5f, 0.1f );
 	}
 }
 
@@ -697,8 +639,6 @@ CStudioHdr *C_Portal_Player::OnNewModel( void )
 /**
 * Orient head and eyes towards m_lookAt.
 */
-
-#define HL2DM_LOOKAT 0
 
 void C_Portal_Player::UpdateLookAt( void )
 {
@@ -885,8 +825,20 @@ void C_Portal_Player::ClientThink( void )
 	HandleSpeedChanges();
 
 	FixTeleportationRoll();
-		
-
+	
+	CBasePlayer *pPlayerTarget = ToBasePlayer( GetObserverTarget() );
+	if ( IsLocalPlayer() && pPlayerTarget && GetObserverMode() == OBS_MODE_IN_EYE )
+	{
+		C_BaseCombatWeapon *pWeapon = pPlayerTarget->GetActiveWeapon();
+		if ( pWeapon && !V_strcmp( pWeapon->GetClassname(), "weapon_portalgun" ) )
+		{
+			C_WeaponPortalgun* pPortalgun = (C_WeaponPortalgun*)pWeapon;
+			float flPortal1Placability = ( ( pPortalgun->CanFirePortal1() ) ? ( pPortalgun->FirePortal( false, 0, 1 ) ) : ( 0.0f ) );
+			float flPortal2Placability = ( ( pPortalgun->CanFirePortal2() ) ? ( pPortalgun->FirePortal( true, 0, 2 ) ) : ( 0.0f ) );
+			pPortalgun->SetPortal1Placablity( flPortal1Placability );
+			pPortalgun->SetPortal2Placablity( flPortal2Placability );
+		}
+	}
 	//QAngle vAbsAngles = EyeAngles();
 
 	// Look at the thing that killed you
@@ -968,55 +920,6 @@ void C_Portal_Player::ClientThink( void )
 		}
 		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCDeathHandle, m_flDeathCCWeight );
 	}
-#endif
-
-	//HL2DM LOOKAT CODE
-#if HL2DM_LOOKAT
-
-	if (!IsLocalPlayer())
-	{		
-		bool bFoundViewTarget = false;
-	
-		Vector vForward;
-		AngleVectors( GetLocalAngles(), &vForward );
-
-		for( int i = 1; i <= gpGlobals->maxClients; ++i )
-		{
-			C_BasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-			if( !pPlayer )
-				continue;
-
-			if ( pPlayer->entindex() == entindex() )
-				continue;
-
-			if ( pPlayer == this )
-				continue;
-
-			Vector vTargetOrigin = pPlayer->GetAbsOrigin();
-			Vector vMyOrigin =  GetAbsOrigin();
-
-			Vector vDir = vTargetOrigin - vMyOrigin;
-		
-			if ( vDir.Length() > 128 ) 
-				continue;
-
-			VectorNormalize( vDir );
-
-			if ( DotProduct( vForward, vDir ) < 0.0f )
-				 continue;
-
-			m_vLookAtTarget = pPlayer->EyePosition();
-			bFoundViewTarget = true;
-			break;
-		}
-
-		if ( bFoundViewTarget == false )
-		{
-			m_vLookAtTarget = GetAbsOrigin() + vForward * 512;
-		}
-
-	}
-
 #endif
 
 	UpdateIDTarget();
@@ -1174,7 +1077,6 @@ void C_Portal_Player::PostThink( void )
 	BaseClass::PostThink();
 	
 	UpdatePortalPlaneSounds();
-	UpdateWooshSounds();
 }
 
 const QAngle& C_Portal_Player::GetRenderAngles()
@@ -1755,25 +1657,6 @@ void C_Portal_Player::AvoidPlayers( CUserCmd *pCmd )
 	pCmd->sidemove *= flScale;
 
 	//Msg( "Pforwardmove=%f, sidemove=%f\n", pCmd->forwardmove, pCmd->sidemove );
-}
-
-CON_COMMAND(portalenvironmentresponse, "Let's use know if we have a portal environment\n")
-{
-	C_Portal_Player *pPlayer = C_Portal_Player::GetLocalPortalPlayer();
-
-	if (!pPlayer)
-		return;
-
-	C_Prop_Portal *pPortalEnv = pPlayer->m_hPortalEnvironment.Get();
-
-	if (pPortalEnv)
-	{
-		Msg("m_hPortalEnvironment: Portal %i, ID %i\n", pPortalEnv->m_bIsPortal2 ? 2 : 1, pPortalEnv->m_iLinkageGroupID);
-	}
-	else
-	{
-		Msg("m_hPortalEnvironment == NULL\n");
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -2629,6 +2512,9 @@ void C_Portal_Player::UpdatePortalEyeInterpolation( void )
 
 Vector C_Portal_Player::EyePosition()
 {
+	if ( !IsLocalPlayer() )
+		return BaseClass::EyePosition();
+
 	return PortalEyeInterpolation.m_vEyePosition_Interpolated;  
 }
 

@@ -692,11 +692,13 @@ CWeaponList g_WeaponList( "CWeaponList" );
 
 void OnBaseCombatWeaponCreated( CBaseCombatWeapon *pWeapon )
 {
+	//AddToPauseList( pWeapon );
 	g_WeaponList.AddWeapon( pWeapon );
 }
 
 void OnBaseCombatWeaponDestroyed( CBaseCombatWeapon *pWeapon )
 {
+	//RemoveFromPauseList( pWeapon );
 	g_WeaponList.RemoveWeapon( pWeapon );
 }
 
@@ -793,3 +795,17 @@ void CBaseCombatWeapon::SetCustomViewModelModelIndex( int nCustomViewModelModelI
 
 	m_nCustomViewmodelModelIndex = nCustomViewModelModelIndex;
 }
+#ifdef PORTAL
+void CBaseCombatWeapon::OnUnPause( float flAddedTime )
+{
+	AdjustUnPauseTime( m_flNextPrimaryAttack.GetForModify(), flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flNextSecondaryAttack.GetForModify(), flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flNextEmptySoundTime, flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flTimeWeaponIdle.GetForModify(), flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flUnlockTime, flAddedTime );
+	AdjustUnPauseTime( m_flHudHintPollTime, flAddedTime, ADJUST_CHECK_VAR );
+	AdjustUnPauseTime( m_flHudHintMinDisplayTime, flAddedTime, ADJUST_CHECK_VAR );
+
+	BaseClass::OnUnPause( flAddedTime );
+}
+#endif

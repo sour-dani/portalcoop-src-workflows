@@ -23,13 +23,24 @@ $Project "Client (Portal)"
 	$Folder	"Source Files"
 	{
 		-$File	"$SRCDIR\game\shared\weapon_parse_default.cpp"
-		$File	"hud_chat.cpp"
+		//$File	"hud_chat.cpp"
 		$File	"hud_voicestatus.cpp"
 		$File	"c_team_objectiveresource.cpp"
 		$File	"c_team_objectiveresource.h"
 		
 		$File	"$SRCDIR\game\shared\player_pickup.h"
 		$File	"$SRCDIR\game\shared\player_pickup.cpp"
+		
+		$File	"$SRCDIR\gcsdk\steamextra\rtime.cpp"
+			{
+				$Configuration
+				{
+					$Compiler
+					{
+						$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
+					}
+				}
+			}
 
 		$Folder	"HL2 DLL"
 		{
@@ -210,8 +221,16 @@ $Project "Client (Portal)"
 			$File	"portal\c_prop_glados_core.cpp"
 			$File	"portal\c_prop_glados_core.h"
 			$File	"portal\pcoop_hud_target_id.cpp"
+			$File	"portal\portal_hud_chat.cpp"
+			$File	"portal\portal_hud_chat.h"
 			$File	"portal\tf_hud_annotationspanel.cpp"
 			$File	"portal\tf_hud_annotationspanel.h"
+			$File	"portal\portal_quickplay_ui.cpp"
+			$File	"portal\portal_quickplay.h"
+			$File	"$SRCDIR\game\shared\portal\portal_quickplay_shared.cpp"
+			$File	"$SRCDIR\game\shared\portal\portal_quickplay_shared.h"
+			$File	"portal\portal_newgamedialog.cpp"
+			$File	"portal\portal_newgamedialog.h"
 			
 			$File	"econ\econ_controls.cpp"
 			$File	"econ\econ_controls.h"
@@ -265,6 +284,22 @@ $Project "Client (Portal)"
 				$File	"hl2mp\ui\hl2mptextwindow.h"
 			}
 		}
+		
+		$Folder "Common"
+		{
+			$File	"$SRCDIR\common\ServerBrowser\blacklisted_server_manager.h"
+			$File	"$SRCDIR\common\ServerBrowser\blacklisted_server_manager.cpp"
+			{
+				$Configuration
+				{
+					$Compiler
+					{
+						$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
+					}
+				}
+			}
+		}
+
 	}
 }
 
