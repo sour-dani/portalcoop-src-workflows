@@ -1443,7 +1443,10 @@ void COptionsSubVideo::OnResetData()
 
     m_pWindowed->ActivateItem( ItemIndex );
 #else
-    m_pWindowed->ActivateItem( config.Windowed() ? 1 : 0 );
+	int activeitem = config.Windowed() ? 1 : 0;
+	if ( config.NoWindowBorder() )
+		activeitem = 2;
+    m_pWindowed->ActivateItem( activeitem );
 #endif
 
 	// reset gamma control
