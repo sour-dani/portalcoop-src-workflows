@@ -51,7 +51,7 @@ public:
 
 	virtual bool ShouldCollide( int collisionGroup, int contentsMask ) const OVERRIDE;
 
-	bool HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything, gamevcollisionevent_t *pEvent );
+	bool HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything );
 
 	CHandle<CProp_Portal>		m_hTouchedPortal;	// Pointer to the portal we are touched most recently
 	bool						m_bTouchingPortal1;	// Are we touching portal 1
@@ -265,7 +265,7 @@ void CPropEnergyBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEven
 		// Only place decals and draw effects if we hit something valid
 		if ( pEntity )
 		{
-			bDoEffects = HandleSpecialEntityImpact( pEntity, false, pEvent );
+			bDoEffects = HandleSpecialEntityImpact( pEntity, false );
 
 			if ( bDoEffects )
 			{
@@ -345,7 +345,7 @@ bool CPropEnergyBall::ShouldCollide( int collisionGroup, int contentsMask ) cons
 	return BaseClass::ShouldCollide( collisionGroup, contentsMask );
 }
 
-bool CPropEnergyBall::HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything, gamevcollisionevent_t *pEvent )
+bool CPropEnergyBall::HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAnything )
 {
 	CPropBox *pBox = dynamic_cast<CPropBox*>( pOther );
 	if ( pBox )
@@ -376,15 +376,6 @@ bool CPropEnergyBall::HandleSpecialEntityImpact( CBaseEntity *pOther, bool bDoAn
 			if ( bDoAnything )
 			{
 				pShield->EnergyBallHit( this );
-			}
-			else if ( pEvent ) // Very hacky, but it works well
-			{
-				Vector point, normal;
-				pEvent->pInternalData->GetContactPoint( point );
-				pEvent->pInternalData->GetContactPoint( normal );
-
-				extern CPortal_CollisionEvent g_Collisions;
-				g_Collisions.AddTouchEvent( pEvent->pEntities[0], pEvent->pEntities[1], TOUCH_START, point, normal );
 			}
 		}
 	}
@@ -489,8 +480,8 @@ void CPropEnergyBall::StartTouch( CBaseEntity *pOther )
 		// Destruct when we hit the player
 		SetContextThink( &CPropEnergyBall::ExplodeThink, gpGlobals->curtime, "ExplodeTimerContext" );
 	}
-	
-	HandleSpecialEntityImpact( pOther, true, NULL );
+
+	HandleSpecialEntityImpact( pOther, true );
 
 	CProp_Portal* pPortal = dynamic_cast<CProp_Portal*>(pOther);
 	// If toucher is a prop portal
