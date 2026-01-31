@@ -2175,7 +2175,7 @@ void SetupTagConVars()
 	}
 	else if ( Map_Is3Player( pszMapName ) )
 	{
-		pcoop_tags_2player.SetValue( "1" );
+		pcoop_tags_3player.SetValue( "1" );
 	}
 }
 
