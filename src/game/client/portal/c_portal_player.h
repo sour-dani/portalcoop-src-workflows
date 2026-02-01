@@ -109,8 +109,9 @@ public:
 	virtual void			PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
 	virtual void			PreThink( void );
 	virtual void			DoImpactEffect( trace_t &tr, int nDamageType );
-
+#ifdef ENABLE_PORTAL_EYE_INTERPOLATION_CODE
 	virtual Vector			EyePosition();
+#endif
 	Vector					EyeFootPosition( const QAngle &qEyeAngles );//interpolates between eyes and feet based on view angle roll
 	inline Vector			EyeFootPosition( void ) { return EyeFootPosition( EyeAngles() ); };
 	void					PlayerPortalled( C_Prop_Portal *pEnteredPortal, float fTime, bool bForcedDuck );
@@ -234,9 +235,9 @@ private:
 	bool m_bIsListenServerHost;
 	
 	C_Portal_Player( const C_Portal_Player & );
-
+#ifdef ENABLE_PORTAL_EYE_INTERPOLATION_CODE
 	void UpdatePortalEyeInterpolation( void );
-	
+#endif
 	CPortalPlayerAnimState *m_PlayerAnimState;
 
 	QAngle	m_angEyeAngles;

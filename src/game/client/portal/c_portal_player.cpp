@@ -2436,10 +2436,9 @@ void C_Portal_Player::FireGameEvent( IGameEvent *event )
 
 	BaseClass::FireGameEvent( event );
 }
-
+#ifdef ENABLE_PORTAL_EYE_INTERPOLATION_CODE
 void C_Portal_Player::UpdatePortalEyeInterpolation( void )
 {
-#ifdef ENABLE_PORTAL_EYE_INTERPOLATION_CODE
 	//PortalEyeInterpolation.m_bEyePositionIsInterpolating = false;
 	if( PortalEyeInterpolation.m_bUpdatePosition_FreeMove )
 	{
@@ -2502,12 +2501,6 @@ void C_Portal_Player::UpdatePortalEyeInterpolation( void )
 	{
 		PortalEyeInterpolation.m_vEyePosition_Interpolated = vThisFrameUninterpolatedPosition;
 	}
-
-
-
-#else
-	PortalEyeInterpolation.m_vEyePosition_Interpolated = BaseClass::EyePosition();
-#endif
 }
 
 Vector C_Portal_Player::EyePosition()
@@ -2517,7 +2510,7 @@ Vector C_Portal_Player::EyePosition()
 
 	return PortalEyeInterpolation.m_vEyePosition_Interpolated;  
 }
-
+#endif
 Vector C_Portal_Player::EyeFootPosition( const QAngle &qEyeAngles )
 {
 #if 0
@@ -2543,8 +2536,9 @@ void C_Portal_Player::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNe
 
 	m_iForceNoDrawInPortalSurface = -1;
 	m_bEyePositionIsTransformedByPortal = false; //assume it's not transformed until it provably is
+#ifdef ENABLE_PORTAL_EYE_INTERPOLATION_CODE
 	UpdatePortalEyeInterpolation();
-
+#endif
 	QAngle qEyeAngleBackup = EyeAngles();
 	Vector ptEyePositionBackup = EyePosition();
 

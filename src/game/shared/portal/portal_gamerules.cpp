@@ -2164,18 +2164,24 @@ void SetupTagConVars()
 	const char *pszMapName = gpGlobals->mapname.ToCStr();
 	if ( Map_Is2Player( pszMapName ) )
 	{
-		if ( Map_IsRexaura( pszMapName ) )
+		if ( GetRequiredPlayers() == 2 )
 		{
-			pcoop_tags_2player_rexaura.SetValue( "1" );
-		}
-		else
-		{
-			pcoop_tags_2player.SetValue( "1" );
+			if ( Map_IsRexaura( pszMapName ) )
+			{
+				pcoop_tags_2player_rexaura.SetValue( "1" );
+			}
+			else
+			{
+				pcoop_tags_2player.SetValue( "1" );
+			}
 		}
 	}
 	else if ( Map_Is3Player( pszMapName ) )
 	{
-		pcoop_tags_3player.SetValue( "1" );
+		if ( GetRequiredPlayers() == 3 )
+		{
+			pcoop_tags_3player.SetValue( "1" );
+		}
 	}
 }
 
