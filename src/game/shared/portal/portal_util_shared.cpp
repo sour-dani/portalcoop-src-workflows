@@ -201,9 +201,9 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColor
 		{
 			iPortalColorSet = pPortalgun->m_iPortalColorSet;
 		}
-		else if ( pPlayer->m_iCustomPortalColorSet != 0 ) // This means the player is not letting the Portal ID decide what the color set is
+		else if ( pPlayer->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID ) // This means the player is not letting the Portal ID decide what the color set is
 		{
-			iPortalColorSet = pPlayer->m_iCustomPortalColorSet - 1; // Use this for consistency
+			iPortalColorSet = pPlayer->m_iCustomPortalColorSet; // Use this for consistency
 		}
 		else
 		{
