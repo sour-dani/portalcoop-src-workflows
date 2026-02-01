@@ -341,7 +341,6 @@ LINK_ENTITY_TO_CLASS( player, C_Portal_Player )
 
 BEGIN_PREDICTION_DATA( C_Portal_Player )
 
-
 	//DEFINE_PRED_FIELD( m_nSkin, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE ), // This doesn't need prediction.
 	DEFINE_PRED_FIELD( m_nBody, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE ),
 	DEFINE_PRED_FIELD( m_nSequence, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
@@ -350,16 +349,12 @@ BEGIN_PREDICTION_DATA( C_Portal_Player )
 	DEFINE_PRED_ARRAY_TOL( m_flEncodedController, FIELD_FLOAT, MAXSTUDIOBONECTRLS, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE, 0.02f ),
 	DEFINE_PRED_FIELD( m_nNewSequenceParity, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
 	DEFINE_PRED_FIELD( m_nResetEventsParity, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
-		
+
 	DEFINE_PRED_FIELD( m_hPortalEnvironment, FIELD_EHANDLE, FTYPEDESC_NOERRORCHECK ),
 	
 	DEFINE_PRED_FIELD( m_bPitchReorientation, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	
 	DEFINE_PRED_FIELD( m_bSilentDropAndPickup, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
-
-	//DEFINE_FIELD( m_matLastPortalled, FIELD_VMATRIX_WORLDSPACE ), //Garbage data :(
-
-//	DEFINE_PRED_FIELD( m_iOldModelType, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 
 	//DEFINE_SOUNDPATCH( m_pWooshSound ),
 	
@@ -2109,6 +2104,12 @@ void C_Portal_Player::OnDataChanged( DataUpdateType_t type )
 			g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCDeathHandle, 0.0f );
 		}
 #endif
+		// PCOOP: Disable interpolation for the local player for now, but a better solution should be found
+		if ( IsLocalPlayer() )
+		{
+			RemoveVar( &m_angEyeAngles );
+		}
+
 		SetNextClientThink( CLIENT_THINK_ALWAYS );
 	}
 
