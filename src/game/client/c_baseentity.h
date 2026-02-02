@@ -1145,6 +1145,13 @@ public:
 	void (C_BaseEntity ::*m_pfnTouch)( C_BaseEntity *pOther );
 
 	void					PhysicsStep( void );
+	
+	bool		NameMatches( const char *pszNameOrWildcard );
+	bool		ClassMatches( const char *pszClassOrWildcard );
+
+private:
+	bool		NameMatchesComplex( const char *pszNameOrWildcard );
+	bool		ClassMatchesComplex( const char *pszClassOrWildcard );
 
 protected:
 	static bool				sm_bDisableTouchFuncs;	// Disables PhysicsTouch and PhysicsStartTouch function calls
@@ -1960,6 +1967,24 @@ private:
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);
+
+inline bool CBaseEntity::NameMatches( const char *pszNameOrWildcard )
+{
+	// No m_iName for the client
+	//if ( IDENT_STRINGS(m_iName, pszNameOrWildcard) )
+	//	return true;
+	
+	return NameMatchesComplex( pszNameOrWildcard );
+}
+
+inline bool CBaseEntity::ClassMatches( const char *pszClassOrWildcard )
+{
+	string_t iClassname = GetClassname();
+	if ( IDENT_STRINGS(iClassname, pszClassOrWildcard ) )
+		return true;
+
+	return ClassMatchesComplex( pszClassOrWildcard );
+}
 
 inline bool FClassnameIs( C_BaseEntity *pEntity, const char *szClassname )
 { 

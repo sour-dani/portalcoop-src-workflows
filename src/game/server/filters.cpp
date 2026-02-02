@@ -31,20 +31,6 @@ BEGIN_DATADESC( CBaseFilter )
 
 END_DATADESC()
 
-//-----------------------------------------------------------------------------
-
-bool CBaseFilter::PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
-{
-	return true;
-}
-
-
-bool CBaseFilter::PassesFilter( CBaseEntity *pCaller, CBaseEntity *pEntity )
-{
-	bool baseResult = PassesFilterImpl( pCaller, pEntity );
-	return (m_bNegated) ? !baseResult : baseResult;
-}
-
 
 bool CBaseFilter::PassesDamageFilter(const CTakeDamageInfo &info)
 {
@@ -73,33 +59,6 @@ void CBaseFilter::InputTestActivator( inputdata_t &inputdata )
 		m_OnFail.FireOutput( inputdata.pActivator, this );
 	}
 }
-
-
-// ###################################################################
-//	> FilterMultiple
-//
-//   Allows one to filter through mutiple filters
-// ###################################################################
-#define MAX_FILTERS 5
-enum filter_t
-{
-	FILTER_AND,
-	FILTER_OR,
-};
-
-class CFilterMultiple : public CBaseFilter
-{
-	DECLARE_CLASS( CFilterMultiple, CBaseFilter );
-	DECLARE_DATADESC();
-
-	filter_t	m_nFilterType;
-	string_t	m_iFilterName[MAX_FILTERS];
-	EHANDLE		m_hFilter[MAX_FILTERS];
-
-	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity );
-	bool PassesDamageFilterImpl(const CTakeDamageInfo &info);
-	void Activate(void);
-};
 
 LINK_ENTITY_TO_CLASS(filter_multi, CFilterMultiple);
 
@@ -147,49 +106,9 @@ void CFilterMultiple::Activate( void )
 			}
 
 			// Take this entity and increment out array pointer
-			m_hFilter[nNextFilter] = pFilter;
+			m_hFilter.Set( nNextFilter, pFilter );
 			nNextFilter++;
 		}
-	}
-}
-
-
-//-----------------------------------------------------------------------------
-// Purpose: Returns true if the entity passes our filter, false if not.
-// Input  : pEntity - Entity to test.
-//-----------------------------------------------------------------------------
-bool CFilterMultiple::PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
-{
-	// Test against each filter
-	if (m_nFilterType == FILTER_AND)
-	{
-		for (int i=0;i<MAX_FILTERS;i++)
-		{
-			if (m_hFilter[i] != NULL)
-			{
-				CBaseFilter* pFilter = (CBaseFilter *)(m_hFilter[i].Get());
-				if (!pFilter->PassesFilter( pCaller, pEntity ) )
-				{
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-	else  // m_nFilterType == FILTER_OR
-	{
-		for (int i=0;i<MAX_FILTERS;i++)
-		{
-			if (m_hFilter[i] != NULL)
-			{
-				CBaseFilter* pFilter = (CBaseFilter *)(m_hFilter[i].Get());
-				if (pFilter->PassesFilter( pCaller, pEntity ) )
-				{
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 }
 
@@ -233,32 +152,6 @@ bool CFilterMultiple::PassesDamageFilterImpl(const CTakeDamageInfo &info)
 	}
 }
 
-
-// ###################################################################
-//	> FilterName
-// ###################################################################
-class CFilterName : public CBaseFilter
-{
-	DECLARE_CLASS( CFilterName, CBaseFilter );
-	DECLARE_DATADESC();
-
-public:
-	string_t m_iFilterName;
-
-	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
-	{
-		// special check for !player as GetEntityName for player won't return "!player" as a name
-		if (FStrEq(STRING(m_iFilterName), "!player"))
-		{
-			return pEntity->IsPlayer();
-		}
-		else
-		{
-			return pEntity->NameMatches( STRING(m_iFilterName) );
-		}
-	}
-};
-
 LINK_ENTITY_TO_CLASS( filter_activator_name, CFilterName );
 
 BEGIN_DATADESC( CFilterName )
@@ -270,22 +163,6 @@ END_DATADESC()
 
 
 
-// ###################################################################
-//	> FilterClass
-// ###################################################################
-class CFilterClass : public CBaseFilter
-{
-	DECLARE_CLASS( CFilterClass, CBaseFilter );
-	DECLARE_DATADESC();
-
-public:
-	string_t m_iFilterClass;
-
-	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
-	{
-		return pEntity->ClassMatches( STRING(m_iFilterClass) );
-	}
-};
 
 LINK_ENTITY_TO_CLASS( filter_activator_class, CFilterClass );
 
@@ -296,30 +173,6 @@ BEGIN_DATADESC( CFilterClass )
 
 END_DATADESC()
 
-// ###################################################################
-//	> FilterClass
-// ###################################################################
-class CFilterPlayerIndex: public CBaseFilter
-{
-	DECLARE_CLASS( CFilterPlayerIndex, CBaseFilter );
-	DECLARE_DATADESC();
-
-public:
-	int m_iPlayerIndex;
-
-	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
-	{
-
-		if ( !pEntity->IsPlayer() )
-			return false;
-
-		if ( pEntity->entindex() == m_iPlayerIndex )
-			return true;
-
-		return false;
-	}
-};
-
 LINK_ENTITY_TO_CLASS( filter_activator_playerindex, CFilterPlayerIndex );
 
 BEGIN_DATADESC( CFilterPlayerIndex )
@@ -329,52 +182,14 @@ BEGIN_DATADESC( CFilterPlayerIndex )
 
 END_DATADESC()
 
-// ###################################################################
-//	> FilterTeam
-// ###################################################################
-class FilterTeam : public CBaseFilter
-{
-	DECLARE_CLASS( FilterTeam, CBaseFilter );
-	DECLARE_DATADESC();
+LINK_ENTITY_TO_CLASS( filter_activator_team, CFilterTeam );
 
-public:
-	int		m_iFilterTeam;
-
-	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
-	{
-	 	return ( pEntity->GetTeamNumber() == m_iFilterTeam );
-	}
-};
-
-LINK_ENTITY_TO_CLASS( filter_activator_team, FilterTeam );
-
-BEGIN_DATADESC( FilterTeam )
+BEGIN_DATADESC( CFilterTeam )
 
 	// Keyfields
 	DEFINE_KEYFIELD( m_iFilterTeam,	FIELD_INTEGER,	"filterteam" ),
 
 END_DATADESC()
-
-
-// ###################################################################
-//	> FilterMassGreater
-// ###################################################################
-class CFilterMassGreater : public CBaseFilter
-{
-	DECLARE_CLASS( CFilterMassGreater, CBaseFilter );
-	DECLARE_DATADESC();
-
-public:
-	float m_fFilterMass;
-
-	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
-	{
-		if ( pEntity->VPhysicsGetObject() == NULL )
-			return false;
-
-		return ( pEntity->VPhysicsGetObject()->GetMass() > m_fFilterMass );
-	}
-};
 
 LINK_ENTITY_TO_CLASS( filter_activator_mass_greater, CFilterMassGreater );
 

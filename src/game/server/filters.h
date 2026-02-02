@@ -28,33 +28,6 @@
 #include "baseentity.h"
 #include "entityoutput.h"
 
-// ###################################################################
-//	> BaseFilter
-// ###################################################################
-class CBaseFilter : public CLogicalEntity
-{
-	DECLARE_CLASS( CBaseFilter, CLogicalEntity );
-
-public:
-
-	DECLARE_DATADESC();
-
-	bool PassesFilter( CBaseEntity *pCaller, CBaseEntity *pEntity );
-	bool PassesDamageFilter( const CTakeDamageInfo &info );
-
-	bool m_bNegated;
-
-	// Inputs
-	void InputTestActivator( inputdata_t &inputdata );
-
-	// Outputs
-	COutputEvent	m_OnPass;		// Fired when filter is passed
-	COutputEvent	m_OnFail;		// Fired when filter is failed
-
-protected:
-
-	virtual bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity );
-	virtual bool PassesDamageFilterImpl(const CTakeDamageInfo &info);
-};
+#include "filters_shared.h"
 
 #endif // FILTERS_H
