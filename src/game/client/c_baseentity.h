@@ -1246,7 +1246,8 @@ public:
 
 	bool							IsWorld() { return entindex() == 0; }
 	/////////////////
-
+	
+	virtual bool					OnControls( CBaseEntity *pControls ) { return true; } // Returns true for the client because not every use entity is predicted
 	virtual bool					IsPlayer( void ) const { return false; };
 	virtual bool					IsBaseCombatCharacter( void ) { return false; };
 	virtual C_BaseCombatCharacter	*MyCombatCharacterPointer( void ) { return NULL; }

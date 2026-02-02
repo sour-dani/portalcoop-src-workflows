@@ -55,7 +55,9 @@ CPhysicsCloneArea::CPhysicsCloneArea()
 #endif
 void CPhysicsCloneArea::StartTouch( CBaseEntity *pOther )
 {
+#ifndef CLIENT_DLL
 	if( !m_bActive )
+#endif
 		return;
 
 	if( sv_portal_debug_touch.GetBool() )
@@ -84,7 +86,9 @@ void CPhysicsCloneArea::Touch( CBaseEntity *pOther )
 
 void CPhysicsCloneArea::EndTouch( CBaseEntity *pOther )
 {
+#ifndef CLIENT_DLL
 	if( !m_bActive )
+#endif
 		return;
 
 	if( sv_portal_debug_touch.GetBool() )
@@ -107,8 +111,6 @@ void CPhysicsCloneArea::Spawn( void )
 	BaseClass::Spawn();
 
 //	Assert(m_hAttachedPortal);
-
-//	Assert( m_pAttachedPortal );
 
 	AddEffects( EF_NORECEIVESHADOW | EF_NOSHADOW | EF_NODRAW );
 
@@ -133,7 +135,7 @@ int CPhysicsCloneArea::ObjectCaps( void )
 
 void CPhysicsCloneArea::UpdatePosition( void )
 {
-	Assert( m_pAttachedPortal );
+	Assert( m_hAttachedPortal );
 
 	//untouch everything we're touching
 	touchlink_t *root = ( touchlink_t * )GetDataObject( TOUCHLINK );
@@ -252,7 +254,7 @@ void CPhysicsCloneArea::CloneNearbyEntities( void )
 
 void CPhysicsCloneArea::CloneTouchingEntities( void )
 {
-	Assert(m_pAttachedPortal);
+	Assert(m_hAttachedPortal);
 	if( m_hAttachedPortal && m_hAttachedPortal->IsActive() )
 	{
 		touchlink_t *root = ( touchlink_t * )GetDataObject( TOUCHLINK );

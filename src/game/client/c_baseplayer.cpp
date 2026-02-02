@@ -378,6 +378,8 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 	
 	DEFINE_PRED_FIELD_TOL( m_vecBaseVelocity, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, 0.05 ),
 
+	DEFINE_PRED_FIELD( m_hUseEntity, FIELD_EHANDLE, FTYPEDESC_INSENDTABLE ),
+
 	DEFINE_FIELD( m_nButtons, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flWaterJumpTime, FIELD_FLOAT ),
 	DEFINE_FIELD( m_nImpulse, FIELD_INTEGER ),
@@ -2095,6 +2097,33 @@ void C_BasePlayer::PostThink( void )
 			SetCollisionBounds( VEC_HULL_MIN, VEC_HULL_MAX );
 		}
 		
+		VPROF_SCOPE_BEGIN( "CBasePlayer::PostThink-Use" );
+		// Handle controlling an entity
+		if ( m_hUseEntity != NULL )
+		{ 
+			// if they've moved too far from the gun, or deployed another weapon, unuse the gun
+			if ( m_hUseEntity->OnControls( this ) 
+#if 0
+				&& 
+				( !GetActiveWeapon() || GetActiveWeapon()->IsEffectActive( EF_NODRAW ) ||
+				( GetActiveWeapon()->GetActivity() == ACT_VM_HOLSTER ) 
+#ifdef PORTAL // Portalgun view model stays up when holding an object -Jeep
+				|| FClassnameIs( GetActiveWeapon(), "weapon_portalgun" ) 
+#endif //#ifdef PORTAL	
+					)
+#endif
+				)
+			{  
+				m_hUseEntity->Use( this, this, USE_SET, 2 );	// try fire the gun
+			}
+			else
+			{
+				// they've moved off the controls
+				ClearUseEntity();
+			}
+		}
+		VPROF_SCOPE_END();
+
 		if ( !CommentaryModeShouldSwallowInput( this ) )
 		{
 			// do weapon stuff

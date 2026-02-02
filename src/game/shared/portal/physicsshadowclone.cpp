@@ -6,6 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#ifndef CLIENT_DLL
 #include "physicsshadowclone.h"
 #include "portal_util_shared.h"
 #include "vphysics/object_hash.h"
@@ -1152,3 +1153,4 @@ TraceType_t	CTraceFilterTranslateClones::GetTraceType() const
 }
 
 
+#endif // CLIENT_DLL

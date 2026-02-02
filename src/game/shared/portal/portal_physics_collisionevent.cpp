@@ -42,16 +42,18 @@ int CPortal_CollisionEvent::ShouldCollide( IPhysicsObject *pObj0, IPhysicsObject
 	uint nFlags0 = pObj0->GetGameFlags();
 	uint nFlags1 = pObj1->GetGameFlags();
 	uint nAllFlags = nFlags0 | nFlags1;
-
+#ifndef CLIENT_DLL
 	bool bShadowClonesInvolved = ( nAllFlags & FVPHYSICS_IS_SHADOWCLONE) != 0;
-
+#else
+	bool bShadowClonesInvolved = false;
+#endif
 	if( bShadowClonesInvolved )
 	{
 		//at least one shadow clone
-
+#ifndef CLIENT_DLL
 		if( (nFlags0 & nFlags1) & FVPHYSICS_IS_SHADOWCLONE )
 			return 0; //both are shadow clones
-
+#endif
 		if( nAllFlags & FVPHYSICS_PLAYER_HELD )
 		{
 			//at least one is held
@@ -83,6 +85,7 @@ int CPortal_CollisionEvent::ShouldCollide( IPhysicsObject *pObj0, IPhysicsObject
 		pSimulators[1] = CPortalSimulator::GetSimulatorThatOwnsEntity( (CBaseEntity *)pGameData1 );
 
 
+#ifndef CLIENT_DLL
 #ifdef _DEBUG
 		for( int i = 0; i != 2; ++i )
 		{
@@ -96,7 +99,7 @@ int CPortal_CollisionEvent::ShouldCollide( IPhysicsObject *pObj0, IPhysicsObject
 			}
 		}
 #endif
-
+#endif
 		if( (pSimulators[0] == pSimulators[1]) ) //same simulator
 		{
 			if( pSimulators[0] != NULL ) //and not main world
@@ -245,9 +248,10 @@ int CPortal_CollisionEvent::ShouldSolvePenetration( IPhysicsObject *pObj0, IPhys
 		//most localized way to make a fix.
 		//Note that we're not actually going to change whether it should solve, we're just going to tack on some hacks
 		CPortal_Player *pHoldingPlayer = (CPortal_Player *)GetPlayerHoldingEntity( pHeld );
+#ifndef CLIENT_DLL
 		if( !pHoldingPlayer && CPhysicsShadowClone::IsShadowClone( pHeld ) )
 			pHoldingPlayer = (CPortal_Player *)GetPlayerHoldingEntity( ((CPhysicsShadowClone *)pHeld)->GetClonedEntity() );
-		
+#endif
 		Assert( pHoldingPlayer );
 		if( pHoldingPlayer )
 		{
@@ -269,7 +273,7 @@ int CPortal_CollisionEvent::ShouldSolvePenetration( IPhysicsObject *pObj0, IPhys
 		}
 	}
 
-
+#ifndef CLIENT_DLL
 	if( (pObj0->GetGameFlags() | pObj1->GetGameFlags()) & FVPHYSICS_IS_SHADOWCLONE ) 
 	{
 		//at least one shadowclone is involved
@@ -294,7 +298,7 @@ int CPortal_CollisionEvent::ShouldSolvePenetration( IPhysicsObject *pObj0, IPhys
 			}
 		}	
 	}
-
+#endif
 	return BaseClass::ShouldSolvePenetration( pObj0, pObj1, pGameData0, pGameData1, dt );
 }
 
@@ -316,6 +320,7 @@ static void ModifyWeight_PreCollision( vcollisionevent_t *pEvent )
 
 	for( int i = 0; i != 2; ++i )
 	{
+#ifndef CLIENT_DLL
 		if( pEvent->pObjects[i]->GetGameFlags() & FVPHYSICS_IS_SHADOWCLONE )
 		{
 			CPhysicsShadowClone *pClone = ((CPhysicsShadowClone *)pEvent->pObjects[i]->GetGameData());
@@ -330,6 +335,7 @@ static void ModifyWeight_PreCollision( vcollisionevent_t *pEvent )
 				return;
 		}
 		else
+#endif
 		{
 			pUnshadowedEntities[i] = (CBaseEntity *)pEvent->pObjects[i]->GetGameData();
 			pUnshadowedObjects[i] = pEvent->pObjects[i];
@@ -402,6 +408,7 @@ static void ModifyWeight_PreCollision( vcollisionevent_t *pEvent )
 					pUnshadowedObjects[i]->SetMass( VPHYSICS_MAX_MASS );
 				}
 			}
+#ifndef CLIENT_DLL
 			else if( pEvent->pObjects[j]->GetGameFlags() & FVPHYSICS_IS_SHADOWCLONE )
 			{
 				//held object vs shadow clone, set held object mass back to grab controller saved mass
@@ -430,6 +437,7 @@ static void ModifyWeight_PreCollision( vcollisionevent_t *pEvent )
 					pUnshadowedObjects[i]->SetMass( fSavedMass );
 				}
 			}
+#endif
 		}
 	}
 }

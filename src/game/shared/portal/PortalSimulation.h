@@ -237,8 +237,6 @@ struct PS_SD_Static_t //stuff that doesn't move around
 };
 #ifdef GAME_DLL
 class CPhysicsShadowClone;
-#else
-class CPhysicsShadowClone;
 #endif
 
 
@@ -246,8 +244,9 @@ struct PS_SD_Dynamic_PhysicsShadowClones_t
 {
 	CUtlVector<CBaseEntity *> ShouldCloneFromMain; //a list of entities that should be cloned from main if physics simulation is enabled
 													//in single-environment mode, this helps us track who should collide with who
-	
+#if defined( GAME_DLL )
 	CUtlVector<CPhysicsShadowClone *> FromLinkedPortal;
+#endif
 };
 
 struct PS_SD_Dynamic_t //stuff that moves around

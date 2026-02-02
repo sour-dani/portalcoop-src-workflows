@@ -70,10 +70,6 @@
 #include "networkvar.h"
 
 #ifdef CLIENT_DLL
-#define CWeaponPhysCannon C_WeaponPhysCannon
-#endif
-
-#ifdef CLIENT_DLL
 //#define CLIENTSHOULDNOTSEEPHYSCANNON
 //#define CLIENTSHOULDNOTSEEGRABCONTROLLER
 #else
@@ -106,8 +102,6 @@ struct game_shadowcontrol_params_t : public hlshadowcontrol_params_t
 #define	NUM_BEAMS	4
 #define	NUM_SPRITES	6
 
-//#define USE_VM_GRAB
-
 class CGrabController : public IMotionEvent
 {
 public:
@@ -122,11 +116,6 @@ public:
 	void OnRestore();
 
 	bool UpdateObject( CPortal_Player *pPlayer, float flError );
-#ifdef USE_VM_GRAB
-	virtual void AttachEntityVM( CBasePlayer *pPlayer, CBaseEntity *pEntity, IPhysicsObject *pPhys, bool bIsMegaPhysCannon, const Vector &vGrabPosition, bool bUseGrabPosition );
-	virtual bool DetachEntityVM( bool bClearVelocity );
-	virtual bool UpdateObjectVM( CBasePlayer *pPlayer, float flError );
-#endif	
 	void SetTargetPosition( const Vector &target, const QAngle &targetOrientation, bool bIsTeleport = false );
 	void GetTargetPosition( Vector *target, QAngle *targetOrientation );
 	float ComputeError();
@@ -139,12 +128,6 @@ public:
 	CBaseEntity *GetAttached() { return m_attachedEntity.Get(); }
 
 	IMotionEvent::simresult_e Simulate( IPhysicsMotionController *pController, IPhysicsObject *pObject, float deltaTime, Vector &linear, AngularImpulse &angular );
-#ifdef USE_VM_GRAB
-#if defined( CLIENT_DLL )
-	virtual void ClientApproachTarget( CBasePlayer *pOwnerPlayer ); //client-only version of Simulate() to use in prediction without any hope of having a physics object or valid physics environment
-	const Vector &GetHeldObjectRenderOrigin( void );
-#endif
-#endif
 	float GetSavedMass( IPhysicsObject *pObject );
 
 	bool IsObjectAllowedOverhead( CBaseEntity *pEntity );
@@ -197,62 +180,12 @@ private:
 	EHANDLE			m_PenetratedEntity;
 
 	EHANDLE			m_hHoldingPlayer;
-
+#ifdef GAME_DLL
 	friend class CWeaponPhysCannon;
+#endif
 	friend void GetSavedParamsForCarriedPhysObject( CGrabController *pGrabController, IPhysicsObject *pObject, float *pSavedMassOut, float *pSavedRotationalDampingOut );
-#ifdef USE_VM_GRAB
-private:
-	
-	void ShowDenyPlacement( void );
-	float m_flAngleOffset;
-	float m_flLengthOffset;
-	float m_flTimeOffset;
-
-	// Grr... We're juggling 3 different types of 
-	// pickup logic, and two of them require swapping collision groups.
-	// so we need two temps. One for VM mode changing to interactive debris
-	int m_preVMModeCollisionGroup;
-	int m_prePickupCollisionGroup;
-	int m_oldTransmitState;
-	bool m_bOldShadowState;
-	EHANDLE m_hOldLightingOrigin;
-
-	bool m_bOldUsingVMGrabState;
-#endif
 };
-
-#if defined ( CLIENT_DLL )
-class C_PlayerHeldObjectClone : public C_BaseAnimating, public CDefaultPlayerPickupVPhysics
-{
-public:
-	DECLARE_CLASS( C_PlayerHeldObjectClone, C_BaseAnimating );
-
-	~C_PlayerHeldObjectClone();
-
-	bool InitClone( C_BaseEntity *pObject, C_BasePlayer *pPlayer, bool bIsViewModel = true, C_PlayerHeldObjectClone *pVMToFollow = NULL );
-	void ClientThink( void );
-	
-	virtual bool OnInternalDrawModel( ClientModelRenderInfo_t *pInfo );
-	virtual int DrawModel( int flags );
-
-#if 0
-	virtual void GetColorModulation( float* color );
-#endif
-
-	//IPlayerPickupVPhysics
-	virtual bool HasPreferredCarryAnglesForPlayer( CBasePlayer *pPlayer );
-	virtual QAngle PreferredCarryAngles( void );
-
-	CHandle< C_BasePlayer > m_hPlayer;
-	EHANDLE m_hOriginal;
-	int m_nOldSkin;
-	bool m_bOnOppositeSideOfPortal;
-
-	C_PlayerHeldObjectClone *m_pVMToFollow;
-	Vector m_vPlayerRelativeOrigin; //Interpolators causing too much grief, just store render origin relative to the player's eye origin/angles and reconstruct world position when asked
-};
-#endif
-
+#ifdef GAME_DLL
 struct thrown_objects_t
 {
 	float				fTimeThrown;
@@ -267,9 +200,7 @@ class CWeaponPhysCannon : public CBasePortalCombatWeapon
 public:
 	DECLARE_CLASS( CWeaponPhysCannon, CBasePortalCombatWeapon );
 
-	DECLARE_NETWORKCLASS();
-
-	DECLARE_PREDICTABLE();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	CWeaponPhysCannon( void );
@@ -291,7 +222,6 @@ public:
 
 	void	ForceDrop( void );
 	bool	DropIfEntityHeld( CBaseEntity *pTarget );	// Drops its held entity if it matches the entity passed in
-
 	CGrabController &GetGrabController() { return m_grabController; }
 
 	bool	CanHolster( void );
@@ -306,16 +236,6 @@ public:
 
 	virtual void SetViewModel( void );
 	virtual const char *GetShootSound( int iIndex ) const;
-	
-#ifndef CLIENT_DLL
-	CNetworkQAngle	( m_attachedAnglesPlayerSpace );
-#else
-	QAngle m_attachedAnglesPlayerSpace;
-#endif
-
-	CNetworkVector	( m_attachedPositionObjectSpace );
-
-	CNetworkHandle( CBaseEntity, m_hAttachedObject );
 
 	void	RecordThrownObject( CBaseEntity *pObject );
 	void	PurgeThrownObjects();
@@ -323,7 +243,7 @@ public:
 	
 	bool	ShouldDisplayHUDHint() { return true; }
 
-	EHANDLE m_hOldAttachedObject;
+
 
 protected:
 	enum FindObjectResult_t
@@ -342,13 +262,10 @@ protected:
 	// Pickup and throw objects.
 	bool	CanPickupObject( CBaseEntity *pTarget );
 	void	CheckForTarget( void );
-
 	FindObjectResult_t		FindObject( void );
 	void					FindObjectTrace( CBasePlayer *pPlayer, trace_t *pTraceResult );
-#ifdef GAME_DLL
 	CBaseEntity *MegaPhysCannonFindObjectInCone( const Vector &vecOrigin, const Vector &vecDir, float flCone, float flCombineBallCone, bool bOnlyCombineBalls );
 	CBaseEntity *FindObjectInCone( const Vector &vecOrigin, const Vector &vecDir, float flCone );
-#endif
 	bool	AttachObject( CBaseEntity *pObject, const Vector &vPosition );
 	void	UpdateObject( void );
 	void	DetachObject( bool playSound = true, bool wasLaunched = false );
@@ -360,13 +277,11 @@ protected:
 	// Punt objects - this is pointing at an object in the world and applying a force to it.
 	void	PuntNonVPhysics( CBaseEntity *pEntity, const Vector &forward, trace_t &tr );
 	void	PuntVPhysics( CBaseEntity *pEntity, const Vector &forward, trace_t &tr );
-#ifdef GAME_DLL
 	void	PuntRagdoll( CBaseEntity *pEntity, const Vector &forward, trace_t &tr );
-#endif
+
 	// Velocity-based throw common to punt and launch code.
-#ifdef GAME_DLL
 	void	ApplyVelocityBasedForce( CBaseEntity *pEntity, const Vector &forward, const Vector &vecHitPos, PhysGunForce_t reason );
-#endif
+
 	// Physgun effects
 	void	DoEffectClosed( void );
 	void	DoMegaEffectClosed( void );
@@ -404,34 +319,13 @@ protected:
 	// What happens when the physgun picks up something 
 	void	Physgun_OnPhysGunPickup( CBaseEntity *pEntity, CBasePlayer *pOwner, PhysGunPickup_t reason );
 
-#ifdef CLIENT_DLL
-	
-	CInterpolatedValue		m_ElementParameter;							// Used to interpolate the position of the articulated elements
-	
-	virtual void	ClientThink( void );
-	virtual void	OnDataChanged( DataUpdateType_t type );
-	void			ManagePredictedObject( void );
-	void			UpdateElementPosition( void );
-
-	int				m_nOldEffectState;	// Used for parity checks
-	bool			m_bOldOpen;			// Used for parity checks
-
-#endif
-
 	// Wait until we're done upgrading
 	void	WaitForUpgradeThink();
 
 	bool	EntityAllowsPunts( CBaseEntity *pEntity );
-	CNetworkVar(bool, m_bActive);
-	CNetworkVar(bool, m_bCanHolster);
-	CNetworkVar(bool, m_bAllowsPunts);
-	CNetworkVar(bool, m_bOpen);
-	
-	bool	m_bResetOwnerEntity;
 
-	CNetworkVar(bool, m_bCanPickupObject);
-	CNetworkVar(int, m_EffectState);		// Current state of the effects on the gun
-
+	bool	m_bOpen;
+	bool	m_bActive;
 	int		m_nChangeState;			//For delayed state change of elements
 	float	m_flCheckSuppressTime;	//Amount of time to suppress the checking for targets
 	bool	m_flLastDenySoundPlayed;	//Debounce for deny sound
@@ -442,49 +336,34 @@ protected:
 	float	m_flElementDebounce;
 	float	m_flElementPosition;
 	float	m_flElementDestination;
-#ifdef GAME_DLL
+
 	CHandle<CBeam>		m_hBeams[NUM_BEAMS];
 	CHandle<CSprite>	m_hGlowSprites[NUM_SPRITES];
 	CHandle<CSprite>	m_hEndSprites[2];
 	float				m_flEndSpritesOverride[2];
 	CHandle<CSprite>	m_hCenterSprite;
 	CHandle<CSprite>	m_hBlastSprite;
-#endif
-	CSoundPatch			*m_sndMotor;		// Whirring sound for the gun
 
+	CSoundPatch			*m_sndMotor;		// Whirring sound for the gun
+	
 	CGrabController		m_grabController;
 	
+	int					m_EffectState;		// Current state of the effects on the gun
+
 	bool				m_bPhyscannonState;
 
 	// A list of the objects thrown or punted recently, and the time done so.
 	CUtlVector< thrown_objects_t >	m_ThrownEntities;
 
 	float				m_flTimeNextObjectPurge;
-
-#ifdef CLIENT_DLL
-public:
-
-	virtual int DrawModel(int flags);
-
-private:
-
-	bool	SetupEmitter(void);
-
-	bool	m_bWasUpgraded;
-
-	CSmartPtr<CLocalSpaceEmitter>	m_pLocalEmitter;
-	CSmartPtr<CSimpleEmitter>		m_pEmitter;
-	CSmartPtr<CParticleAttractor>	m_pAttractor;
+};
 #endif
 
-};
-
-
-
+#ifdef GAME_DLL
 // force the physcannon to drop an object (if carried)
 void PhysCannonForceDrop( CBaseCombatWeapon *pActiveWeapon, CBaseEntity *pOnlyIfHoldingThis );
 void PhysCannonBeginUpgrade( CBaseAnimating *pAnim );
-
+#endif
 bool PlayerPickupControllerIsHoldingEntity( CBaseEntity *pPickupController, CBaseEntity *pHeldEntity );
 void ShutdownPickupController( CBaseEntity *pPickupControllerEntity );
 float PlayerPickupGetHeldObjectMass( CBaseEntity *pPickupControllerEntity, IPhysicsObject *pHeldObject );
@@ -506,7 +385,7 @@ void GrabController_SetPortalPenetratingEntity( CGrabController *pController, CB
 
 CGrabController *GetGrabControllerForEntity( CBaseEntity *pEntity );
 CGrabController *GetPhyscannonGrabControllerFromEntity( CBaseEntity *pEntity );
-
+#ifdef GAME_DLL
 CWeaponPhysCannon *GetPhyscannonFromEntity( CBaseEntity *pEntity );
-
+#endif
 #endif // WEAPON_PHYSCANNON_H
