@@ -4359,27 +4359,156 @@ void C_BaseEntity::SetLocalAngularVelocity( const QAngle &vecAngVelocity )
 	}
 }
 
-void C_BaseEntity::Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
+//-----------------------------------------------------------------------------
+// Purpose: Holds an entity's previous abs origin and angles at the time of
+//			teleportation. Used for child & constrained entity fixup to prevent
+//			lazy updates of abs origins and angles from messing things up.
+//-----------------------------------------------------------------------------
+struct TeleportListEntry_t
 {
-	//TODO: Beef this up to work more like the server version.
-	Assert( GetPredictable() ); //does this even make sense unless we're predicting the teleportation?
-	int iEffects = GetEffects();
-	if( newPosition )
+	CBaseEntity *pEntity;
+	Vector prevAbsOrigin;
+	QAngle prevAbsAngles;
+};
+
+
+static void TeleportEntity( CBaseEntity *pSourceEntity, TeleportListEntry_t &entry, const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
+{
+	CBaseEntity *pTeleport = entry.pEntity;
+	Vector prevOrigin = entry.prevAbsOrigin;
+	QAngle prevAngles = entry.prevAbsAngles;
+
+	int nSolidFlags = pTeleport->GetSolidFlags();
+	pTeleport->AddSolidFlags( FSOLID_NOT_SOLID );
+
+	// I'm teleporting myself
+	if ( pSourceEntity == pTeleport )
 	{
-		SetNetworkOrigin( *newPosition );
-		iEffects |= EF_NOINTERP;
+		if ( newAngles )
+		{
+			pTeleport->SetLocalAngles( *newAngles );
+			if ( pTeleport->IsPlayer() )
+			{
+				CBasePlayer *pPlayer = (CBasePlayer *)pTeleport;
+				pPlayer->pl.v_angle = *newAngles;
+			}
+		}
+
+		if ( newVelocity )
+		{
+			pTeleport->SetAbsVelocity( *newVelocity );
+			pTeleport->SetBaseVelocity( vec3_origin );
+		}
+
+		if ( newPosition )
+		{
+			//pTeleport->IncrementInterpolationFrame();
+			pTeleport->AddEffects( EF_NOINTERP );
+			UTIL_SetOrigin( pTeleport, *newPosition );
+		}
 	}
-	if( newAngles )
+	else
 	{
-		SetNetworkAngles( *newAngles );
-		iEffects |= EF_NOINTERP;
+		// My parent is teleporting, just update my position & physics
+		pTeleport->CalcAbsolutePosition();
 	}
-	if( newVelocity )
+	IPhysicsObject *pPhys = pTeleport->VPhysicsGetObject();
+	bool rotatePhysics = false;
+
+	// handle physics objects / shadows
+	if ( pPhys )
 	{
-		SetLocalVelocity( *newVelocity );
-		iEffects |= EF_NOINTERP;
+		if ( newVelocity )
+		{
+			pPhys->SetVelocity( newVelocity, NULL );
+		}
+		const QAngle *rotAngles = &pTeleport->GetAbsAngles();
+		// don't rotate physics on players or bbox entities
+		if (pTeleport->IsPlayer() || pTeleport->GetSolid() == SOLID_BBOX )
+		{
+			rotAngles = &vec3_angle;
+		}
+		else
+		{
+			rotatePhysics = true;
+		}
+
+		pPhys->SetPosition( pTeleport->GetAbsOrigin(), *rotAngles, true );
 	}
-	SetEffects( iEffects );
+
+	//g_pNotify->ReportTeleportEvent( pTeleport, prevOrigin, prevAngles, rotatePhysics );
+
+	pTeleport->SetSolidFlags( nSolidFlags );
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: Recurses an entity hierarchy and fills out a list of all entities
+//			in the hierarchy with their current origins and angles.
+//
+//			This list is necessary to keep lazy updates of abs origins and angles
+//			from messing up our child/constrained entity fixup.
+//-----------------------------------------------------------------------------
+static void BuildTeleportList_r( CBaseEntity *pTeleport, CUtlVector<TeleportListEntry_t> &teleportList )
+{
+	TeleportListEntry_t entry;
+	
+	entry.pEntity = pTeleport;
+	entry.prevAbsOrigin = pTeleport->GetAbsOrigin();
+	entry.prevAbsAngles = pTeleport->GetAbsAngles();
+
+	teleportList.AddToTail( entry );
+
+	CBaseEntity *pList = pTeleport->FirstMoveChild();
+	while ( pList )
+	{
+		BuildTeleportList_r( pList, teleportList );
+		pList = pList->NextMovePeer();
+	}
+}
+
+
+static CUtlVector<CBaseEntity *> g_TeleportStack;
+void CBaseEntity::Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
+{
+	if ( g_TeleportStack.Find( this ) >= 0 )
+		return;
+	int index = g_TeleportStack.AddToTail( this );
+
+	CUtlVector<TeleportListEntry_t> teleportList;
+	BuildTeleportList_r( this, teleportList );
+
+	int i;
+	for ( i = 0; i < teleportList.Count(); i++)
+	{
+		TeleportEntity( this, teleportList[i], newPosition, newAngles, newVelocity );
+	}
+
+	for (i = 0; i < teleportList.Count(); i++)
+	{
+		teleportList[i].pEntity->CollisionRulesChanged();
+	}
+
+	if ( IsPlayer() )
+	{
+		// Tell the client being teleported
+		IGameEvent *event = gameeventmanager->CreateEvent( "base_player_teleported" );
+		if ( event )
+		{
+			event->SetInt( "entindex", entindex() );
+			gameeventmanager->FireEventClientSide( event );
+		}
+	}
+
+	Assert( g_TeleportStack[index] == this );
+	g_TeleportStack.FastRemove( index );
+
+	// FIXME: add an initializer function to StepSimulationData
+	StepSimulationData *step = ( StepSimulationData * )GetDataObject( STEPSIMULATION );
+	if (step)
+	{
+		Q_memset( step, 0, sizeof( *step ) );
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -5029,7 +5158,7 @@ C_BaseEntity *C_BaseEntity::CreatePredictedEntityByName( const char *classname, 
 	C_BaseEntity *ent = NULL;
 
 	// What's my birthday (should match server)
-	int command_number	= player->m_pCurrentCommand->command_number;
+	int command_number = player->m_pCurrentCommand->command_number;
 	// Who's my daddy?
 	int player_index	= player->entindex() - 1;
 

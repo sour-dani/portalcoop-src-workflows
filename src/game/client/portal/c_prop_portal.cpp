@@ -1796,6 +1796,10 @@ void C_Prop_Portal::OnPortalMoved( void )
 			}
 		}
 	}
+	
+	Vector mins, maxs;
+	CollisionProp()->WorldSpaceSurroundingBounds( &mins, &maxs );
+	::partition->ElementMoved( CollisionProp()->GetPartitionHandle(), mins, maxs );
 }
 
 void C_Prop_Portal::OnActiveStateChanged( void )

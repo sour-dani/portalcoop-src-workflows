@@ -1703,6 +1703,11 @@ public:
 
 	PINGICON m_iPingIcon;
 #endif
+	
+	// Computes absolute position based on hierarchy
+	void CalcAbsolutePosition( );
+	void CalcAbsoluteVelocity();
+
 private:
 	friend void OnRenderStart();
 
@@ -1730,10 +1735,6 @@ private:
 
 	// Simulation in local space of rigid children
 	void PhysicsRigidChild( void );
-
-	// Computes absolute position based on hierarchy
-	void CalcAbsolutePosition( );
-	void CalcAbsoluteVelocity();
 
 	// Computes new angles based on the angular velocity
 	void SimulateAngles( float flFrameTime );

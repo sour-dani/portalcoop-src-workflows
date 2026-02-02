@@ -142,7 +142,6 @@ void CProp_Portal::PortalSimulator_ReleasedOwnershipOfEntity( CBaseEntity *pEnti
 // This is causing issues with portal bumping
 void CProp_Portal::UpdateCollisionShape( void )
 {
-#if 1
 	if( m_pCollisionShape )
 	{
 		physcollision->DestroyCollide( m_pCollisionShape );
@@ -194,7 +193,6 @@ void CProp_Portal::UpdateCollisionShape( void )
 	pPolyhedron->Release();
 	Assert( pConvex != NULL );
 	m_pCollisionShape = physcollision->ConvertConvexToCollide( &pConvex, 1 );
-#endif
 }
 
 //unify how we determine the velocity of objects when portalling them
@@ -725,24 +723,12 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 			qTransformedEyeAngles.z = AngleNormalizePositive( qTransformedEyeAngles.z );
 
 #if defined( GAME_DLL )
-#if 0
-			
-			pOtherAsPlayer->SetAbsOrigin( ptNewOrigin );
-			pOtherAsPlayer->SetAbsVelocity( vNewVelocity );
-
-			pOtherAsPlayer->m_vecPrevOrigin = vec3_origin;
-
-			pOtherAsPlayer->m_PlayerAnimState->Teleport(&ptNewOrigin, &qNewAngles, pOtherAsPlayer);
-#else
-			
 			pOtherAsPlayer->pl.v_angle = qTransformedEyeAngles;
 			pOtherAsPlayer->pl.fixangle = FIXANGLE_ABSOLUTE;			
 				
 			pOtherAsPlayer->Teleport( &ptNewOrigin, &qNewAngles, &vNewVelocity );
 							
 			pOtherAsPlayer->UpdateVPhysicsPosition( ptNewOrigin, vNewVelocity, 0.0f );
-
-#endif
 #else
 
 
@@ -774,45 +760,13 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 		{
 			if( bNonPhysical )
 			{
-#if defined( GAME_DLL )
 				pOther->Teleport( &ptNewOrigin, &qNewAngles, &vNewVelocity );
-#else
-				pOther->SetAbsOrigin( ptNewOrigin );
-				pOther->SetAbsAngles( qNewAngles );
-				pOther->SetAbsVelocity( vNewVelocity );		
-
-				IPhysicsObject *pHeldPhysics = pOther->VPhysicsGetObject();
-				if (pHeldPhysics)
-				{
-
-					AngularImpulse angImpulse;
-
-					pHeldPhysics->SetPosition(ptNewOrigin, qNewAngles, true);
-					pHeldPhysics->SetVelocity(&vec3_origin, &angImpulse);
-				}
-#endif
 			}
 			else
 			{
 				//doing velocity in two stages as a bug workaround, setting the velocity to anything other than 0 will screw up how objects rest on this entity in the future
-#if defined( GAME_DLL )
 				pOther->Teleport( &ptNewOrigin, &qNewAngles, &vec3_origin );
-#else
-				pOther->SetAbsOrigin( ptNewOrigin );
-				pOther->SetAbsAngles( qNewAngles );
-				pOther->SetAbsVelocity( vec3_origin );
-				
-				IPhysicsObject *pHeldPhysics = pOther->VPhysicsGetObject();
-				if ( pHeldPhysics )
-				{
 
-					AngularImpulse angImpulse;
-
-					pHeldPhysics->SetPosition( ptNewOrigin, qNewAngles, true );
-					pHeldPhysics->SetVelocity( &vec3_origin, &angImpulse );
-				}
-
-#endif
 				pOther->ApplyAbsVelocityImpulse( vNewVelocity );
 			}
 		}
@@ -820,11 +774,25 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 	if( (pPhys != NULL) && (pPhys->GetGameFlags() & FVPHYSICS_PLAYER_HELD) )
 	{
 		CPortal_Player *pHoldingPlayer = (CPortal_Player *)GetPlayerHoldingEntity( pOther );
-		pHoldingPlayer->ToggleHeldObjectOnOppositeSideOfPortal();
-		if ( pHoldingPlayer->IsHeldObjectOnOppositeSideOfPortal() )
-			pHoldingPlayer->SetHeldObjectPortal( this );
-		else
-			pHoldingPlayer->SetHeldObjectPortal( NULL );
+#ifdef CLIENT_DLL
+		if ( !pHoldingPlayer )
+		{
+			pHoldingPlayer = C_Portal_Player::GetLocalPortalPlayer();
+			if ( !pHoldingPlayer || GetPlayerHeldEntity( pHoldingPlayer ) == pOther )
+			{
+				pHoldingPlayer = NULL;
+			}
+		}
+		Assert( pHoldingPlayer );
+		if ( pHoldingPlayer )
+#endif
+		{
+			pHoldingPlayer->ToggleHeldObjectOnOppositeSideOfPortal();
+			if ( pHoldingPlayer->IsHeldObjectOnOppositeSideOfPortal() )
+				pHoldingPlayer->SetHeldObjectPortal( this );
+			else
+				pHoldingPlayer->SetHeldObjectPortal( NULL );
+		}
 	}
 	else if( bPlayer )
 	{
@@ -844,18 +812,8 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 				Vector vTargetPosition;
 				QAngle qTargetOrientation;
 				UpdateGrabControllerTargetPosition( pOtherAsPlayer, &vTargetPosition, &qTargetOrientation );
-#ifdef GAME_DLL
 				pHeldEntity->Teleport( &vTargetPosition, &qTargetOrientation, 0 );
-#else
-				pHeldEntity->SetAbsOrigin(vTargetPosition);
-				pHeldEntity->SetAbsAngles(qTargetOrientation);
 
-				IPhysicsObject *pHeldPhysics = pHeldEntity->VPhysicsGetObject();
-				if ( pHeldPhysics )
-				{
-					pHeldPhysics->SetPosition( vTargetPosition, qTargetOrientation, true );
-				}
-#endif
 				FindClosestPassableSpace( pHeldEntity, RemotePortalDataAccess.Placement.vForward );
 			}
 		}

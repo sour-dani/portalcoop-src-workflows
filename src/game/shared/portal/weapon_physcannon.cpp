@@ -930,7 +930,9 @@ static void ClampPhysicsVelocity( IPhysicsObject *pPhys, float linearLimit, floa
 
 void CGrabController::DetachEntity( bool bClearVelocity )
 {
+#ifndef CLIENT_DLL
 	Assert(!PhysIsInCallback());
+#endif
 	CBaseEntity *pEntity = GetAttached();
 	if ( pEntity )
 	{
@@ -1095,6 +1097,9 @@ class CPlayerPickupController : public CBaseEntity
 	DECLARE_CLASS( CPlayerPickupController, CBaseEntity );
 	//DECLARE_NETWORKCLASS();
 public:
+#ifdef CLIENT_DLL
+	~CPlayerPickupController();
+#endif
 	void InitController( CBasePlayer *pPlayer, CBaseEntity *pObject );
 	void Shutdown( bool bThrown = false );
 	bool OnControls( CBaseEntity *pControls ) { return true; }
@@ -1168,6 +1173,31 @@ BEGIN_DATADESC( CPlayerPickupController )
 	DEFINE_FIELD( m_hPlayer,		FIELD_EHANDLE ),
 	
 END_DATADESC()
+#else
+CPlayerPickupController::~CPlayerPickupController()
+{	
+	if ( m_hAttachedObject )
+	{
+		CPortalSimulator *pOwningSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( m_hAttachedObject );
+		if ( pOwningSimulator )
+		{
+			pOwningSimulator->ReleaseOwnershipOfEntity( m_hAttachedObject );
+		}
+
+		m_hAttachedObject->VPhysicsDestroyObject();
+	}
+
+	if ( m_hOldAttachedObject )
+	{
+		CPortalSimulator *pOwningSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( m_hOldAttachedObject );
+		if ( pOwningSimulator )
+		{
+			pOwningSimulator->ReleaseOwnershipOfEntity( m_hOldAttachedObject );
+		}
+
+		m_hOldAttachedObject->VPhysicsDestroyObject();
+	}
+}
 #endif
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1231,9 +1261,10 @@ void CPlayerPickupController::InitController( CBasePlayer *pPlayer, CBaseEntity 
 	// NVNT apply a downward force to simulate the mass of the held object.
 	HapticSetConstantForce(m_hPlayer,clamp(m_grabController.GetLoadWeight()*0.1,1,6)*Vector(0,-1,0));
 #endif	
+#endif
+
 	m_hPlayer->m_Local.m_iHideHUD |= HIDEHUD_WEAPONSELECTION;
 	m_hPlayer->SetUseEntity( this );
-#endif
 }
 
 #ifdef CLIENT_DLL
@@ -1245,11 +1276,23 @@ void CPlayerPickupController::OnDataChanged( DataUpdateType_t updatetype )
 	{
 		if ( m_hAttachedObject )
 		{
+			CPortalSimulator *pOwningSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( m_hAttachedObject );
+			if ( pOwningSimulator )
+			{
+				pOwningSimulator->ReleaseOwnershipOfEntity( m_hAttachedObject );
+			}
+
 			m_hAttachedObject->VPhysicsDestroyObject();
 		}
 
 		if ( m_hOldAttachedObject )
 		{
+			CPortalSimulator *pOwningSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( m_hOldAttachedObject );
+			if ( pOwningSimulator )
+			{
+				pOwningSimulator->ReleaseOwnershipOfEntity( m_hOldAttachedObject );
+			}
+
 			m_hOldAttachedObject->VPhysicsDestroyObject();
 		}
 	}
@@ -1291,6 +1334,11 @@ void CPlayerPickupController::ManagePredictedObject( void )
 		if ( m_hOldAttachedObject && m_hOldAttachedObject->VPhysicsGetObject() )
 		{
 			GetGrabController().DetachEntity( false );
+			CPortalSimulator *pOwningSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( m_hOldAttachedObject );
+			if ( pOwningSimulator )
+			{
+				pOwningSimulator->ReleaseOwnershipOfEntity( m_hOldAttachedObject );
+			}
 
 			m_hOldAttachedObject->VPhysicsDestroyObject();
 		}
@@ -1319,6 +1367,12 @@ void CPlayerPickupController::Shutdown( bool bThrown )
 #ifdef CLIENT_DLL
 	if ( m_hAttachedObject )
 	{
+		CPortalSimulator *pOwningSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( m_hAttachedObject );
+		if ( pOwningSimulator )
+		{
+			pOwningSimulator->ReleaseOwnershipOfEntity( m_hAttachedObject );
+		}
+
 		m_hAttachedObject->VPhysicsDestroyObject();
 	}
 #endif
@@ -1481,6 +1535,7 @@ void PlayerPickupObject(CBasePlayer *pPlayer, CBaseEntity *pObject)
 
 	if ( pObject->GetBaseAnimating() && pObject->GetBaseAnimating()->IsDissolving() )
 		return;
+	
 	CPlayerPickupController *pController = (CPlayerPickupController *)CBaseEntity::Create( "player_pickup", pObject->GetAbsOrigin(), vec3_angle, pPortalPlayer );
 	if ( !pController )
 		return;
