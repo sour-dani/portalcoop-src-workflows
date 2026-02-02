@@ -605,13 +605,13 @@ void CCollisionProperty::SetSolidFlags( int flags )
 		m_pOuter->CollisionRulesChanged();
 	}
 
-#ifndef CLIENT_DLL
 	if ( (oldFlags & (FSOLID_NOT_SOLID | FSOLID_TRIGGER)) != (m_usSolidFlags & (FSOLID_NOT_SOLID | FSOLID_TRIGGER)) )
 	{
+#ifndef CLIENT_DLL
 		UpdateServerPartitionMask( );
+#endif
 		CheckForUntouch();
 	}
-#endif
 }
 
 
