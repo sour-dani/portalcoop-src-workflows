@@ -854,14 +854,6 @@ void CPortalGameMovement::SetGroundEntity( trace_t *pm )
 	BaseClass::SetGroundEntity( pm );
 }
 
-ConVar sv_portal_new_player_trace_vs_remote_ents( "sv_portal_new_player_trace_vs_remote_ents", "0", FCVAR_REPLICATED | FCVAR_CHEAT );
-
-#define DEBUG_PORTAL_TRACE_BOXES //uncomment to draw collision debug info near portals
-
-#if defined( DEBUG_PORTAL_TRACE_BOXES )
-ConVar sv_portal_new_trace_debugboxes( "sv_portal_new_trace_debugboxes", "0", FCVAR_REPLICATED );
-#endif
-
 void CPortalGameMovement::TracePlayerBBox( const Vector& start, const Vector& end, unsigned int fMask, int collisionGroup, trace_t& pm )
 {
 	VPROF( "CGameMovement::TracePlayerBBox" );
