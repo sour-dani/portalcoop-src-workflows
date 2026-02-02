@@ -234,6 +234,7 @@ END_RECV_TABLE()
 		RecvPropArray3		( RECVINFO_ARRAY(m_iAmmo), RecvPropInt( RECVINFO(m_iAmmo[0])) ),
 		
 		RecvPropInt			( RECVINFO(m_fOnTarget) ),
+		RecvPropBool		( RECVINFO( m_bForceDuckedByTriggerPlayerMove ) ),
 
 		RecvPropInt			( RECVINFO( m_nTickBase ) ),
 		RecvPropInt			( RECVINFO( m_nNextThinkTick ) ),
@@ -370,6 +371,7 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 	DEFINE_PRED_FIELD_TOL( m_flMaxspeed, FIELD_FLOAT, FTYPEDESC_INSENDTABLE, 0.5f ),
 	DEFINE_PRED_FIELD( m_iHealth, FIELD_INTEGER, FTYPEDESC_INSENDTABLE | FTYPEDESC_ONLY_ERROR_IF_ABOVE_ZERO_TO_ZERO_OR_BELOW_ETC ),
 	DEFINE_PRED_FIELD( m_fOnTarget, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_bForceDuckedByTriggerPlayerMove, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_nNextThinkTick, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_lifeState, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_nWaterLevel, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
@@ -387,6 +389,7 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 	DEFINE_FIELD( m_afButtonLast, FIELD_INTEGER ),
 	DEFINE_FIELD( m_afButtonPressed, FIELD_INTEGER ),
 	DEFINE_FIELD( m_afButtonReleased, FIELD_INTEGER ),
+	DEFINE_FIELD( m_afButtonForced, FIELD_INTEGER ),
 	// DEFINE_FIELD( m_vecOldViewAngles, FIELD_VECTOR ),
 
 	// DEFINE_ARRAY( m_iOldAmmo, FIELD_INTEGER,  MAX_AMMO_TYPES ),
@@ -2390,17 +2393,6 @@ void C_BasePlayer::PhysicsSimulate( void )
 const QAngle& C_BasePlayer::GetPunchAngle()
 {
 	return m_Local.m_vecPunchAngle.Get();
-}
-
-void C_BasePlayer::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
-{
-	C_BaseCombatCharacter::PhysicsTouchTriggers( pPrevAbsOrigin );
-
-	if ( this == GetLocalPlayer() )
-	{
-		extern void TouchTriggerSoundOperator( C_BaseEntity *pEntity );
-		TouchTriggerSoundOperator( this );
-	}
 }
 
 void C_BasePlayer::SetPunchAngle( const QAngle &angle )

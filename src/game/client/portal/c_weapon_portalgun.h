@@ -145,6 +145,7 @@ public:
 	float GetPortal2Placablity( void );
 	void SetPortal1Placablity( float flPlacablity ) { m_fCanPlacePortal1OnThisSurface = flPlacablity; }
 	void SetPortal2Placablity( float flPlacablity ) { m_fCanPlacePortal2OnThisSurface = flPlacablity; }
+	void SetLastFiredPortal( int iLastFiredPortal ) { m_iLastFiredPortal = iLastFiredPortal; }
 	int GetLastFiredPortal( void ) { return m_iLastFiredPortal; }
 	bool IsHoldingObject( void ) { return m_bOpenProngs; }
 

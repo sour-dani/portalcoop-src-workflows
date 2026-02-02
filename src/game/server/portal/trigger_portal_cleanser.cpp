@@ -49,8 +49,6 @@ void CTriggerPortalCleanser::Spawn( void )
 	SetTransmitState( FL_EDICT_PVSCHECK );
 
 	BaseClass::Spawn();
-
-	m_bClientSidePredicted = true;
 	
 	InitTrigger();
 }

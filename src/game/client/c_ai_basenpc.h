@@ -13,7 +13,7 @@
 
 
 #include "c_basecombatcharacter.h"
-
+#define CAI_BaseNPC C_AI_BaseNPC
 // NOTE: Moved all controller code into c_basestudiomodel
 class C_AI_BaseNPC : public C_BaseCombatCharacter
 {

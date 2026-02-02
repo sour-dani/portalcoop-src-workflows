@@ -1986,13 +1986,9 @@ inline bool CBaseEntity::ClassMatches( const char *pszClassOrWildcard )
 	return ClassMatchesComplex( pszClassOrWildcard );
 }
 
-inline bool FClassnameIs( C_BaseEntity *pEntity, const char *szClassname )
+inline bool FClassnameIs(CBaseEntity *pEntity, const char *szClassname)
 { 
-	Assert( pEntity );
-	if ( pEntity == NULL )
-		return false;
-
-	return !strcmp( pEntity->GetClassname(), szClassname ) ? true : false; 
+	return pEntity->ClassMatches(szClassname); 
 }
 
 #define SetThink( a ) ThinkSet( static_cast <void (CBaseEntity::*)(void)> (a), 0, NULL )

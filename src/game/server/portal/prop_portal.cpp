@@ -634,7 +634,7 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_close" ) : ( "portal_1_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			ep.m_pSoundName = "Portal.fizzle_moved";
 
-			bFilterUsePredictionRules = false;
+			bFilterUsePredictionRules = true;
 			break;
 		}
 		case PORTAL_FIZZLE_CLEANSER:

@@ -13,25 +13,6 @@
 #include "c_basetoggle.h"
 #include "triggers_shared.h"
 
-class C_BaseTrigger : public C_BaseToggle
-{
-	DECLARE_CLASS( C_BaseTrigger, C_BaseToggle );
-	DECLARE_CLIENTCLASS();
-public:
-
-	C_BaseTrigger( void );
-
-	virtual void Spawn();
-	
-	virtual bool PassesTriggerFilters(C_BaseEntity *pOther);
-
-	bool m_bDisabled;
-
-public:
-
-	bool	m_bClientSidePredicted;
-};
-
 class C_BaseVPhysicsTrigger : public C_BaseTrigger
 {
 	DECLARE_CLASS( C_BaseVPhysicsTrigger , C_BaseTrigger );

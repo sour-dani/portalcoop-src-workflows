@@ -328,9 +328,8 @@ void CPortalGameMovement::ProcessMovement( CBasePlayer *pPlayer, CMoveData *pMov
 
 	g_bAllowForcePortalTrace = false;
 	g_bForcePortalTrace = false;
-#ifdef GAME_DLL
+
 	if ( !pPlayer->m_bForceDuckedByTriggerPlayerMove )
-#endif
 	{
 		pPlayer->UnforceButtons( IN_DUCK );
 	}
