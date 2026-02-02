@@ -17,15 +17,25 @@
 #else
 #include "c_prop_portal.h"
 #include "vcollide_parse.h"
-
-#define CProp_Portal C_Prop_Portal
 #endif
 
-#ifdef GAME_DLL
-LINK_ENTITY_TO_CLASS( physicsclonearea, CPhysicsCloneArea );
+IMPLEMENT_NETWORKCLASS_ALIASED( PhysicsCloneArea, DT_PhysicsCloneArea )
+BEGIN_NETWORK_TABLE( CPhysicsCloneArea, DT_PhysicsCloneArea )
+#ifdef CLIENT_DLL
+RecvPropEHandle( RECVINFO( m_hAttachedPortal ) ),
+RecvPropBool( RECVINFO( m_bActive ) ),
 #else
-LINK_ENTITY_TO_CLASS_CLIENTONLY( physicsclonearea, CPhysicsCloneArea );
+SendPropEHandle( SENDINFO( m_hAttachedPortal ) ),
+SendPropBool( SENDINFO( m_bActive ) ),
 #endif
+END_NETWORK_TABLE()
+#ifdef CLIENT_DLL
+BEGIN_PREDICTION_DATA( CPhysicsCloneArea )
+	DEFINE_PRED_FIELD( m_bActive, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE )
+END_PREDICTION_DATA()
+#endif
+
+LINK_ENTITY_TO_CLASS_ALIASED( physicsclonearea, PhysicsCloneArea );
 
 #define PHYSICSCLONEAREASCALE 4.0f
 
@@ -37,24 +47,12 @@ const Vector CPhysicsCloneArea::vLocalMaxs( PORTAL_HALF_HEIGHT * PHYSICSCLONEARE
 											PORTAL_HALF_HEIGHT * PHYSICSCLONEAREASCALE );
 
 extern ConVar sv_portal_debug_touch;
-
 #ifdef CLIENT_DLL
 CPhysicsCloneArea::CPhysicsCloneArea()
 {
-	SetNextClientThink( CLIENT_THINK_ALWAYS );
-	cl_entitylist->AddNonNetworkableEntity( GetIClientUnknown() );
-
-	//m_flFakeTouchRadius = 256.0f;
+	SetPredictionEligible( true );
 }
-
-CPhysicsCloneArea::~CPhysicsCloneArea()
-{
-	cl_entitylist->RemoveEntity( GetIClientUnknown()->GetRefEHandle() );
-}
-
 #endif
-
-
 void CPhysicsCloneArea::StartTouch( CBaseEntity *pOther )
 {
 	if( !m_bActive )
@@ -62,13 +60,13 @@ void CPhysicsCloneArea::StartTouch( CBaseEntity *pOther )
 
 	if( sv_portal_debug_touch.GetBool() )
 	{
-		DevMsg( "PortalCloneArea %i Start Touch: %s : %f\n", ((m_pAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime );
+		DevMsg( "PortalCloneArea %i Start Touch: %s : %f\n", ((m_hAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime );
 	}
 #ifdef GAME_DLL
 #if !defined( DISABLE_DEBUG_HISTORY )
 	if ( !IsMarkedForDeletion() )
 	{
-		ADD_DEBUG_HISTORY( HISTORY_PLAYER_DAMAGE, UTIL_VarArgs( "PortalCloneArea %i Start Touch: %s : %f\n", ((m_pAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime  ) );
+		ADD_DEBUG_HISTORY( HISTORY_PLAYER_DAMAGE, UTIL_VarArgs( "PortalCloneArea %i Start Touch: %s : %f\n", ((m_hAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime  ) );
 	}
 #endif
 #endif
@@ -91,13 +89,13 @@ void CPhysicsCloneArea::EndTouch( CBaseEntity *pOther )
 
 	if( sv_portal_debug_touch.GetBool() )
 	{
-		DevMsg( "PortalCloneArea %i End Touch: %s : %f\n", ((m_pAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime );
+		DevMsg( "PortalCloneArea %i End Touch: %s : %f\n", ((m_hAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime );
 	}
 #ifdef GAME_DLL
 #if !defined( DISABLE_DEBUG_HISTORY )
 	if ( !IsMarkedForDeletion() )
 	{
-		ADD_DEBUG_HISTORY( HISTORY_PLAYER_DAMAGE, UTIL_VarArgs( "PortalCloneArea %i End Touch: %s : %f\n", ((m_pAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime ) );
+		ADD_DEBUG_HISTORY( HISTORY_PLAYER_DAMAGE, UTIL_VarArgs( "PortalCloneArea %i End Touch: %s : %f\n", ((m_hAttachedPortal->m_bIsPortal2)?(2):(1)), pOther->GetClassname(), gpGlobals->curtime ) );
 	}
 #endif
 #endif
@@ -109,8 +107,6 @@ void CPhysicsCloneArea::Spawn( void )
 	BaseClass::Spawn();
 
 //	Assert(m_hAttachedPortal);
-
-	m_pAttachedPortal = m_hAttachedPortal;
 
 //	Assert( m_pAttachedPortal );
 
@@ -157,10 +153,14 @@ void CPhysicsCloneArea::UpdatePosition( void )
 			PhysicsNotifyOtherOfUntouch( this, pTouch );
 		}
 	}
-
-	SetAbsOrigin( m_pAttachedPortal->m_ptOrigin );
-	SetAbsAngles( m_pAttachedPortal->m_qAbsAngle );
-	m_bActive = m_pAttachedPortal->IsActive();
+#ifdef GAME_DLL
+	SetAbsOrigin( m_hAttachedPortal->m_ptOrigin );
+	SetAbsAngles( m_hAttachedPortal->m_qAbsAngle );
+#else
+	SetNetworkOrigin( m_hAttachedPortal->m_ptOrigin );
+	SetNetworkAngles( m_hAttachedPortal->m_qAbsAngle );
+#endif
+	m_bActive = m_hAttachedPortal->IsActive();
 
 	//NDebugOverlay::EntityBounds( this, 0, 0, 255, 25, 5.0f );
 
@@ -253,7 +253,7 @@ void CPhysicsCloneArea::CloneNearbyEntities( void )
 void CPhysicsCloneArea::CloneTouchingEntities( void )
 {
 	Assert(m_pAttachedPortal);
-	if( m_pAttachedPortal && m_pAttachedPortal->IsActive() )
+	if( m_hAttachedPortal && m_hAttachedPortal->IsActive() )
 	{
 		touchlink_t *root = ( touchlink_t * )GetDataObject( TOUCHLINK );
 		if( root )
@@ -263,11 +263,40 @@ void CPhysicsCloneArea::CloneTouchingEntities( void )
 		}
 	}
 }
+#ifdef CLIENT_DLL
+void CPhysicsCloneArea::UpdatePartitionListEntry()
+{
+	::partition->RemoveAndInsert( 
+		PARTITION_CLIENT_SOLID_EDICTS | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS,  // remove
+		PARTITION_CLIENT_TRIGGER_ENTITIES,  // add
+		CollisionProp()->GetPartitionHandle() );
+}
 
+bool CPhysicsCloneArea::ShouldPredict( void )
+{
+	C_Prop_Portal *pPortal = m_hAttachedPortal;
+	if ( pPortal && pPortal->ShouldPredict() )
+	{
+		return true;
+	}
+	return BaseClass::ShouldPredict();
+}
 
+void CPhysicsCloneArea::OnDataChanged( DataUpdateType_t updatetype )
+{
+	BaseClass::OnDataChanged( updatetype );
+	if ( m_hAttachedPortal )
+	{
+		m_pAttachedSimulator = &m_hAttachedPortal->m_PortalSimulator;
+	}
+	else
+	{
+		m_pAttachedSimulator = NULL;
+	}
+}
+#endif
 
-
-
+#ifdef GAME_DLL
 CPhysicsCloneArea *CPhysicsCloneArea::CreatePhysicsCloneArea( CProp_Portal *pFollowPortal )
 {
 	if( !pFollowPortal )
@@ -278,15 +307,10 @@ CPhysicsCloneArea *CPhysicsCloneArea::CreatePhysicsCloneArea( CProp_Portal *pFol
 	pCloneArea->m_hAttachedPortal = pFollowPortal;
 	pCloneArea->m_pAttachedSimulator = &pFollowPortal->m_PortalSimulator;
 
-#ifdef GAME_DLL
 	DispatchSpawn(pCloneArea);
-#else
-	pCloneArea->Spawn();
-#endif
-
 
 	pCloneArea->UpdatePosition();
 
 	return pCloneArea;
 }
-
+#endif

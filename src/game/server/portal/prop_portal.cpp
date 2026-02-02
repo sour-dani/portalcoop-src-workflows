@@ -72,7 +72,7 @@ BEGIN_DATADESC( CProp_Portal )
 	DEFINE_FIELD( m_iCustomPortalColorSet,	FIELD_INTEGER ),
 
 	// DEFINE_FIELD( m_plane_Origin, cplane_t ),
-	// DEFINE_FIELD( m_pAttachedCloningArea, CPhysicsCloneArea ),
+	// DEFINE_FIELD( m_hAttachedCloningArea, CPhysicsCloneArea ),
 	// DEFINE_FIELD( m_PortalSimulator, CPortalSimulator ),
 	// DEFINE_FIELD( m_pCollisionShape, CPhysCollide ),
 	
@@ -114,6 +114,7 @@ IMPLEMENT_SERVERCLASS_ST( CProp_Portal, DT_Prop_Portal )
 	SendPropVector( SENDINFO(m_ptOrigin), -1,  SPROP_NOSCALE, 0.0f, HIGH_DEFAULT ),
 	SendPropVector( SENDINFO(m_qAbsAngle), -1, SPROP_NOSCALE, 0.0f, HIGH_DEFAULT ),
 
+	SendPropEHandle( SENDINFO( m_hAttachedCloningArea ) ),
 	SendPropEHandle( SENDINFO(m_hLinkedPortal) ),
 	SendPropBool( SENDINFO(m_bActivated) ),
 	SendPropBool( SENDINFO(m_bOldActivatedState) ),
@@ -212,10 +213,10 @@ void CProp_Portal::UpdateOnRemove( void )
 		pRemote->UpdatePortalTeleportMatrix();
 	}
 
-	if( m_pAttachedCloningArea )
+	if( m_hAttachedCloningArea )
 	{
-		UTIL_Remove( m_pAttachedCloningArea );
-		m_pAttachedCloningArea = NULL;
+		UTIL_Remove( m_hAttachedCloningArea );
+		m_hAttachedCloningArea = NULL;
 	}
 	
 
@@ -391,7 +392,7 @@ void CProp_Portal::Spawn( void )
 
 	BaseClass::Spawn();
 
-	m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
+	m_hAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
 }
 
 void CProp_Portal::OnRestore()
@@ -401,8 +402,8 @@ void CProp_Portal::OnRestore()
 
 	UpdateCorners();
 
-	Assert( m_pAttachedCloningArea == NULL );
-	m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
+	Assert( m_hAttachedCloningArea == NULL );
+	m_hAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
 
 	BaseClass::OnRestore();
 
@@ -912,8 +913,8 @@ void CProp_Portal::Activate( void )
 	if( s_PortalLinkageGroups[m_iLinkageGroupID].Find( this ) == -1 )
 		s_PortalLinkageGroups[m_iLinkageGroupID].AddToTail( this );
 
-	if( m_pAttachedCloningArea == NULL )
-		m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
+	if( m_hAttachedCloningArea == NULL )
+		m_hAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
 
 	UpdatePortalTeleportMatrix();
 	

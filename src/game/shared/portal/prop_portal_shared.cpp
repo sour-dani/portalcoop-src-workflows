@@ -1114,10 +1114,9 @@ void CProp_Portal::UpdatePortalLinkage( void )
 
 		if( pLink )
 			m_PortalSimulator.AttachTo( &pLink->m_PortalSimulator );
-#ifndef DISABLE_CLONE_AREA
-		if( m_pAttachedCloningArea )
-			m_pAttachedCloningArea->UpdatePosition();
-#endif
+
+		if( m_hAttachedCloningArea )
+			m_hAttachedCloningArea->UpdatePosition();
 	}
 	else
 	{

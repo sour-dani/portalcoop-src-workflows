@@ -90,7 +90,7 @@ public:
 	Vector m_vForward, m_vUp, m_vRight;
 	CNetworkQAngle( m_qAbsAngle );
 
-	CPhysicsCloneArea		*m_pAttachedCloningArea;
+	CNetworkHandle( CPhysicsCloneArea, m_hAttachedCloningArea );
 	
 	bool	IsPortal2() const;
 	void	SetIsPortal2( bool bIsPortal2 );

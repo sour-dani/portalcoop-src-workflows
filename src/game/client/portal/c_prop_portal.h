@@ -17,10 +17,7 @@
 #include "view_shared.h"
 #include "viewrender.h"
 #include "PortalSimulation.h"
-#include "C_PortalGhostRenderable.h" 
-#include "PhysicsCloneArea.h"
-
-#define DISABLE_CLONE_AREA
+#include "C_PortalGhostRenderable.h"
 
 // FIX ME
 #include "portal_shareddefs.h"
@@ -31,7 +28,7 @@ static const char *s_pFizzleThink = "FizzleThink";
 
 struct dlight_t;
 class C_DynamicLight;
-class CPhysicsCloneArea;
+class C_PhysicsCloneArea;
 
 class C_Prop_Portal : public CPortalRenderable_FlatBasic, public CPortalSimulatorEventCallbacks
 {
@@ -57,6 +54,8 @@ public:
 	bool					m_bSharedEnvironmentConfiguration; //this will be set by an instance of CPortal_Environment when two environments are in close proximity
 
 	Vector4D				m_plane_Origin;	// The plane on which this portal is placed, normal facing outward (matching model forward vec)
+	
+	CHandle< C_PhysicsCloneArea > m_hAttachedCloningArea;
 
 	virtual void			Spawn( void );
 	virtual void			Precache( void );
@@ -194,9 +193,7 @@ public:
 	static CProp_Portal		*FindPortal( unsigned char iLinkageGroupID, bool bPortal2, bool bCreateIfNothingFound = false );
 
 	virtual C_Prop_Portal *GetPropPortal() { return this; };
-#ifndef DISABLE_CLONE_AREA
-	CPhysicsCloneArea		*m_pAttachedCloningArea;
-#endif
+
 private:
 
 	bool m_bDoRenderThink;

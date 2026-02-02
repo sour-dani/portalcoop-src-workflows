@@ -15,8 +15,6 @@
 #include "baseentity_shared.h"
 #ifdef CLIENT_DLL
 #include "c_prop_portal.h"
-
-//#define CPhysicsCloneArea C_PhysicsCloneArea
 #endif
 #ifdef GAME_DLL
 class CProp_Portal;
@@ -24,22 +22,21 @@ class CProp_Portal;
 class C_Prop_Portal;
 #endif
 class CPortalSimulator;
-
-#ifdef GAME_DLL
-class CPhysicsCloneArea : public CBaseEntity
-#else
-class CPhysicsCloneArea : public C_BaseEntity
+#ifdef CLIENT_DLL
+#define CPhysicsCloneArea C_PhysicsCloneArea
 #endif
+
+class CPhysicsCloneArea : public CBaseEntity
 {
 public:
 	DECLARE_CLASS( CPhysicsCloneArea, CBaseEntity );
-		
+	DECLARE_NETWORKCLASS();
 #ifdef CLIENT_DLL
+	DECLARE_PREDICTABLE();
+
 	CPhysicsCloneArea();
-	~CPhysicsCloneArea();
-
 #endif
-
+		
 	static const Vector		vLocalMins;
 	static const Vector		vLocalMaxs;
 
@@ -55,20 +52,29 @@ public:
 
 	void					CloneTouchingEntities( void );
 	void					CloneNearbyEntities( void );
+#ifdef CLIENT_DLL
+	virtual bool			PredictionErrorShouldResetLatchedForAllPredictables( void ) { return false; }
+	virtual void			UpdatePartitionListEntry();
+	virtual bool			ShouldPredict( void ) OVERRIDE;
+	virtual void			OnDataChanged( DataUpdateType_t updatetype ) OVERRIDE;
+#endif
+
 #ifdef GAME_DLL
-	static CPhysicsCloneArea *CreatePhysicsCloneArea( CProp_Portal *pFollowPortal );	
-#else
-	static CPhysicsCloneArea *CreatePhysicsCloneArea( C_Prop_Portal *pFollowPortal );	
+	virtual int UpdateTransmitState( void )	// set transmit filter to transmit always
+	{
+		return SetTransmitState( FL_EDICT_ALWAYS );
+	}
+
+	static CPhysicsCloneArea *CreatePhysicsCloneArea( CProp_Portal *pFollowPortal );
 #endif
 private:
-
-	CProp_Portal			*m_pAttachedPortal;
-	CHandle<CProp_Portal>			m_hAttachedPortal;
-
+#ifndef CLIENT_DLL
+	CNetworkHandle( CProp_Portal, m_hAttachedPortal );
+#else
+	CNetworkHandle( C_Prop_Portal, m_hAttachedPortal );
+#endif
 	CPortalSimulator		*m_pAttachedSimulator;
-	bool					m_bActive;
-
-
+	CNetworkVar( bool, m_bActive );
 };
 
 #endif //#ifndef PHYSICSCLONEAREA_H

@@ -64,7 +64,7 @@ ConVar sv_portal_new_velocity_check("sv_portal_new_velocity_check", "1", FCVAR_R
 extern ConVar sv_allow_customized_portal_colors;
 
 static CUtlVector<C_Prop_Portal *> s_PortalLinkageGroups[256];
-
+#undef CProp_Portal
 IMPLEMENT_CLIENTCLASS_DT( C_Prop_Portal, DT_Prop_Portal, CProp_Portal )
 
 	RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
@@ -72,12 +72,13 @@ IMPLEMENT_CLIENTCLASS_DT( C_Prop_Portal, DT_Prop_Portal, CProp_Portal )
 	
 	RecvPropVector( RECVINFO( m_ptOrigin ) ),
 	RecvPropVector( RECVINFO( m_qAbsAngle ) ),
-
-	RecvPropEHandle( RECVINFO(m_hLinkedPortal) ),
-	RecvPropBool( RECVINFO(m_bActivated) ),
-	RecvPropBool( RECVINFO(m_bOldActivatedState) ),
-	RecvPropBool( RECVINFO(m_bIsPortal2) ),
-	RecvPropInt( RECVINFO(m_iLinkageGroupID)),
+	
+	RecvPropEHandle( RECVINFO( m_hAttachedCloningArea ) ),
+	RecvPropEHandle( RECVINFO( m_hLinkedPortal ) ),
+	RecvPropBool( RECVINFO( m_bActivated ) ),
+	RecvPropBool( RECVINFO( m_bOldActivatedState ) ),
+	RecvPropBool( RECVINFO( m_bIsPortal2 ) ),
+	RecvPropInt( RECVINFO( m_iLinkageGroupID ) ),
 	
 	RecvPropEHandle( RECVINFO( m_hPlacedBy ) ),
 	RecvPropEHandle( RECVINFO( m_hFiredByPlayer ) ),
@@ -88,11 +89,12 @@ IMPLEMENT_CLIENTCLASS_DT( C_Prop_Portal, DT_Prop_Portal, CProp_Portal )
 	RecvPropDataTable( RECVINFO_DT( m_PortalSimulator ), 0, &REFERENCE_RECV_TABLE(DT_PortalSimulator) )
 END_RECV_TABLE()
 
+#define CProp_Portal C_Prop_Portal
 
 LINK_ENTITY_TO_CLASS( prop_portal, C_Prop_Portal );
 
 BEGIN_PREDICTION_DATA(C_Prop_Portal)
-
+	//DEFINE_PRED_TYPEDESCRIPTION( m_PortalSimulator, CPortalSimulator ),
 
 	DEFINE_PRED_FIELD (m_bActivated, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bOldActivatedState, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
@@ -201,9 +203,6 @@ void C_Prop_Portal::Spawn( void )
 	m_hEdgeEffect = NULL;
 	m_hParticleEffect = NULL;
 	BaseClass::Spawn();
-#ifndef DISABLE_CLONE_AREA
-	m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
-#endif
 }
 
 
@@ -342,11 +341,6 @@ bool C_Prop_Portal::TestCollision(const Ray_t &ray, unsigned int fContentsMask, 
 
 void C_Prop_Portal::Activate( void )
 {
-#ifndef DISABLE_CLONE_AREA
-	if( m_pAttachedCloningArea == NULL )
-		m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
-#endif
-
 	//UpdatePortalLinkage();
 
 	if( IsActive() && (m_hLinkedPortal.Get() != NULL) )
@@ -528,10 +522,7 @@ void ProcessPortalTeleportations( void )
 void C_Prop_Portal::ClientThink( void )
 {
 	SetupPortalColorSet();
-#ifndef DISABLE_CLONE_AREA
-	if (m_pAttachedCloningArea)
-		m_pAttachedCloningArea->ClientThink();
-#endif
+
 	if (m_bDoRenderThink)
 	{
 		bool bDidAnything = false;
@@ -851,13 +842,7 @@ void C_Prop_Portal::UpdateOnRemove( void )
 	g_pPortalRender->RemovePortal( this );
 
 	DestroyAttachedParticles();
-#ifndef DISABLE_CLONE_AREA
-	if( m_pAttachedCloningArea )
-	{
-		delete m_pAttachedCloningArea;
-		m_pAttachedCloningArea = NULL;
-	}
-#endif
+
 	C_Prop_Portal *pRemote = m_hLinkedPortal;
 	if (pRemote != NULL)
 	{
@@ -873,10 +858,7 @@ void C_Prop_Portal::UpdateOnRemove( void )
 void C_Prop_Portal::OnRestore( void )
 {
 	BaseClass::OnRestore();
-#ifndef DISABLE_CLONE_AREA
-	Assert( m_pAttachedCloningArea == NULL );
-	m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
-#endif
+
 	if (ShouldCreateAttachedParticles())
 	{
 		CreateAttachedParticles();

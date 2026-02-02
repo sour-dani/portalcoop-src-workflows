@@ -19,7 +19,6 @@ extern bool g_bBulletPortalTrace;
 	#include "client_class.h"
 	#include "interpolatedvar.h"
 	class C_Prop_Portal;
-	typedef C_Prop_Portal CProp_Portal;
 	class C_Beam;
 	typedef C_Beam CBeam;
 	class C_Portal_Player;
@@ -28,6 +27,7 @@ extern bool g_bBulletPortalTrace;
 
 #define CPortal_Player C_Portal_Player
 #define CWeaponPortalgun C_WeaponPortalgun
+#define CProp_Portal C_Prop_Portal
 
 #else
 	class CPortal_Player;
