@@ -62,7 +62,7 @@ public:
 
 	virtual int UpdateTransmitState( void ) OVERRIDE
 	{
-		if ( IsPredicted() && !m_bDisabled )
+		if ( IsPredicted() )
 		{
 			return SetTransmitState( FL_EDICT_PVSCHECK );
 		}
@@ -112,7 +112,11 @@ public:
 	
 	string_t	m_iFilterName;
 #else
+	CBaseTrigger();
 	void UpdatePartitionListEntry( void );
+	virtual void PreDataUpdate( DataUpdateType_t updatetype ) OVERRIDE;
+	virtual void OnDataChanged( DataUpdateType_t updatetype ) OVERRIDE;
+	bool m_bOldDisabled;
 #endif
 	CNetworkVar( bool, m_bDisabled );
 	CNetworkHandle( CBaseFilter, m_hFilter );

@@ -34,7 +34,7 @@ END_NETWORK_TABLE()
 bool CBaseTrigger::PassesTriggerFilters(CBaseEntity *pOther)
 {
 #ifdef CLIENT_DLL
-	AssertMsg( IsPredicted(), "We shouldn't be networked, how is this being called?" );
+	AssertMsg( IsPredicted(), "We shouldn't be touched, how is this being called?" );
 #endif
 	// First test spawn flag filters
 	if ( HasSpawnFlags(SF_TRIGGER_ALLOW_ALL) ||

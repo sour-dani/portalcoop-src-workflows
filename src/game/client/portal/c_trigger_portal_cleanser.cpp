@@ -34,11 +34,6 @@ void C_TriggerPortalCleanser::Touch( C_BaseEntity *pOther )
 		return;
 	}
 
-	if (m_bDisabled )
-	{
-		return;
-	}
-
 	if ( pOther->IsPlayer() )
 	{
 		CPortal_Player *pPlayer = ToPortalPlayer( pOther );
