@@ -1137,7 +1137,7 @@ private:
 
 	EHANDLE m_hOldAttachedObject;
 };
-#if 0 // Disabling for now until the portal crash gets fixed
+#if 0
 IMPLEMENT_NETWORKCLASS_ALIASED( PlayerPickupController, DT_PlayerPickupController )
 BEGIN_NETWORK_TABLE( CPlayerPickupController, DT_PlayerPickupController )
 #ifdef CLIENT_DLL
