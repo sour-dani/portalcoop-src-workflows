@@ -2669,11 +2669,11 @@ public:
 		// Context is the thing we're testing everything against	
 		CBaseEntity *pTouch = EntityFromEntityHandle( pHandleEntity );
 
-		// Can't bump against itself
-		if ( pTouch == m_pEnt )
+		if ( !pTouch )
 			return ITERATION_CONTINUE;
 
-		if ( !pTouch )
+		// Can't bump against itself
+		if ( pTouch == m_pEnt )
 			return ITERATION_CONTINUE;
 
 		// Hmmm.. everything in this list should be a trigger....
@@ -2750,6 +2750,9 @@ public:
 
 		CBaseEntity *pTouch = EntityFromEntityHandle( pHandleEntity );
 
+		if ( !pTouch )
+			return ITERATION_CONTINUE;
+
 		Assert( pTouch );
 		ICollideable *pTouchCollide = pTouch->GetCollideable();
 
@@ -2758,9 +2761,6 @@ public:
 			return ITERATION_CONTINUE;
 
 		if ( !pTouchCollide->ShouldTouchTrigger(m_triggerSolidFlags) )
-			return ITERATION_CONTINUE;
-
-		if ( !pTouch )
 			return ITERATION_CONTINUE;
 
 		// FIXME: Should we be using the surrounding bounds here?
