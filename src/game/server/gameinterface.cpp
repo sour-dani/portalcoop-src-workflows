@@ -2537,6 +2537,7 @@ void CServerGameEnts::SetDebugEdictBase(edict_t *base)
 //-----------------------------------------------------------------------------
 void CServerGameEnts::MarkEntitiesAsTouching( edict_t *e1, edict_t *e2 )
 {
+	Assert( "CServerGameEnts::MarkEntitiesAsTouching shouldn't be used anymore!" );
 	CBaseEntity *entity = GetContainingEntity( e1 );
 	CBaseEntity *entityTouched = GetContainingEntity( e2 );
 	if ( entity && entityTouched )

@@ -6412,24 +6412,6 @@ void CC_Ent_Step( const CCommand& args )
 }
 static ConCommand ent_step("ent_step", CC_Ent_Step, "When 'ent_pause' is set this will step through one waiting input / output message at a time.", FCVAR_CHEAT);
 
-void CBaseEntity::SetCheckUntouch( bool check )
-{
-	// Invalidate touchstamp
-	if ( check )
-	{
-		touchStamp++;
-		if ( !IsEFlagSet( EFL_CHECK_UNTOUCH ) )
-		{
-			AddEFlags( EFL_CHECK_UNTOUCH );
-			EntityTouch_Add( this );
-		}
-	}
-	else
-	{
-		RemoveEFlags( EFL_CHECK_UNTOUCH );
-	}
-}
-
 model_t *CBaseEntity::GetModel( void )
 {
 	return (model_t *)modelinfo->GetModel( GetModelIndex() );

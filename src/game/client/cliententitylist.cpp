@@ -11,6 +11,8 @@
 //			entities is done through this object.
 //-----------------------------------------------------------------------------
 #include "cbase.h"
+#include "cliententitylist.h"
+#include "vprof.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -507,4 +509,83 @@ C_BaseEntity* C_BaseEntityIterator::Next()
 	}
 
 	return NULL;
+}
+
+class CEntityTouchManager : public IClientEntityListener, public CAutoGameSystemPerFrame
+{
+public:
+	// called by CEntityListSystem
+	void LevelInitPreEntity() OVERRIDE
+	{ 
+		cl_entitylist->AddListenerEntity( this );
+		Clear(); 
+	}
+	void LevelShutdownPostEntity() OVERRIDE
+	{ 
+		cl_entitylist->RemoveListenerEntity( this );
+		Clear(); 
+	}
+	void FrameUpdatePostEntityThink();
+
+	void Clear()
+	{
+		m_updateList.Purge();
+	}
+	
+	// IEntityListener
+	virtual void OnEntityCreated( CBaseEntity *pEntity ) {}
+	virtual void OnEntityDeleted( CBaseEntity *pEntity )
+	{
+		if ( !pEntity->GetCheckUntouch() )
+			return;
+		int index = m_updateList.Find( pEntity );
+		if ( m_updateList.IsValidIndex(index) )
+		{
+			m_updateList.FastRemove( index );
+		}
+	}
+	void AddEntity( CBaseEntity *pEntity )
+	{
+		if ( pEntity->IsMarkedForDeletion() )
+			return;
+		m_updateList.AddToTail( pEntity );
+	}
+
+private:
+	CUtlVector<CBaseEntity *>	m_updateList;
+};
+
+static CEntityTouchManager g_TouchManager;
+
+void EntityTouch_Add( CBaseEntity *pEntity )
+{
+	g_TouchManager.AddEntity( pEntity );
+}
+
+
+void CEntityTouchManager::FrameUpdatePostEntityThink()
+{
+	VPROF( "CEntityTouchManager::FrameUpdatePostEntityThink" );
+	// Loop through all entities again, checking their untouch if flagged to do so
+	
+	int count = m_updateList.Count();
+	if ( count )
+	{
+		// copy off the list
+		CBaseEntity **ents = (CBaseEntity **)stackalloc( sizeof(CBaseEntity *) * count );
+		memcpy( ents, m_updateList.Base(), sizeof(CBaseEntity *) * count );
+		// clear it
+		m_updateList.RemoveAll();
+		
+		// now update those ents
+		for ( int i = 0; i < count; i++ )
+		{
+			//Assert( ents[i]->GetCheckUntouch() );
+			if ( ents[i]->GetCheckUntouch() )
+			{
+				ents[i]->PhysicsCheckForEntityUntouch();
+			}
+		}
+		stackfree( ents );
+	}
 }

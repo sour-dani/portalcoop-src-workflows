@@ -1150,6 +1150,7 @@ protected:
 	static bool				sm_bDisableTouchFuncs;	// Disables PhysicsTouch and PhysicsStartTouch function calls
 
 public:
+	static bool				sm_bAccurateTriggerBboxChecks;	// SOLID_BBOX entities do a fully accurate trigger vs bbox check when this is set
 	touchlink_t				*PhysicsMarkEntityAsTouched( C_BaseEntity *other );
 	void					PhysicsTouch( C_BaseEntity *pentOther );
 	void					PhysicsStartTouch( C_BaseEntity *pentOther );

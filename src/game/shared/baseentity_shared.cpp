@@ -19,6 +19,7 @@
 #include "debugoverlay_shared.h"
 #include "coordsize.h"
 #include "vphysics/performance.h"
+#include "collisionutils.h"
 
 #ifdef CLIENT_DLL
 	#include "c_te_effect_dispatch.h"
@@ -2569,12 +2570,295 @@ bool CBaseEntity::IsToolRecording() const
 }
 #endif
 
+//-----------------------------------------------------------------------------
+// Returns the world-space bounds of an entity
+//-----------------------------------------------------------------------------
+void CM_WorldSpaceBounds( ICollideable *pCollideable, Vector *pMins, Vector *pMaxs )
+{
+	if ( pCollideable->GetCollisionAngles() == vec3_angle )
+	{
+		VectorAdd( pCollideable->GetCollisionOrigin(), pCollideable->OBBMins(), *pMins );
+		VectorAdd( pCollideable->GetCollisionOrigin(), pCollideable->OBBMaxs(), *pMaxs );
+	}
+	else
+	{
+		TransformAABB( pCollideable->CollisionToWorldTransform(), pCollideable->OBBMins(), pCollideable->OBBMaxs(), *pMins, *pMaxs );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Trigger world-space bounds
+//-----------------------------------------------------------------------------
+static void CM_TriggerWorldSpaceBounds( ICollideable *pCollideable, Vector *pMins, Vector *pMaxs )
+{
+	if ( pCollideable->GetSolidFlags() & FSOLID_USE_TRIGGER_BOUNDS )
+	{
+		pCollideable->WorldSpaceTriggerBounds( pMins, pMaxs );
+	}
+	else
+	{
+		CM_WorldSpaceBounds( pCollideable, pMins, pMaxs );
+	}
+}
+
+static void CM_GetCollideableTriggerTestBox( ICollideable *pCollide, Vector *pMins, Vector *pMaxs )
+{
+	if ( CBaseEntity::sm_bAccurateTriggerBboxChecks && pCollide->GetSolid() == SOLID_BBOX )
+	{
+		*pMins = pCollide->OBBMins();
+		*pMaxs = pCollide->OBBMaxs();
+	}
+	else
+	{
+		const Vector &vecStart = pCollide->GetCollisionOrigin();
+		pCollide->WorldSpaceSurroundingBounds( pMins, pMaxs );
+		*pMins -= vecStart;
+		*pMaxs -= vecStart;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Marks entities as touching
+// Input  : *e1 - 
+//			*e2 - 
+//-----------------------------------------------------------------------------
+void MarkEntitiesAsTouching( CBaseEntity *entity, CBaseEntity *entityTouched )
+{
+	if ( entity && entityTouched )
+	{
+		// HACKHACK: UNDONE: Pass in the trace here??!?!?
+		trace_t tr;
+		UTIL_ClearTrace( tr );
+		tr.endpos = (entity->GetAbsOrigin() + entityTouched->GetAbsOrigin()) * 0.5;
+		entity->PhysicsMarkEntitiesAsTouching( entityTouched, tr );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Little enumeration class used to try touching all triggers
+//-----------------------------------------------------------------------------
+class CTouchLinks : public IPartitionEnumerator
+{
+public:
+	CTouchLinks( CBaseEntity* pEnt, const Vector* pPrevAbsOrigin ) : m_TouchedEntities( 8, 8 )
+	{
+		m_pEnt = pEnt;
+		m_pCollide = pEnt->GetCollideable();
+		Assert( m_pCollide );
+
+		Vector vecMins, vecMaxs;
+		CM_GetCollideableTriggerTestBox( m_pCollide, &vecMins, &vecMaxs );
+		const Vector &vecStart = m_pCollide->GetCollisionOrigin();
+
+		if (pPrevAbsOrigin)
+		{
+			m_Ray.Init( *pPrevAbsOrigin, vecStart, vecMins, vecMaxs );
+		}
+		else
+		{
+			m_Ray.Init( vecStart, vecStart, vecMins, vecMaxs );
+		}
+	}
+
+	IterationRetval_t EnumElement( IHandleEntity *pHandleEntity )
+	{
+		// Static props should never be in the trigger list 
+		Assert( !staticpropmgr->IsStaticProp( pHandleEntity ) );
+
+		// Convert the IHandleEntity to an edict_t*...
+		// Context is the thing we're testing everything against	
+		CBaseEntity *pTouch = EntityFromEntityHandle( pHandleEntity );
+
+		// Can't bump against itself
+		if ( pTouch == m_pEnt )
+			return ITERATION_CONTINUE;
+
+		if ( !pTouch )
+			return ITERATION_CONTINUE;
+
+		// Hmmm.. everything in this list should be a trigger....
+		ICollideable *pTriggerCollideable = pTouch->GetCollideable();
+		if ( !m_pCollide->ShouldTouchTrigger(pTriggerCollideable->GetSolidFlags()) )
+			return ITERATION_CONTINUE;
+
+		Assert(pTriggerCollideable->GetSolidFlags() & FSOLID_TRIGGER );
+
+		if ( pTriggerCollideable->GetSolidFlags() & FSOLID_USE_TRIGGER_BOUNDS )
+		{
+			Vector vecTriggerMins, vecTriggerMaxs;
+			pTriggerCollideable->WorldSpaceTriggerBounds( &vecTriggerMins, &vecTriggerMaxs ); 
+			if ( !IsBoxIntersectingRay( vecTriggerMins, vecTriggerMaxs, m_Ray ) )
+			{
+				return ITERATION_CONTINUE;
+			}
+		}
+		else
+		{
+			trace_t tr;
+			enginetrace->ClipRayToCollideable( m_Ray, MASK_SOLID, pTriggerCollideable, &tr );
+			if ( !(tr.contents & MASK_SOLID) )
+				return ITERATION_CONTINUE;
+		}
+
+		m_TouchedEntities.AddToTail( pTouch );
+
+		return ITERATION_CONTINUE;
+	}
+
+	void HandleTouchedEntities( )
+	{
+		for ( int i = 0; i < m_TouchedEntities.Count(); ++i )
+		{
+			MarkEntitiesAsTouching( m_TouchedEntities[i], m_pEnt );
+		}
+	}
+
+	Ray_t m_Ray;
+
+private:
+	CBaseEntity *m_pEnt;
+	ICollideable *m_pCollide;
+	CUtlVector< CBaseEntity* > m_TouchedEntities;
+};
+
+
+// enumerator class that's used to update touch links for a trigger when 
+// it moves or changes solid type
+class CTriggerMoved : public IPartitionEnumerator
+{
+public:
+	CTriggerMoved() : m_TouchedEntities( 8, 8 )
+	{
+	}
+
+	void TriggerMoved( CBaseEntity *pTriggerEntity )
+	{
+		m_pTriggerEntity = pTriggerEntity;
+		m_pTrigger = pTriggerEntity->GetCollideable();
+		m_triggerSolidFlags = m_pTrigger->GetSolidFlags();
+		Vector vecAbsMins, vecAbsMaxs;
+		CM_TriggerWorldSpaceBounds( m_pTrigger, &vecAbsMins, &vecAbsMaxs );
+		partition->EnumerateElementsInBox( PARTITION_ENGINE_SOLID_EDICTS,
+			vecAbsMins, vecAbsMaxs, false, this );
+	}
+
+	IterationRetval_t EnumElement( IHandleEntity *pHandleEntity )
+	{
+		// skip static props, the game DLL doesn't care about them
+		if ( staticpropmgr->IsStaticProp( pHandleEntity ) )
+			return ITERATION_CONTINUE;
+
+		CBaseEntity *pTouch = EntityFromEntityHandle( pHandleEntity );
+
+		Assert( pTouch );
+		ICollideable *pTouchCollide = pTouch->GetCollideable();
+
+		// Can't ever touch itself because it's in the other list
+		if ( pTouchCollide == m_pTrigger )
+			return ITERATION_CONTINUE;
+
+		if ( !pTouchCollide->ShouldTouchTrigger(m_triggerSolidFlags) )
+			return ITERATION_CONTINUE;
+
+		if ( !pTouch )
+			return ITERATION_CONTINUE;
+
+		// FIXME: Should we be using the surrounding bounds here?
+		Vector vecMins, vecMaxs;
+		CM_GetCollideableTriggerTestBox( pTouchCollide, &vecMins, &vecMaxs );
+
+		const Vector &vecStart = pTouchCollide->GetCollisionOrigin();
+		Ray_t ray;
+		ray.Init( vecStart, vecStart, vecMins, vecMaxs ); 
+
+		if ( m_pTrigger->GetSolidFlags() & FSOLID_USE_TRIGGER_BOUNDS )
+		{
+			Vector vecTriggerMins, vecTriggerMaxs;
+			m_pTrigger->WorldSpaceTriggerBounds( &vecTriggerMins, &vecTriggerMaxs ); 
+			if ( !IsBoxIntersectingRay( vecTriggerMins, vecTriggerMaxs, ray ) )
+			{
+				return ITERATION_CONTINUE;
+			}
+		}
+		else
+		{
+			trace_t tr;
+			enginetrace->ClipRayToCollideable( ray, MASK_SOLID, m_pTrigger, &tr );
+			if ( !(tr.contents & MASK_SOLID) )
+				return ITERATION_CONTINUE;
+		}
+
+		m_TouchedEntities.AddToTail( pTouch );
+
+		return ITERATION_CONTINUE;
+	}
+
+	void HandleTouchedEntities( )
+	{
+		for ( int i = 0; i < m_TouchedEntities.Count(); ++i )
+		{
+			MarkEntitiesAsTouching( m_TouchedEntities[i], m_pTriggerEntity );
+		}
+	}
+
+private:
+	CBaseEntity *m_pTriggerEntity;
+	ICollideable* m_pTrigger;
+	int m_triggerSolidFlags;
+	Vector m_vecDelta;
+	CUtlVector< CBaseEntity* > m_TouchedEntities;
+};
+
+
+//-----------------------------------------------------------------------------
+// Touches triggers. Or, if it is a trigger, causes other things to touch it
+// returns true if untouch needs to be checked
+//-----------------------------------------------------------------------------
+void TriggerMoved( CBaseEntity *pTriggerEnt )
+{
+	CTriggerMoved triggerEnum;
+	triggerEnum.TriggerMoved( pTriggerEnt ); 
+	triggerEnum.HandleTouchedEntities( );
+}
+
+
+void SolidMoved( CBaseEntity *pSolidEnt, ICollideable *pSolidCollide, const Vector* pPrevAbsOrigin )
+{
+	if (!pPrevAbsOrigin)
+	{
+		CTouchLinks touchEnumerator(pSolidEnt, NULL);
+
+		Vector vecWorldMins, vecWorldMaxs;
+		pSolidCollide->WorldSpaceSurroundingBounds( &vecWorldMins, &vecWorldMaxs );
+#ifdef CLIENT_DLL
+		SpatialPartitionListMask_t listMask = PARTITION_CLIENT_TRIGGER_ENTITIES;
+#else
+		SpatialPartitionListMask_t listMask = PARTITION_ENGINE_TRIGGER_EDICTS;
+#endif
+		partition->EnumerateElementsInBox( listMask,
+			vecWorldMins, vecWorldMaxs, false, &touchEnumerator );
+
+		touchEnumerator.HandleTouchedEntities( );
+	}
+	else
+	{
+		CTouchLinks touchEnumerator(pSolidEnt, pPrevAbsOrigin);
+#ifdef CLIENT_DLL
+		SpatialPartitionListMask_t listMask = PARTITION_CLIENT_TRIGGER_ENTITIES;
+#else
+		SpatialPartitionListMask_t listMask = PARTITION_ENGINE_TRIGGER_EDICTS;
+#endif
+		// A version that checks against an extruded ray indicating the motion
+		partition->EnumerateElementsAlongRay( listMask,
+			touchEnumerator.m_Ray, false, &touchEnumerator );
+
+		touchEnumerator.HandleTouchedEntities( );
+	}
+}
 
 void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 {
-#ifdef GAME_DLL
-	edict_t *pEdict = edict();
-	if ( pEdict && !IsWorld() )
+	if ( !IsWorld() )
 	{
 		Assert(CollisionProp());
 		bool isTriggerCheckSolids = IsSolidFlagSet( FSOLID_TRIGGER );
@@ -2595,12 +2879,29 @@ void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 		SetCheckUntouch( true );
 		if ( isSolidCheckTriggers )
 		{
-			engine->SolidMoved( pEdict, CollisionProp(), pPrevAbsOrigin, sm_bAccurateTriggerBboxChecks );
+			SolidMoved( this, CollisionProp(), pPrevAbsOrigin );
 		}
 		if ( isTriggerCheckSolids )
 		{
-			engine->TriggerMoved( pEdict, sm_bAccurateTriggerBboxChecks );
+			TriggerMoved( this );
 		}
 	}
-#endif
+}
+
+void CBaseEntity::SetCheckUntouch( bool check )
+{
+	// Invalidate touchstamp
+	if ( check )
+	{
+		touchStamp++;
+		if ( !IsEFlagSet( EFL_CHECK_UNTOUCH ) )
+		{
+			AddEFlags( EFL_CHECK_UNTOUCH );
+			EntityTouch_Add( this );
+		}
+	}
+	else
+	{
+		RemoveEFlags( EFL_CHECK_UNTOUCH );
+	}
 }

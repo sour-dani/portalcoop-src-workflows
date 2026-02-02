@@ -510,7 +510,6 @@ IClientUnknown* CCollisionProperty::GetIClientUnknown()
 //-----------------------------------------------------------------------------
 void CCollisionProperty::CheckForUntouch()
 {
-#ifndef CLIENT_DLL
 	if ( !IsSolid() && !IsSolidFlagSet(FSOLID_TRIGGER))
 	{
 		// If this ent's touch list isn't empty, it's transitioning to not solid
@@ -521,7 +520,6 @@ void CCollisionProperty::CheckForUntouch()
 			m_pOuter->SetCheckUntouch( true );
 		}
 	}
-#endif
 }
 
 
@@ -533,9 +531,7 @@ void CCollisionProperty::SetSolid( SolidType_t val )
 	if ( m_nSolidType == val )
 		return;
 
-#ifndef CLIENT_DLL
 	bool bWasNotSolid = IsSolid();
-#endif
 
 	MarkSurroundingBoundsDirty();
 
@@ -571,7 +567,6 @@ void CCollisionProperty::SetSolid( SolidType_t val )
 
 	m_nSolidType = val;
 
-#ifndef CLIENT_DLL
 	m_pOuter->CollisionRulesChanged();
 
 	UpdateServerPartitionMask( );
@@ -580,7 +575,6 @@ void CCollisionProperty::SetSolid( SolidType_t val )
 	{
 		CheckForUntouch();
 	}
-#endif
 }
 
 SolidType_t CCollisionProperty::GetSolid() const
