@@ -86,9 +86,9 @@ END_NETWORK_TABLE()
 IMPLEMENT_NETWORKCLASS_ALIASED( FilterClass, DT_FilterClass );
 BEGIN_NETWORK_TABLE( CFilterClass, DT_FilterClass )
 #ifdef CLIENT_DLL
-RecvPropInt( RECVINFO( m_iFilterClass ) ),
+RecvPropString( RECVINFO( m_iFilterClass ) ),
 #else
-SendPropInt( SENDINFO( m_iFilterClass ) ),
+SendPropStringT( SENDINFO( m_iFilterClass ) ),
 #endif
 END_NETWORK_TABLE()
 
