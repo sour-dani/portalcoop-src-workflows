@@ -1054,7 +1054,10 @@ void CPortalSimulator::TakePhysicsOwnership( CBaseEntity *pEntity )
 					//player is holding the entity, force them to pick it back up again
 					bool bIsHeldObjectOnOppositeSideOfPortal = pPlayer->IsHeldObjectOnOppositeSideOfPortal();
 					pPlayer->m_bSilentDropAndPickup = true;
-					pPlayer->ForceDropOfCarriedPhysObjects( pHeldEntity );
+					//pPlayer->ForceDropOfCarriedPhysObjects( pHeldEntity );
+					CGrabController *pController = GetGrabControllerForEntity( pHeldEntity );
+					if ( pController )
+						pController->DetachEntity( false );
 					pPlayer->SetHeldObjectOnOppositeSideOfPortal( bIsHeldObjectOnOppositeSideOfPortal );
 				}
 #if defined( GAME_DLL )

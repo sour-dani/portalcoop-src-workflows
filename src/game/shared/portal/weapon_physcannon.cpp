@@ -1226,8 +1226,9 @@ void CPlayerPickupController::InitController( CBasePlayer *pPlayer, CBaseEntity 
 			}
 		}
 	}
-
+#endif
 	CPortal_Player *pOwner = ToPortalPlayer( pPlayer );
+#ifdef GAME_DLL
 	if ( pOwner )
 	{
 		pOwner->EnableSprint( false );
@@ -1242,18 +1243,21 @@ void CPlayerPickupController::InitController( CBasePlayer *pPlayer, CBaseEntity 
 
 	// done so I'll go across level transitions with the player
 	SetParent( pPlayer );
+#endif
 	m_grabController.SetIgnorePitch( true );
 	m_grabController.SetAngleAlignment( DOT_30DEGREE );
+#ifdef GAME_DLL
 	m_hPlayer = (CPortal_Player*)pPlayer;
+#endif
 	IPhysicsObject *pPhysics = pObject->VPhysicsGetObject();
 	
 	if ( !pOwner->m_bSilentDropAndPickup )
 	{
 	Pickup_OnPhysGunPickup( pObject, m_hPlayer, PICKED_UP_BY_PLAYER );
 	}
-	
+
 	m_grabController.AttachEntity( (CPortal_Player*)pPlayer, pObject, pPhysics, false, vec3_origin, false );
-	
+#ifdef GAME_DLL
 	m_attachedPositionObjectSpace = m_grabController.m_attachedPositionObjectSpace;
 	m_attachedAnglesPlayerSpace = m_grabController.m_attachedAnglesPlayerSpace;
 
@@ -1526,7 +1530,6 @@ bool CPlayerPickupController::IsHoldingEntity( CBaseEntity *pEnt )
 
 void PlayerPickupObject(CBasePlayer *pPlayer, CBaseEntity *pObject)
 {
-#ifdef GAME_DLL
 	CPortal_Player *pPortalPlayer = ToPortalPlayer(pPlayer);
 
 	//Don't pick up if we don't have a phys object.
@@ -1536,12 +1539,15 @@ void PlayerPickupObject(CBasePlayer *pPlayer, CBaseEntity *pObject)
 	if ( pObject->GetBaseAnimating() && pObject->GetBaseAnimating()->IsDissolving() )
 		return;
 	
-	CPlayerPickupController *pController = (CPlayerPickupController *)CBaseEntity::Create( "player_pickup", pObject->GetAbsOrigin(), vec3_angle, pPortalPlayer );
+	CPlayerPickupController *pController = dynamic_cast<CPlayerPickupController*>( pPlayer->GetUseEntity() );
+#ifdef GAME_DLL
+	if ( !pController )
+		pController = (CPlayerPickupController *)CBaseEntity::Create( "player_pickup", pObject->GetAbsOrigin(), vec3_angle, pPortalPlayer );
+#endif
 	if ( !pController )
 		return;
 
 	pController->InitController( pPortalPlayer, pObject );
-#endif
 }
 #ifdef GAME_DLL
 //-----------------------------------------------------------------------------
