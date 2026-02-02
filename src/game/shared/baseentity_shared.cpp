@@ -2738,7 +2738,12 @@ public:
 		m_triggerSolidFlags = m_pTrigger->GetSolidFlags();
 		Vector vecAbsMins, vecAbsMaxs;
 		CM_TriggerWorldSpaceBounds( m_pTrigger, &vecAbsMins, &vecAbsMaxs );
-		partition->EnumerateElementsInBox( PARTITION_ENGINE_SOLID_EDICTS,
+#ifdef CLIENT_DLL
+		SpatialPartitionListMask_t listMask = PARTITION_CLIENT_SOLID_EDICTS;
+#else
+		SpatialPartitionListMask_t listMask = PARTITION_ENGINE_SOLID_EDICTS;
+#endif
+		partition->EnumerateElementsInBox( listMask,
 			vecAbsMins, vecAbsMaxs, false, this );
 	}
 

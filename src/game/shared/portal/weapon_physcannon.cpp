@@ -93,10 +93,6 @@ ConVar physcannon_punt_cone( "physcannon_punt_cone", "0.997", FCVAR_REPLICATED )
 ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED );
 ConVar physcannon_dmg_glass( "physcannon_dmg_glass", "15", FCVAR_REPLICATED );
 
-#ifdef CLIENT_DLL
-ConVar cl_predicted_grabbing( "cl_predicted_grabbing", "0", FCVAR_CLIENTCMD_CAN_EXECUTE, "-Enable predicted grabbing, disabled for now because it will crash if the held object is held through portals." );
-#endif
-
 extern ConVar hl2_normspeed;
 extern ConVar hl2_walkspeed;
 
@@ -934,20 +930,17 @@ static void ClampPhysicsVelocity( IPhysicsObject *pPhys, float linearLimit, floa
 
 void CGrabController::DetachEntity( bool bClearVelocity )
 {
-#ifdef GAME_DLL
-	CBaseEntity* pEntity = GetAttached();
 	Assert(!PhysIsInCallback());
+	CBaseEntity *pEntity = GetAttached();
 	if ( pEntity )
 	{
 		// Restore the LS blocking state
 		pEntity->SetBlocksLOS( m_bCarriedEntityBlocksLOS );
 		IPhysicsObject *pList[VPHYSICS_MAX_OBJECT_LIST_COUNT];
-		Assert(pList);
 		int count = pEntity->VPhysicsGetObjectList( pList, ARRAYSIZE(pList) );
 		for ( int i = 0; i < count; i++ )
 		{
 			IPhysicsObject *pPhys = pList[i];
-			Assert(pPhys);
 			if ( !pPhys )
 				continue;
 
@@ -969,22 +962,9 @@ void CGrabController::DetachEntity( bool bClearVelocity )
 		}
 	}
 
-	if (physenv)
-		physenv->DestroyMotionController( m_controller );
-	m_controller = NULL;
-
-	m_hHoldingPlayer = NULL;
-#else
-	if (m_attachedEntity && cl_predict->GetInt() && cl_predicted_grabbing.GetBool() )
-	{
-		CPortalSimulator *pSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity(m_attachedEntity);
-		if (pSimulator)
-			pSimulator->ReleaseOwnershipOfEntity(m_attachedEntity);
-		m_attachedEntity->VPhysicsDestroyObject();
-	}
-#endif
-	
 	m_attachedEntity = NULL;
+	physenv->DestroyMotionController( m_controller );
+	m_controller = NULL;
 }
 
 static bool InContactWithHeavyObject( IPhysicsObject *pObject, float heavyMass )

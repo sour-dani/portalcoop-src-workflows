@@ -47,7 +47,7 @@ void C_BaseTrigger::OnDataChanged( DataUpdateType_t updatetype )
 //-----------------------------------------------------------------------------
 void C_BaseTrigger::UpdatePartitionListEntry()
 {
-	SpatialPartitionListMask_t added = PARTITION_CLIENT_TRIGGER_ENTITIES | PARTITION_CLIENT_SOLID_EDICTS | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS;
+	SpatialPartitionListMask_t added = PARTITION_CLIENT_TRIGGER_ENTITIES | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS;
 	if ( m_bDisabled || !IsPredicted() ) // Don't wanna be able to touch disabled triggers
 	{
 		::partition->Remove( added, 
@@ -56,10 +56,7 @@ void C_BaseTrigger::UpdatePartitionListEntry()
 	}
 
 	::partition->RemoveAndInsert(
-		PARTITION_CLIENT_STATIC_PROPS,  // remove
+		PARTITION_CLIENT_STATIC_PROPS | PARTITION_CLIENT_SOLID_EDICTS,  // remove
 		added,  // add
 		CollisionProp()->GetPartitionHandle() );
-
-	BaseClass::UpdatePartitionListEntry();
-
 }

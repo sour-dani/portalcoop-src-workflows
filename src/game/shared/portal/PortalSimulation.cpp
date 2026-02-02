@@ -1019,7 +1019,7 @@ void CPortalSimulator::TakePhysicsOwnership( CBaseEntity *pEntity )
 		//To linked portal
 		if( m_pLinkedPortal && m_pLinkedPortal->m_InternalData.Simulation.pPhysicsEnvironment )
 		{
-#if defined( GAME_DLL )
+#if defined( GAME_DLL ) // The client shouldn't need a shadow clone for this code to work
 			DBG_CODE(
 				for( int i = m_pLinkedPortal->m_InternalData.Simulation.Dynamic.ShadowClones.FromLinkedPortal.Count(); --i >= 0; )
 					AssertMsg( m_pLinkedPortal->m_InternalData.Simulation.Dynamic.ShadowClones.FromLinkedPortal[i]->GetClonedEntity() != pEntity, "Already cloning to linked portal." );
@@ -1027,6 +1027,7 @@ void CPortalSimulator::TakePhysicsOwnership( CBaseEntity *pEntity )
 			CPhysicsShadowClone *pClone = CPhysicsShadowClone::CreateShadowClone( m_pLinkedPortal->m_InternalData.Simulation.pPhysicsEnvironment, hEnt, "CPortalSimulator::TakePhysicsOwnership(): To Linked Portal", &m_InternalData.Placement.matThisToLinked.As3x4() );
 			
 			if( pClone )
+#endif
 			{
 
 				//bool bHeldByPhyscannon = false;
@@ -1056,13 +1057,13 @@ void CPortalSimulator::TakePhysicsOwnership( CBaseEntity *pEntity )
 					pPlayer->ForceDropOfCarriedPhysObjects( pHeldEntity );
 					pPlayer->SetHeldObjectOnOppositeSideOfPortal( bIsHeldObjectOnOppositeSideOfPortal );
 				}
-
+#if defined( GAME_DLL )
 				m_pLinkedPortal->m_InternalData.Simulation.Dynamic.ShadowClones.FromLinkedPortal.AddToTail( pClone );
 				m_pLinkedPortal->MarkAsOwned( pClone );
 				m_pLinkedPortal->m_InternalData.Simulation.Dynamic.EntFlags[pClone->entindex()] |= PSEF_OWNS_PHYSICS;
 				m_pLinkedPortal->m_InternalData.Simulation.Dynamic.EntFlags[pClone->entindex()] |= m_InternalData.Simulation.Dynamic.EntFlags[pEntity->entindex()] & PSEF_IS_IN_PORTAL_HOLE;
 				pClone->CollisionRulesChanged(); //adding the clone to the portal simulator changes how it collides
-
+#endif
 				if( pHeldEntity )
 				{
 					/*if ( bHeldByPhyscannon )
@@ -1076,7 +1077,6 @@ void CPortalSimulator::TakePhysicsOwnership( CBaseEntity *pEntity )
 					pPlayer->m_bSilentDropAndPickup = false;
 				}
 			}
-#endif
 		}
 	}
 
