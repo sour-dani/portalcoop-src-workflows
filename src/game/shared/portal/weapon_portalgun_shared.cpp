@@ -560,8 +560,8 @@ void CWeaponPortalgun::DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iP
 #endif
 	
 #ifdef CLIENT_DLL
-	extern void PortalBlastCallback( const CEffectData & data );
-	PortalBlastCallback( fxData );
+	extern void AddPortalBlast( CEffectData &data );
+	AddPortalBlast( fxData );
 #else
 	DispatchEffect( "PortalBlast", fxData );
 #endif
