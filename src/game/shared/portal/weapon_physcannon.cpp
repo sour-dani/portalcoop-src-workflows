@@ -1085,6 +1085,7 @@ void CGrabController::SetPortalPenetratingEntity( CBaseEntity *pPenetrated )
 }
 #ifdef CLIENT_DLL
 #define CPlayerPickupController C_PlayerPickupController
+#define DISABLE_PREDICTED_GRABBING
 #endif
 //-----------------------------------------------------------------------------
 // Player pickup controller
@@ -1095,7 +1096,7 @@ class CPlayerPickupController : public CBaseEntity
 	DECLARE_DATADESC();
 #endif
 	DECLARE_CLASS( CPlayerPickupController, CBaseEntity );
-	//DECLARE_NETWORKCLASS();
+	DECLARE_NETWORKCLASS();
 public:
 #ifdef CLIENT_DLL
 	~CPlayerPickupController();
@@ -1134,10 +1135,11 @@ private:
 #endif
 
 	CNetworkVector	( m_attachedPositionObjectSpace );
-
+#ifndef DISABLE_PREDICTED_GRABBING
 	EHANDLE m_hOldAttachedObject;
+#endif
 };
-#if 0
+#if 1
 IMPLEMENT_NETWORKCLASS_ALIASED( PlayerPickupController, DT_PlayerPickupController )
 BEGIN_NETWORK_TABLE( CPlayerPickupController, DT_PlayerPickupController )
 #ifdef CLIENT_DLL
@@ -1175,7 +1177,8 @@ BEGIN_DATADESC( CPlayerPickupController )
 END_DATADESC()
 #else
 CPlayerPickupController::~CPlayerPickupController()
-{	
+{
+#ifndef DISABLE_PREDICTED_GRABBING
 	if ( m_hAttachedObject )
 	{
 		CPortalSimulator *pOwningSimulator = CPortalSimulator::GetSimulatorThatOwnsEntity( m_hAttachedObject );
@@ -1197,6 +1200,7 @@ CPlayerPickupController::~CPlayerPickupController()
 
 		m_hOldAttachedObject->VPhysicsDestroyObject();
 	}
+#endif
 }
 #endif
 //-----------------------------------------------------------------------------
@@ -1206,6 +1210,9 @@ CPlayerPickupController::~CPlayerPickupController()
 //-----------------------------------------------------------------------------
 void CPlayerPickupController::InitController( CBasePlayer *pPlayer, CBaseEntity *pObject )
 {
+#ifdef DISABLE_PREDICTED_GRABBING
+	return;
+#endif
 #ifdef GAME_DLL
 	m_hAttachedObject = pObject;
 	// Holster player's weapon
@@ -1275,7 +1282,7 @@ void CPlayerPickupController::InitController( CBasePlayer *pPlayer, CBaseEntity 
 void CPlayerPickupController::OnDataChanged( DataUpdateType_t updatetype )
 {
 	BaseClass::OnDataChanged( updatetype );
-	
+#ifndef DISABLE_PREDICTED_GRABBING
 	if ( m_hPlayer == NULL )
 	{
 		if ( m_hAttachedObject )
@@ -1300,9 +1307,11 @@ void CPlayerPickupController::OnDataChanged( DataUpdateType_t updatetype )
 			m_hOldAttachedObject->VPhysicsDestroyObject();
 		}
 	}
+#endif
 }
 void CPlayerPickupController::ManagePredictedObject( void )
 {
+#ifndef DISABLE_PREDICTED_GRABBING
 	CBaseEntity *pAttachedObject = m_hAttachedObject.Get();
 
 	if ( m_hAttachedObject )
@@ -1349,6 +1358,7 @@ void CPlayerPickupController::ManagePredictedObject( void )
 	}
 
 	m_hOldAttachedObject = m_hAttachedObject;
+#endif
 }
 
 #endif
@@ -1359,6 +1369,7 @@ void CPlayerPickupController::ManagePredictedObject( void )
 //-----------------------------------------------------------------------------
 void CPlayerPickupController::Shutdown( bool bThrown )
 {
+#ifndef DISABLE_PREDICTED_GRABBING
 	CBaseEntity *pObject = m_grabController.GetAttached();
 
 	bool bClearVelocity = false;
@@ -1433,11 +1444,13 @@ void CPlayerPickupController::Shutdown( bool bThrown )
 #else
 	Remove();
 #endif
+#endif
 }
 
 
 void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+#ifndef DISABLE_PREDICTED_GRABBING
 	if ( ToBasePlayer(pActivator) == m_hPlayer )
 	{
 #ifdef CLIENT_DLL
@@ -1511,6 +1524,7 @@ void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller
 			m_grabController.UpdateObject( m_hPlayer, 12 );
 		}
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
