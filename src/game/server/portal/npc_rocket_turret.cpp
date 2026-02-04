@@ -1017,7 +1017,7 @@ void CNPC_RocketTurret::HackFindEnemy(void)
 		{
 			SetEnemy( pNearest );
 		}
-
+#if 0
 		// No enemy still? Then do this hack.
 		if ( GetEnemy() == NULL )
 		{
@@ -1047,6 +1047,7 @@ void CNPC_RocketTurret::HackFindEnemy(void)
 				}				
 			}
 		}
+#endif
 	}
 
 	/*
