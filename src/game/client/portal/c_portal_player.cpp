@@ -1484,6 +1484,8 @@ void C_Portal_Player::AvoidPlayers( CUserCmd *pCmd )
 	C_Portal_Player *pIntersectPlayer = NULL;
 	float flAvoidRadius = 0.0f;
 
+	C_Prop_Portal *pPortalEnvironment = m_hPortalEnvironment;
+
 	Vector vecAvoidCenter, vecAvoidMin, vecAvoidMax;
 	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
 	{
@@ -1513,6 +1515,25 @@ void C_Portal_Player::AvoidPlayers( CUserCmd *pCmd )
 		vecAvoidMax = pAvoidPlayer->GetPlayerMaxs();
 		flZHeight = vecAvoidMax.z - vecAvoidMin.z;
 		vecAvoidCenter.z += 0.5f * flZHeight;
+
+		if ( pPortalEnvironment )
+		{
+			CPortalSimulator *pOwningSimulator = &pPortalEnvironment->m_PortalSimulator;
+#if 0
+			C_Prop_Portal *pAvoidPlayerPortal = pAvoidPlayer->m_hPortalEnvironment;
+			if ( pAvoidPlayerPortal && pAvoidPlayerPortal->m_hLinkedPortal && pAvoidPlayerPortal->m_hLinkedPortal == pPortalEnvironment )
+			{
+				UTIL_Portal_PointTransform( pAvoidPlayerPortal->MatrixThisToLinked(), vecAvoidCenter, vecAvoidCenter );
+			}
+			// If the avoid player is behind the portal, don't push
+			else
+#endif
+				if( pOwningSimulator->GetInternalData().Placement.PortalPlane.m_Normal.Dot( vecAvoidCenter ) <= pOwningSimulator->GetInternalData().Placement.PortalPlane.m_Dist )
+			{
+				continue;
+			}
+		}
+
 		VectorAdd( vecAvoidMin, vecAvoidCenter, vecAvoidMin );
 		VectorAdd( vecAvoidMax, vecAvoidCenter, vecAvoidMax );
 
@@ -1530,8 +1551,6 @@ void C_Portal_Player::AvoidPlayers( CUserCmd *pCmd )
 	// Anything to avoid?
 	if ( !pIntersectPlayer)
 	{
-		SetSeparation( false );
-		SetSeparationVelocity( vec3_origin );
 		return;
 	}
 
@@ -1619,9 +1638,6 @@ void C_Portal_Player::AvoidPlayers( CUserCmd *pCmd )
 	float side = rt * flPushStrength;
 
 	//Msg( "fwd: %f - rt: %f - forward: %f - side: %f\n", fwd, rt, forward, side );
-
-	SetSeparation( true );
-	SetSeparationVelocity( vecSeparationVelocity );
 
 	pCmd->forwardmove	+= forward;
 	pCmd->sidemove		+= side;

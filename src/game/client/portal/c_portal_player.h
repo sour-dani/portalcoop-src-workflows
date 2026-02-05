@@ -149,15 +149,6 @@ public:
 	void	UpdateIDTarget( void );
 	bool	ShouldCollide( int collisionGroup, int contentsMask ) const;
 	void	AvoidPlayers( CUserCmd *pCmd );
-	
-	bool m_bEnableSeparation;		// Keeps separation forces on when player stops moving, but still penetrating
-	Vector m_vSeparationVelocity;	// Velocity used to keep player seperate from teammates
-
-	// Separation force
-	bool	IsSeparationEnabled( void ) const	{ return m_bEnableSeparation; }
-	void	SetSeparation( bool bEnable )		{ m_bEnableSeparation = bEnable; }
-	const Vector &GetSeparationVelocity( void ) const { return m_vSeparationVelocity; }
-	void	SetSeparationVelocity( const Vector &vSeparationVelocity ) { m_vSeparationVelocity = vSeparationVelocity; }
 
 	bool m_bHasSprintDevice;
 	bool m_bSprintEnabled;
