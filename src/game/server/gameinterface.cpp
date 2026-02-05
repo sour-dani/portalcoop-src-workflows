@@ -125,6 +125,7 @@ extern ConVar tf_mm_servermode;
 #include "portal_player.h"
 #include "portal_shareddefs.h"
 #include "portal_gamerules.h"
+#include "player_resource.h"
 #endif
 
 #if defined( REPLAY_ENABLED )
@@ -1349,6 +1350,11 @@ void CServerGameDLL::GameFrame( bool simulating )
 
 			// The portal gamerules freezes players, so it should be ok to fully simulate players since they can't move or do anything.
 			pPlayer->PhysicsSimulate();
+		}
+
+		if ( g_pPlayerResource )
+		{
+			g_pPlayerResource->PhysicsRunThink();
 		}
 
 		//gpGlobals->frametime = flOldFrameTime;
