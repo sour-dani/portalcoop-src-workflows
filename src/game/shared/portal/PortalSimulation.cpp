@@ -255,19 +255,16 @@ CPortalSimulator::~CPortalSimulator( void )
 	
 	if( m_InternalData.Placement.pAABBAngleTransformCollideable )
 		physcollision->DestroyCollide( m_InternalData.Placement.pAABBAngleTransformCollideable );
-
+#ifndef CLIENT_DLL
 	if( m_InternalData.Simulation.hCollisionEntity )
 	{
 		m_InternalData.Simulation.hCollisionEntity->m_pOwningSimulator = NULL;
 		m_InternalData.Simulation.Dynamic.EntFlags[m_InternalData.Simulation.hCollisionEntity->entindex()] &= ~PSEF_OWNS_PHYSICS;
 		MarkAsReleased( m_InternalData.Simulation.hCollisionEntity );
-#ifndef CLIENT_DLL
 		UTIL_Remove( m_InternalData.Simulation.hCollisionEntity );
-#else
-		m_InternalData.Simulation.hCollisionEntity->Remove();
-#endif
 		m_InternalData.Simulation.hCollisionEntity = NULL;
 	}
+#endif
 }
 
 
