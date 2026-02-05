@@ -3387,9 +3387,14 @@ bool CPSCollisionEntity::ShouldCollide( int collisionGroup, int contentsMask ) c
 
 IPhysicsObject *CPSCollisionEntity::VPhysicsGetObject( void )
 {
+	IPhysicsObject *pObj = NULL;
+#ifdef CLIENT_DLL
+	pObj = BaseClass::VPhysicsGetObject();
+#endif
 	if( m_pOwningSimulator == NULL )
-		return NULL;
-	if (m_pOwningSimulator->GetInternalData().Simulation.Static.World.Brushes.pPhysicsObject != NULL)
+		return pObj;
+
+ 	if (m_pOwningSimulator->GetInternalData().Simulation.Static.World.Brushes.pPhysicsObject != NULL)
 		return m_pOwningSimulator->GetInternalData().Simulation.Static.World.Brushes.pPhysicsObject;
 	else if( m_pOwningSimulator->GetInternalData().Simulation.Static.Wall.Local.Brushes.pPhysicsObject != NULL )
 		return m_pOwningSimulator->GetInternalData().Simulation.Static.Wall.Local.Brushes.pPhysicsObject;
@@ -3398,7 +3403,7 @@ IPhysicsObject *CPSCollisionEntity::VPhysicsGetObject( void )
 	else if( m_pOwningSimulator->GetInternalData().Simulation.Static.Wall.RemoteTransformedToLocal.Brushes.pPhysicsObject != NULL )
 		return m_pOwningSimulator->GetInternalData().Simulation.Static.Wall.RemoteTransformedToLocal.Brushes.pPhysicsObject;
 	else
-		return NULL;
+		return pObj;
 }
 
 int CPSCollisionEntity::VPhysicsGetObjectList( IPhysicsObject **pList, int listMax )
