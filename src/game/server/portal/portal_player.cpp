@@ -308,7 +308,6 @@ enum
 	MODEL_CHELL,
 	MODEL_MEL,
 	MODEL_ABBY,
-	MODEL_MALE_PORTAL_PLAYER
 };
 
 const char *g_ppszPortalMPModels[] =
