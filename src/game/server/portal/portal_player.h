@@ -194,8 +194,6 @@ public:
 
 	void SetPlayerModel( void );
 
-	void SetupSkin( void );
-	
 	int	GetPlayerConcept( void );
 	void UpdateExpression ( void );
 	void ClearExpression ( void );
@@ -251,8 +249,6 @@ public:
 
 	CProp_Portal *m_pPrimaryPortal;
 	CProp_Portal *m_pSecondaryPortal;
-
-	CNetworkVar(PortalColorSet_t, m_iCustomPortalColorSet);
 
 	PortalGunSpawnInfo_t m_PortalGunSpawnInfo;
 

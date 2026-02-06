@@ -135,7 +135,7 @@ public:
 	virtual void			PostTeleportTouchingEntity( CBaseEntity *pOther );
 
 	void					ResetModel( void ); //sets the model and bounding box
-	void					DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE, bool bDelayedPos = true ); //display cool visual effect
+	void					DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet, bool bDelayedPos = true ); //display cool visual effect
 	void					Fizzle( void ); //go inactive
 	void					PunchPenetratingPlayer( CBaseEntity *pPlayer ); // adds outward force to player intersecting the portal plane
 	void					PunchAllPenetratingPlayers( void ); // adds outward force to player intersecting the portal plane
@@ -152,8 +152,6 @@ public:
 	void					CreatePortalMicAndSpeakers( void );
 	void					UpdatePortalLinkage( void );
 	void					UpdatePortalTeleportMatrix( void ); //computes the transformation from this portal to the linked portal, and will update the remote matrix as well
-
-	void					SetupPortalColorSet( void );
 
 	//void					SendInteractionMessage( CBaseEntity *pEntity, bool bEntering ); //informs clients that the entity is interacting with a portal (mostly used for clip planes)
 
@@ -191,17 +189,13 @@ public:
 	virtual bool			IsPredicted() const { return true; }
 
 	void	StealPortal( CProp_Portal *pHitPortal );
-
-	//CProp_Portal			*m_pHitPortal;
-	//CProp_Portal			*m_pPortalReplacingMe;
-
-	CNetworkVar( PortalColorSet_t, m_iCustomPortalColorSet );
-	PortalColorSet_t m_iPortalColorSet;
 	
 	void	OnEntityTeleportedToPortal( CBaseEntity *pEntity );
 	void	OnEntityTeleportedFromPortal( CBaseEntity *pEntity );
 
 	void	OnStolen( CBaseEntity *pActivator, CBaseEntity *pCaller );
+	
+	PortalColorSet_t GetColorSet( void );
 
 protected:
 	

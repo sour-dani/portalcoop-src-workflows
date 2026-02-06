@@ -1091,7 +1091,7 @@ bool IsPortalOverlappingOtherPortals( const CProp_Portal *pIgnorePortal, const V
 
 					if ( bFizzle || ( !bLinkedPortal && bFizzlePartnerPortals ))
 					{
-						pTempPortal->DoFizzleEffect( PORTAL_FIZZLE_STOLEN, pTempPortal->m_iPortalColorSet, false );
+						pTempPortal->DoFizzleEffect( PORTAL_FIZZLE_STOLEN, pTempPortal->GetColorSet(), false );
 						pTempPortal->Fizzle();
 						if ( bLinkedPortal )
 						{

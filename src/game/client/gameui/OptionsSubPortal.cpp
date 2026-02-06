@@ -22,8 +22,6 @@
 
 using namespace vgui;
 
-ConVar cl_portal_color_set("cl_portal_color_set", "0", FCVAR_ARCHIVE | FCVAR_USERINFO, "Sets the color portal set for the client", true, 0, true, 4);
-
 ConVar cl_player_funnel_into_portals( "cl_player_funnel_into_portals", "1", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX | FCVAR_USERINFO, "Causes the player to auto correct toward the center of floor portals." ); 
 
 COptionsSubPortal::COptionsSubPortal(vgui::Panel *parent) : PropertyPage(parent, NULL)
@@ -45,14 +43,6 @@ COptionsSubPortal::COptionsSubPortal(vgui::Panel *parent) : PropertyPage(parent,
 	m_pPortalDepthCombo->AddItem( "#GameUI_PortalDepth7", new KeyValues("PortalDepth", "depth", 7) );
 	m_pPortalDepthCombo->AddItem( "#GameUI_PortalDepth8", new KeyValues("PortalDepth", "depth", 8) );
 	m_pPortalDepthCombo->AddItem( "#GameUI_PortalDepth9", new KeyValues("PortalDepth", "depth", 9) );
-
-	
-	m_pPortalColorCombo = new ComboBox( this, "PortalColorSet", 6, false );
-	m_pPortalColorCombo->AddItem( "#GameUI_PortalColorSet0", new KeyValues("PortalColorSet", "colorset", 0) );
-	m_pPortalColorCombo->AddItem( "#GameUI_PortalColorSet1", new KeyValues("PortalColorSet", "colorset", 1) );
-	m_pPortalColorCombo->AddItem( "#GameUI_PortalColorSet2", new KeyValues("PortalColorSet", "colorset", 2) );
-	m_pPortalColorCombo->AddItem( "#GameUI_PortalColorSet3", new KeyValues("PortalColorSet", "colorset", 3) );
-	m_pPortalColorCombo->AddItem( "#GameUI_PortalColorSet4", new KeyValues("PortalColorSet", "colorset", 4) );
 
 	LoadControlSettings("Resource\\OptionsSubPortal2.res");
 }
@@ -77,10 +67,6 @@ void COptionsSubPortal::OnResetData()
 	{
 		m_pPortalDepthCombo->ActivateItem(r_portal_stencil_depth.GetInt());
 	}
-
-	{
-		m_pPortalColorCombo->ActivateItem(cl_portal_color_set.GetInt());
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -95,10 +81,6 @@ void COptionsSubPortal::OnApplyChanges()
 	{
 		ConVarRef r_portal_stencil_depth( "r_portal_stencil_depth" );
 		r_portal_stencil_depth.SetValue( m_pPortalDepthCombo->GetActiveItem() );
-	}
-	if ( m_pPortalColorCombo->IsEnabled() )
-	{
-		cl_portal_color_set.SetValue( m_pPortalColorCombo->GetActiveItem() );
 	}
 }
 

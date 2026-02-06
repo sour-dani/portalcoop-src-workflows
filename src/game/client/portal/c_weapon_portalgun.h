@@ -191,9 +191,7 @@ public:
 #ifdef ENABLE_PORTAL_EYE_INTERPOLATION_CODE
 	Vector m_vFirstPredictedShotPos;
 #endif
-	PortalColorSet_t m_iCustomPortalColorSet;
-	PortalColorSet_t m_iOldPortalColorSet;
-	PortalColorSet_t m_iPortalColorSet;
+
 	int m_iValidPlayer;
 	bool m_bCanAttack;
 

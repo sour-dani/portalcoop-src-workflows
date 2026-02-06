@@ -26,24 +26,8 @@ char *g_ppszPortalPassThroughMaterials[] =
 
 PortalColorSet_t ConvertLinkageIDToColorSet( int iPortalLinkageID )
 {
-	switch ( iPortalLinkageID )
-	{
-		case 1:
-		{
-			return PORTAL_COLOR_SET_LIGHTBLUE_PURPLE;
-		}
-		case 2:
-		{
-			return PORTAL_COLOR_SET_YELLOW_RED;
-		}
-		case 3:
-		{
-			return PORTAL_COLOR_SET_GREEN_PINK;
-		}
-	}
-
-	// Use the default color
-	return PORTAL_COLOR_SET_BLUE_ORANGE;
+	// The % PORTAL_COLOR_SET_LAST is necessary for >3 maxplayer servers
+	return (PortalColorSet_t)(iPortalLinkageID % (PORTAL_COLOR_SET_LAST+1));
 }
 
 KeyValues *LoadRadioData()

@@ -106,8 +106,6 @@ CBasePlayer *BotPutInServer( bool bFrozen, const char *pszCustomName )
 
 	BotNumber++;
 	
-	engine->SetFakeClientConVarValue( pEdict, "cl_playermodel", "models/player/chell.mdl" );
-	engine->SetFakeClientConVarValue( pEdict, "cl_portal_color_set", "0" );
 	engine->SetFakeClientConVarValue( pEdict, "cl_player_funnel_into_portals", "1" );
 	engine->SetFakeClientConVarValue( pEdict, "hap_HasDevice", "0" );
 

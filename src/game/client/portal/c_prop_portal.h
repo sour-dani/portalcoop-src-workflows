@@ -109,9 +109,6 @@ public:
 	virtual void			PortalSimulator_TookOwnershipOfEntity(C_BaseEntity *pEntity);
 	virtual void			PortalSimulator_ReleasedOwnershipOfEntity(C_BaseEntity *pEntity);
 
-	void					SetupPortalColorSet(void);
-
-
 	struct Portal_PreDataChanged
 	{
 		bool					m_bActivated;
@@ -173,13 +170,6 @@ public:
 	//bool DrawPortalsUsingStencils( CViewRender *pViewRender, int iLinkageGroupID ); 
 	
 	void	StealPortal( CProp_Portal *pHitPortal );
-
-	//C_Prop_Portal			*m_pHitPortal;
-	//C_Prop_Portal			*m_pPortalReplacingMe;
-
-	PortalColorSet_t m_iCustomPortalColorSet;
-	PortalColorSet_t m_iOldPortalColorSet;
-	PortalColorSet_t m_iPortalColorSet;
 	
 	C_PortalGhostRenderable *GetGhostRenderableForEntity( C_BaseEntity *pEntity );
 	
@@ -193,6 +183,8 @@ public:
 	static CProp_Portal		*FindPortal( unsigned char iLinkageGroupID, bool bPortal2, bool bCreateIfNothingFound = false );
 
 	virtual C_Prop_Portal *GetPropPortal() { return this; };
+	
+	PortalColorSet_t GetColorSet( void );
 
 private:
 

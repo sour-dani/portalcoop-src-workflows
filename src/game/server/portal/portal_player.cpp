@@ -319,13 +319,6 @@ const char *g_ppszPortalMPModels[] =
 	"models/player/male_portal_player.mdl"
 };
 
-void BotSetupModelConVarValue( CPortal_Player *pBot )
-{	
-	int nHeads = ARRAYSIZE(g_ppszPortalMPModels);
-	const char *pszModel = g_ppszPortalMPModels[ RandomInt(0, nHeads ) ];
-	engine->SetFakeClientConVarValue( pBot->edict(), "cl_playermodel", pszModel );
-}
-
 // specific to the local player
 BEGIN_SEND_TABLE_NOBASE( CPortal_Player, DT_PortalLocalPlayerExclusive )
 	// send a hi-res origin to the local player for use in prediction
@@ -387,7 +380,6 @@ SendPropDataTable( "portalnonlocaldata", 0, &REFERENCE_SEND_TABLE( DT_PortalNonL
 	SendPropBool(SENDINFO(m_bSuppressingCrosshair)),
 	SendPropBool(SENDINFO(m_bIsListenServerHost)),
 	SendPropBool(SENDINFO(m_bHeldObjectOnOppositeSideOfPortal)),
-	SendPropInt(SENDINFO(m_iCustomPortalColorSet)),
 	
 	SendPropVector( SENDINFO( m_vecAnimStateBaseVelocity ), 0, SPROP_COORD_MP | SPROP_CHANGES_OFTEN ),
 
@@ -428,7 +420,6 @@ DEFINE_SOUNDPATCH(m_pWooshSound),
 	DEFINE_FIELD(m_angEyeAngles, FIELD_VECTOR),
 	DEFINE_FIELD(m_hSurroundingLiquidPortal, FIELD_EHANDLE),
 	DEFINE_FIELD(m_flLastPingTime, FIELD_FLOAT),
-	DEFINE_FIELD(m_iCustomPortalColorSet, FIELD_INTEGER),
 
 DEFINE_INPUTFUNC( FIELD_VOID, "DoPingHudHint", InputDoPingHudHint ),
 
@@ -1010,9 +1001,6 @@ void CPortal_Player::Spawn(void)
 	PickTeam();
 #endif
 
-	if ( IsBot() )
-		BotSetupModelConVarValue( this );
-
 	m_bInvisible = false;
 }
 
@@ -1116,38 +1104,21 @@ const char* DefaultPlayerModel()
 
 void CPortal_Player::SetPlayerModel(void)
 {
-	const char* szModelName = NULL;
-	const char *pszCurrentModelName = modelinfo->GetModelName(GetModel());
-
-	szModelName = engine->GetClientConVarValue( entindex(), "cl_playermodel");
-		
-	if (ValidatePlayerModel(szModelName) == false)
+	const char *szModelName;
+	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( entindex() );
+	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 	{
-		char szReturnString[512];
-		
-		if ( ValidatePlayerModel( pszCurrentModelName ) == false )
-		{
-			pszCurrentModelName = DefaultPlayerModel();
-		}
-
-		Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", pszCurrentModelName);
-		engine->ClientCommand(edict(), szReturnString);
-
-		szModelName = pszCurrentModelName;
+		szModelName = "models/player/mel.mdl";
+	}
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
+	{
+		szModelName = "models/player/abby.mdl";
+	}
+	else
+	{
+		szModelName = "models/player/chell.mdl";
 	}
 
-	int modelIndex = modelinfo->GetModelIndex(szModelName);
-
-	if (modelIndex == -1)
-	{
-		szModelName = DefaultPlayerModel();
-
-		char szReturnString[512];
-
-		Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", szModelName);
-		engine->ClientCommand(edict(), szReturnString);
-	}
-		
 	if (m_PlayerAnimState)
 		m_PlayerAnimState->Release();
 
@@ -1157,20 +1128,6 @@ void CPortal_Player::SetPlayerModel(void)
 	ResetAnimation();
 
 	UpdateExpression();
-}
-
-void CPortal_Player::SetupSkin( void )
-{
-	int iPortalColorSet;
-	UTIL_Ping_Color( this, Color(), iPortalColorSet );
-
-	if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
-		m_nSkin = 1;
-	else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
-		m_nSkin = 2;
-	else
-		m_nSkin = 0;
-
 }
 
 void CPortal_Player::ResetAnimation(void)
@@ -1204,26 +1161,6 @@ bool CPortal_Player::Weapon_Switch(CBaseCombatWeapon* pWeapon, int viewmodelinde
 
 int CPortal_Player::GetPlayerConcept( void )
 {
-	const char *pszPlayerModel = GetModelName().ToCStr();
-
-	if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_CHELL])) // Chell
-		return CONCEPT_CHELL_IDLE;
-	else if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_MEL])) // Mel
-	{
-		if ( GlobalEntity_GetState("pcoop_escape_expressions") == GLOBAL_ON )
-		{
-			return CONCEPT_MEL_ESCAPE_IDLE; // We don't want Mel smiling when she's entering a fire pit or escaping
-		}
-		else
-		{
-			return CONCEPT_MEL_IDLE;
-		}
-	}
-	else if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_ABBY])) // Abby
-		return CONCEPT_ABBY_IDLE;
-	else if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_MALE_PORTAL_PLAYER])) // male_portal_player
-		return CONCEPT_MALE_PORTAL_PLAYER_IDLE;
-
 	return CONCEPT_CHELL_IDLE;
 
 }

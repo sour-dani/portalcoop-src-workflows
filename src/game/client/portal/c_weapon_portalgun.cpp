@@ -180,8 +180,6 @@ BEGIN_NETWORK_TABLE( C_WeaponPortalgun, DT_WeaponPortalgun )
 	RecvPropInt( RECVINFO( m_EffectState ) ),
 	RecvPropInt( RECVINFO (m_bCanAttack) ),
 	RecvPropInt( RECVINFO( m_iPortalLinkageGroupID ) ),
-	RecvPropInt( RECVINFO( m_iCustomPortalColorSet ) ),	
-	RecvPropInt( RECVINFO( m_iPortalColorSet ) ),
 	RecvPropInt( RECVINFO( m_iValidPlayer ) ),
 	RecvPropEHandle( RECVINFO (m_hPrimaryPortal) ),
 	RecvPropEHandle( RECVINFO (m_hSecondaryPortal) )
@@ -269,22 +267,24 @@ void C_WeaponPortalgun::StartEffects( void )
 		}
 	}
 
-	if ( m_iOldPortalColorSet != m_iPortalColorSet )
+	int iPortalColorSet = ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID );
+
+	if ( m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID )
 	{
 		m_Parameters[PORTALGUN_PORTAL1LIGHT].GetScale().SetAbsolute( 0.018f * SPRITE_SCALE );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT].GetAlpha().SetAbsolute( 128.0f );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT].SetAttachment( pModelView->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT].SetVisible( false );
 		
-		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+		if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT].SetMaterial(PORTALGUN_LIGHTBLUE_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT].SetMaterial(PORTALGUN_YELLOW_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT].SetMaterial(PORTALGUN_GREEN_LAST_GLOW);
 		}
@@ -294,22 +294,22 @@ void C_WeaponPortalgun::StartEffects( void )
 		}
 	}
 	
-	if ( m_iOldPortalColorSet != m_iPortalColorSet )
+	if ( m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID )
 	{
 		m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].GetScale().SetAbsolute( 0.03f * SPRITE_SCALE );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].GetAlpha().SetAbsolute( 128.0f );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetAttachment( pModelWorld->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetVisible( false );
 
-		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+		if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetMaterial(PORTALGUN_LIGHTBLUE_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetMaterial(PORTALGUN_YELLOW_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL1LIGHT_WORLD].SetMaterial(PORTALGUN_GREEN_LAST_GLOW);
 		}
@@ -320,22 +320,22 @@ void C_WeaponPortalgun::StartEffects( void )
 	}
 
 //	if ( m_Parameters[PORTALGUN_PORTAL2LIGHT].GetMaterial() == NULL )
-	if ( m_iOldPortalColorSet != m_iPortalColorSet )
+	if ( m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID )
 	{
 		m_Parameters[PORTALGUN_PORTAL2LIGHT].GetScale().SetAbsolute( 0.018f * SPRITE_SCALE );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT].GetAlpha().SetAbsolute( 128.0f );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT].SetAttachment( pModelView->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT].SetVisible( false );
 		
-		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+		if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT].SetMaterial( PORTALGUN_PURPLE_LAST_GLOW );
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT].SetMaterial( PORTALGUN_RED_LAST_GLOW );
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT].SetMaterial( PORTALGUN_PINK_LAST_GLOW );
 		}
@@ -346,22 +346,22 @@ void C_WeaponPortalgun::StartEffects( void )
 	}
 
 //	if ( m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].GetMaterial() == NULL )
-	if ( m_iOldPortalColorSet != m_iPortalColorSet )
+	if ( m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID )
 	{
 		m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].GetScale().SetAbsolute( 0.03f * SPRITE_SCALE );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].GetAlpha().SetAbsolute( 128.0f );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetAttachment( pModelWorld->LookupAttachment( "Body_light" ) );
 		m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetVisible( false );
 		
-		if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+		if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetMaterial(PORTALGUN_PURPLE_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetMaterial(PORTALGUN_RED_LAST_GLOW);
 		}
-		else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+		else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 		{
 			m_Parameters[PORTALGUN_PORTAL2LIGHT_WORLD].SetMaterial(PORTALGUN_PINK_LAST_GLOW);
 		}
@@ -845,8 +845,7 @@ void C_WeaponPortalgun::OnDataChanged( DataUpdateType_t updateType )
 	else if ( m_nOldEffectState != m_EffectState || 
 		m_bOldCanFirePortal1 != m_bCanFirePortal1 || 
 		m_bOldCanFirePortal2 != m_bCanFirePortal2 || 
-		m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID //|| 
-		//m_iOldPortalColorSet != m_iPortalColorSet 
+		m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID
 		)
 	{
 		DoEffect( m_EffectState );
@@ -855,17 +854,9 @@ void C_WeaponPortalgun::OnDataChanged( DataUpdateType_t updateType )
 		m_bOldCanFirePortal1 = m_bCanFirePortal1;
 		m_bOldCanFirePortal2 = m_bCanFirePortal2;
 
-		//StartEffects();
-		m_iOldPortalLinkageGroupID = m_iPortalLinkageGroupID;
-	//	m_iOldPortalColorSet = m_iPortalColorSet;
-	}
-
-	if (m_iPortalColorSet != m_iOldPortalColorSet)
-	{
 		StartEffects();
-		m_iOldPortalColorSet = m_iPortalColorSet;
+		m_iOldPortalLinkageGroupID = m_iPortalLinkageGroupID;
 	}
-
 }
 
 void C_WeaponPortalgun::ClientThink( void )
@@ -920,11 +911,11 @@ Vector C_WeaponPortalgun::GetEffectColor( int iPalletIndex )
 
 	if ( m_iLastFiredPortal == 1 )
 	{
-		color = UTIL_Portal_Color( 1, m_iPortalColorSet );
+		color = UTIL_Portal_Color( 1, ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID ) );
 	}
 	else if ( m_iLastFiredPortal == 2 )
 	{
-		color = UTIL_Portal_Color( 2, m_iPortalColorSet );
+		color = UTIL_Portal_Color( 2, ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID ) );
 	}
 	else
 	{

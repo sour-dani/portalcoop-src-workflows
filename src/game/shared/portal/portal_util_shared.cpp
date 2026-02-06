@@ -180,8 +180,6 @@ Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet )
 	return Color( 255, 255, 255, 255 );
 }
 
-extern ConVar sv_allow_customized_portal_colors;
-
 void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColorSet )
 {
 
@@ -195,31 +193,13 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColor
 	
 	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
 
-	if ( sv_allow_customized_portal_colors.GetBool() )
+	if (pPortalgun)
 	{
-		if (pPortalgun)
-		{
-			iPortalColorSet = pPortalgun->m_iPortalColorSet;
-		}
-		else if ( pPlayer->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID ) // This means the player is not letting the Portal ID decide what the color set is
-		{
-			iPortalColorSet = pPlayer->m_iCustomPortalColorSet; // Use this for consistency
-		}
-		else
-		{
-			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() );
-		}
+		iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 	}
-	else
+	else // We don't have a portalgun, but this should theoretically accurately get our colors
 	{
-		if (pPortalgun)
-		{
-			iPortalColorSet = pPortalgun->m_iPortalColorSet;
-		}
-		else // We don't have a portalgun, but this should theoretically accurately get our colors
-		{
-			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
-		}
+		iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
 	}
 		
 	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
@@ -228,7 +208,6 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColor
 		vColor = Vector(1.0, 0, 0); // 255 0 0
 	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 		vColor = Vector(0.0, 1.0, 0); // 0 255 0
-
 }
 
 void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSet )
@@ -243,44 +222,13 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSe
 	
 	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
 	
-	if ( sv_allow_customized_portal_colors.GetBool() )
+	if (pPortalgun)
 	{
-		if (pPortalgun)
-		{
-#ifdef CLIENT_DLL
-			iPortalColorSet = pPortalgun->m_iPortalColorSet;
-#else
-			iPortalColorSet = pPortalgun->m_iPortalColorSet.m_Value;
-#endif
-		}
-		else if ( pPlayer->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID ) // This means the player is not letting the Portal ID decide what the color set is
-		{
-			// Use this for consistency
-#ifdef CLIENT_DLL
-			iPortalColorSet = pPlayer->m_iCustomPortalColorSet;
-#else
-			iPortalColorSet = pPlayer->m_iCustomPortalColorSet.m_Value;
-#endif
-		}
-		else
-		{
-			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() );
-		}
+		iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 	}
-	else
+	else // We don't have a portalgun, but this should theoretically accurately get our colors
 	{
-		if ( pPortalgun )
-		{
-#ifdef CLIENT_DLL
-			iPortalColorSet = pPortalgun->m_iPortalColorSet;
-#else
-			iPortalColorSet = pPortalgun->m_iPortalColorSet.m_Value;
-#endif
-		}
-		else // We don't have a portalgun, but this should theoretically accurately get our colors
-		{
-			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
-		}
+		iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
 	}
 	
 	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
@@ -300,12 +248,14 @@ void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Vector &vColor )
 	{
 		return;
 	}
+
+	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 		
-	if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
+	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 		vColor = Vector(0.6, 0, 1.0); // 153 0 255
-	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
 		vColor = Vector(1.0, 0, 0); // 255 0 0
-	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 		vColor = Vector(0.0, 1.0, 0); // 0 255 0
 }
 
@@ -317,12 +267,14 @@ void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Color &color )
 	{
 		return;
 	}
+
+	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 	
-	if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
+	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 		color = Color(128, 0, 255, 255);
-	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
 		color = Color(255, 0, 0, 255);
-	else if ( pPortalgun->m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 		color = Color(0, 255, 0, 255);
 }
 

@@ -52,7 +52,7 @@ void C_TriggerPortalCleanser::Touch( C_BaseEntity *pOther )
 
 					if ( pPortal && pPortal->IsActive() )
 					{
-						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->m_iPortalColorSet, false );
+						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->GetColorSet(), false );
 						pPortal->Fizzle();
 
 						bFizzledPortal = true;
@@ -72,7 +72,7 @@ void C_TriggerPortalCleanser::Touch( C_BaseEntity *pOther )
 
 					if ( pPortal && pPortal->IsActive() )
 					{
-						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->m_iPortalColorSet, false );
+						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->GetColorSet(), false );
 						pPortal->Fizzle();
 
 						bFizzledPortal = true;

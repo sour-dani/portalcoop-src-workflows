@@ -50,8 +50,6 @@ ConVar sv_restart_server( "sv_restart_server", "0", FCVAR_REPLICATED, "When all 
 ConVar sv_restart_server_map( "sv_restart_server_map", "", FCVAR_REPLICATED, "Map to change when all players disconnect (requires sv_restart_server to be 1)" );
 ConVar sv_restart_server_include_bots( "sv_restart_server_include_bots", "1", FCVAR_REPLICATED, "Sets if bots should be considered when checking for the amount of clients in the server" );
 
-ConVar sv_allow_customized_portal_colors("sv_allow_customized_portal_colors", "0", FCVAR_REPLICATED, "Sets if clients can choose their own portal color.");
-
 ConVar pcoop_paused( "pcoop_paused", "0", FCVAR_REPLICATED | FCVAR_HIDDEN );
 
 REGISTER_GAMERULES_CLASS( CPortalGameRules );
@@ -364,65 +362,6 @@ void CPortalGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 	//
 	const char *pszName = engine->GetClientConVarValue( iPlayerIndex, "cl_player_funnel_into_portals" );
 	pPortalPlayer->m_bPortalFunnel = atoi( pszName ) != 0;
-
-	// Handle playermodel selection
-	//
-	const char *pCurrentModel = modelinfo->GetModelName(pPlayer->GetModel());
-	const char *szModelName = engine->GetClientConVarValue( iPlayerIndex, "cl_playermodel");
-
-	//If we're different.
-	if (stricmp(szModelName, pCurrentModel))
-	{
-		if (PortalGameRules()->IsTeamplay() == false)
-		{
-			pPortalPlayer->SetPlayerModel();
-
-			const char *pszCurrentModelName = modelinfo->GetModelName(pPortalPlayer->GetModel());
-
-			char szReturnString[128];
-			Q_snprintf(szReturnString, sizeof(szReturnString), "Your player model is: %s\n", pszCurrentModelName);
-
-			ClientPrint(pPortalPlayer, HUD_PRINTTALK, szReturnString);
-		}
-	}
-
-	// Handle portal color set
-	//
-	const char *szColorSet = engine->GetClientConVarValue( iPlayerIndex, "cl_portal_color_set");
-	
-	if (!strcmp(szColorSet, "0"))
-		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_ID;
-	else if (!strcmp(szColorSet, "1"))
-		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE;
-	else if (!strcmp(szColorSet, "2"))
-		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_LIGHTBLUE_PURPLE;
-	else if (!strcmp(szColorSet, "3"))
-		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_YELLOW_RED;
-	else if (!strcmp(szColorSet, "4"))
-		pPortalPlayer->m_iCustomPortalColorSet = PORTAL_COLOR_SET_GREEN_PINK;
-
-	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPortalPlayer->Weapon_OwnsThisType("weapon_portalgun"));
-	if (pPortalgun)
-	{
-		if (pPortalgun && pPortalgun->m_hPrimaryPortal.Get())
-			pPortalgun->m_hPrimaryPortal.Get()->m_iCustomPortalColorSet = pPortalPlayer->m_iCustomPortalColorSet;
-
-		if (pPortalgun && pPortalgun->m_hSecondaryPortal.Get())
-			pPortalgun->m_hSecondaryPortal.Get()->m_iCustomPortalColorSet = pPortalPlayer->m_iCustomPortalColorSet;
-
-		pPortalgun->m_iCustomPortalColorSet = pPortalPlayer->m_iCustomPortalColorSet;
-		
-		// HACK: Do this so that the SetupSkin function will work!!!
-		if (pPortalgun->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID && sv_allow_customized_portal_colors.GetBool())
-		{
-			pPortalgun->m_iPortalColorSet = pPortalgun->m_iCustomPortalColorSet;
-		}
-		else
-			pPortalgun->m_iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
-			
-	}
-
-	pPortalPlayer->SetupSkin();
 	
 	const char *pszFov = engine->GetClientConVarValue( pPlayer->entindex(), "fov_desired" );
 	int iFov = atoi(pszFov);
@@ -635,11 +574,6 @@ const char *CPortalGameRules::GetGameDescription( void )
 	//------------------------------------------------------------------------------
 	void CPortalGameRules::InitDefaultAIRelationships( void )
 	{
-		// This could really go anywhere
-#ifdef PORTAL
-		m_bOldAllowPortalCustomization = sv_allow_customized_portal_colors.GetBool();
-#endif
-
 		int i, j;
 
 		//  Allocate memory for default relationships
@@ -1506,34 +1440,6 @@ const char *CPortalGameRules::GetGameDescription( void )
 
 		if (GetBonusChallenge() == PORTAL_CHALLENGE_TIME)
 			UpdateSecondsTaken();
-
-		if ( m_bOldAllowPortalCustomization != sv_allow_customized_portal_colors.GetBool() )
-		{
-			m_bOldAllowPortalCustomization = sv_allow_customized_portal_colors.GetBool();
-
-			for (int i = 1; i <= gpGlobals->maxClients; ++i)
-			{
-				CPortal_Player *pPlayer = static_cast<CPortal_Player*>(UTIL_EntityByIndex(i));
-				if (!pPlayer)
-					continue;
-				
-				CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>( pPlayer->Weapon_OwnsThisType("weapon_portalgun") );
-				
-				// HACK: Setup portalgun colors here so that the skin is setup properly!
-				if (pPortalgun)
-				{
-					pPortalgun->m_iCustomPortalColorSet = pPlayer->m_iCustomPortalColorSet;
-	
-					if (pPortalgun->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID && sv_allow_customized_portal_colors.GetBool())
-						pPortalgun->m_iPortalColorSet = pPortalgun->m_iCustomPortalColorSet;
-					else
-						pPortalgun->m_iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
-				}			
-			
-				pPlayer->SetupSkin();
-
-			}
-		}
 
 		//m_iBonusChallenge = sv_bonus_challenge.GetInt();
 		//sv_bonus_challenge.SetValue(0);

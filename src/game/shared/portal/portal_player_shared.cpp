@@ -44,11 +44,6 @@ const char *g_pszPortalPlayerConcepts[] =
 {
 	"CONCEPT_PLAYER_DEAD",
 	"CONCEPT_CHELL_IDLE",
-	"CONCEPT_ABBY_IDLE",
-	"CONCEPT_MEL_IDLE",
-	"CONCEPT_MALE_PORTAL_PLAYER_IDLE",
-	//Escape Idles
-	"CONCEPT_MEL_ESCAPE_IDLE",
 };
 
 extern ConVar sv_footsteps;

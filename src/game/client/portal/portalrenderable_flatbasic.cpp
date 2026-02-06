@@ -1183,7 +1183,7 @@ void CPortalRenderable_FlatBasic::DrawPortal( void )
 	C_Prop_Portal *pPropPortal = GetPropPortal();
 
 	if ( pPropPortal )
-		iPortalColorSet = pPropPortal->m_iPortalColorSet;
+		iPortalColorSet = pPropPortal->GetColorSet();
 
 	if ( g_pPortalRender->ShouldUseStencilsToRenderPortals() )
 	{

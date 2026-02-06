@@ -239,10 +239,11 @@ void CHUDQuickInfo::Paint()
 		return;
 	}
 
-	const unsigned char iAlphaStart = 150;	   
+	const unsigned char iAlphaStart = 150;
+	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 
-	Color portal1Color = UTIL_Portal_Color( 1, pPortalgun->m_iPortalColorSet );
-	Color portal2Color = UTIL_Portal_Color( 2, pPortalgun->m_iPortalColorSet );
+	Color portal1Color = UTIL_Portal_Color( 1, iPortalColorSet );
+	Color portal2Color = UTIL_Portal_Color( 2, iPortalColorSet );
 
 	portal1Color[ 3 ] = iAlphaStart;
 	portal2Color[ 3 ] = iAlphaStart;
@@ -331,7 +332,7 @@ void CHUDQuickInfo::Paint()
 	if ( pPortalgun->IsHoldingObject() )
 	{
 		// Change the middle to orange 
-		portal1Color = portal2Color = UTIL_Portal_Color(0, pPortalgun->m_iPortalColorSet );
+		portal1Color = portal2Color = UTIL_Portal_Color(0, iPortalColorSet );
 		bPortalPlacability[0] = bPortalPlacability[1] = false;
 	}
 	

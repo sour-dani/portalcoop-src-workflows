@@ -37,7 +37,6 @@ extern CMoveData *g_pMoveData;
 extern IGameMovement *g_pGameMovement;
 
 ConVar sv_portal_unified_velocity( "sv_portal_unified_velocity", "1", FCVAR_REPLICATED, "An attempt at removing patchwork velocity tranformation in portals, moving to a unified approach." );
-extern ConVar sv_allow_customized_portal_colors;
 
 extern ConVar sv_portal_debug_touch;
 
@@ -334,8 +333,6 @@ void CProp_Portal::PlacePortal( const Vector &vOrigin, const QAngle &qAngles, fl
 		return;
 	}
 	
-	SetupPortalColorSet();
-	
 	m_vDelayedPosition = vNewOrigin;
 	m_qDelayedAngles = qNewAngles;
 	m_iDelayedFailure = PORTAL_FIZZLE_SUCCESS;
@@ -389,7 +386,7 @@ void CProp_Portal::StealPortal( CProp_Portal *pHitPortal )
 		// HACK!! For some inexplicable reason, if we don't make the caller pHitPortal, the output won't fire.
 		pHitPortal->OnStolen( pActivator, pHitPortal );
 #endif
-		pHitPortal->DoFizzleEffect( PORTAL_FIZZLE_STOLEN, pHitPortal->m_iPortalColorSet, false );
+		pHitPortal->DoFizzleEffect( PORTAL_FIZZLE_STOLEN, pHitPortal->GetColorSet(), false );
 #ifndef CLIENT_DLL // It would be nice to handle this on the client too, but if a prediction error occurred, it creates a "ghost" portal which is extremely problematic.
 		pHitPortal->Fizzle();
 #endif
@@ -442,7 +439,7 @@ void CProp_Portal::DelayedPlacementThink( void )
 		m_iDelayedFailure = PORTAL_FIZZLE_SUCCESS;
 	}
 
-	DoFizzleEffect( m_iDelayedFailure );
+	DoFizzleEffect( m_iDelayedFailure, GetColorSet() );
 
 
 	if ( m_iDelayedFailure != PORTAL_FIZZLE_SUCCESS )
@@ -454,7 +451,7 @@ void CProp_Portal::DelayedPlacementThink( void )
 	// Do effects at old location if it was active
 	if (IsActive())
 	{
-		DoFizzleEffect( PORTAL_FIZZLE_CLOSE, m_iPortalColorSet, false );
+		DoFizzleEffect( PORTAL_FIZZLE_CLOSE, GetColorSet(), false);
 	}
 
 
@@ -977,15 +974,6 @@ bool CProp_Portal::ShouldTeleportTouchingEntity( CBaseEntity *pOther )
 	return false;
 }
 
-void CProp_Portal::SetupPortalColorSet( void )
-{
-	if (m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID && sv_allow_customized_portal_colors.GetBool())
-		m_iPortalColorSet = m_iCustomPortalColorSet;
-	else
-		m_iPortalColorSet = ConvertLinkageIDToColorSet( m_iLinkageGroupID );
-}
-
-
 void CProp_Portal::UpdatePortalLinkage( void )
 {
 	if( IsActive() )
@@ -1092,4 +1080,9 @@ void CProp_Portal::UpdatePortalLinkage( void )
 		if( pRemote )
 			pRemote->UpdatePortalLinkage();
 	}
+}
+
+PortalColorSet_t CProp_Portal::GetColorSet( void )
+{
+	return ConvertLinkageIDToColorSet( m_iLinkageGroupID );
 }

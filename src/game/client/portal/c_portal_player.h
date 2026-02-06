@@ -209,9 +209,7 @@ public:
 	CWeaponPortalBase* GetActivePortalWeapon() const;
 
 	bool IsSuppressingCrosshair( void ) { return m_bSuppressingCrosshair; }
-	
-	PortalColorSet_t m_iCustomPortalColorSet;
-	
+		
 	float GetLatestServerTeleport() { return m_fLatestServerTeleport; }
 
 	bool	m_bIntersectingPortalPlane;

@@ -331,8 +331,6 @@ IMPLEMENT_CLIENTCLASS_DT(C_Portal_Player, DT_Portal_Player, CPortal_Player)
 
 	RecvPropVector( RECVINFO( m_vecAnimStateBaseVelocity ) ),
 	
-	RecvPropInt( RECVINFO( m_iCustomPortalColorSet ) ),	
-	
 	RecvPropDataTable( "portallocaldata", 0, 0, &REFERENCE_RECV_TABLE(DT_PortalLocalPlayerExclusive) ),
 	
 END_RECV_TABLE()
@@ -371,8 +369,6 @@ END_PREDICTION_DATA()
 #define	_WALK_SPEED 150
 #define	_NORM_SPEED 190
 #define	_SPRINT_SPEED 320
-
-static ConVar cl_playermodel( "cl_playermodel", "none", FCVAR_USERINFO | FCVAR_ARCHIVE | FCVAR_SERVER_CAN_EXECUTE, "Default Player Model");
 
 extern bool g_bUpsideDown;
 

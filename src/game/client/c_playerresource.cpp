@@ -186,49 +186,30 @@ int C_PlayerResource::GetTeam(int iIndex )
 	}
 }
 
-extern ConVar sv_allow_customized_portal_colors;
-
 #ifdef PORTAL
 const Color C_PlayerResource::GetPortalgunColor(int iIndex)
 {
 	C_Portal_Player *pPlayer = ToPortalPlayer(ClientEntityList().GetEnt(iIndex));
 
-	PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_ID;
+	PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_DEFAULT;
 	Color color = PORTAL_COLOR_DEFAULT;
 	
-	if (!pPlayer)
+	if ( !pPlayer )
 	{
 		return color;
 	}
 	
 	CWeaponPortalgun *pPortalgun = dynamic_cast<CWeaponPortalgun*>( pPlayer->Weapon_OwnsThisType("weapon_portalgun") );
 	
-	if ( sv_allow_customized_portal_colors.GetBool() )
+	if ( pPortalgun )
 	{
-		if (pPortalgun)
-		{
-			iPortalColorSet = pPortalgun->m_iPortalColorSet;
-		}
-		else if ( pPlayer->m_iCustomPortalColorSet != PORTAL_COLOR_SET_ID ) // This means the player is not letting the Portal ID decide what the color set is
-		{
-			iPortalColorSet = pPlayer->m_iCustomPortalColorSet; // Use this for consistency
-		}
-		else
-		{
-			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() );
-		}
+		iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
 	}
-	else
+	else // We don't have a portalgun, but this should theoretically accurately get our colors
 	{
-		if (pPortalgun)
-		{
-			iPortalColorSet = pPortalgun->m_iPortalColorSet;
-		}
-		else // We don't have a portalgun, but this should theoretically accurately get our colors
-		{
-			iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
-		}
+		iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
 	}
+
 	
 	if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 		color = Color(128, 0, 255, 255);
@@ -246,23 +227,24 @@ const Color C_PlayerResource::GetPortalColor(int iIndex)
 	
 	if (!pPortal)
 		return COLOR_GREY;
-				
 	
-	if (pPortal->m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+	PortalColorSet_t iPortalColorSet = pPortal->GetColorSet();
+	
+	if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 	{
 		if (pPortal->m_bIsPortal2)
 			return Color(128, 0, 255, 255); // purple
 
 		return Color(0, 255, 255, 255); // light blue
 	}
-	else if (pPortal->m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+	else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 	{
 		if (pPortal->m_bIsPortal2)
 			return Color(255, 0, 0, 255); //red
 
 		return Color(255, 255, 0, 255); //yellow
 	}
-	else if (pPortal->m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+	else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 	{
 		if (pPortal->m_bIsPortal2)
 			return Color(255, 0, 255, 255); //pink
