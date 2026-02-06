@@ -121,6 +121,8 @@ extern char *g_ppszPortalPassThroughMaterials[];
 extern ConVar pcoop_require_all_players;
 extern ConVar pcoop_require_all_players_force_amount;
 
+#define USE_BASIC_RADIOS
+
 #define RADIO_DATA_FILE "scripts/radios.txt"
 extern KeyValues *LoadRadioData();
 
