@@ -525,7 +525,7 @@ public:
 		cl_entitylist->RemoveListenerEntity( this );
 		Clear(); 
 	}
-	void PostRender() OVERRIDE;
+	void Update( float frametime ) OVERRIDE;
 
 	void Clear()
 	{
@@ -563,7 +563,7 @@ void EntityTouch_Add( CBaseEntity *pEntity )
 }
 
 
-void CEntityTouchManager::PostRender()
+void CEntityTouchManager::Update( float frametime )
 {
 	VPROF( "CEntityTouchManager::FrameUpdatePostEntityThink" );
 	// Loop through all entities again, checking their untouch if flagged to do so

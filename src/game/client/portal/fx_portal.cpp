@@ -23,7 +23,7 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
+extern float g_flGameCurTime;
 
 class C_PortalBlast : public C_BaseEntity
 {
@@ -74,7 +74,7 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 
 	SetAbsOrigin( m_ptCreationPoint );
 	
-	m_fCreationTime = gpGlobals->curtime;
+	m_fCreationTime = g_flGameCurTime;
 
 	m_fDeathTime = fDeathTime;
 
@@ -178,38 +178,3 @@ void PortalBlastCallback( const CEffectData & data )
 }
 
 DECLARE_CLIENT_EFFECT( "PortalBlast", PortalBlastCallback );
-
-
-class CPortalBlastManager : public CAutoGameSystemPerFrame
-{
-public:
-	void PostRender() OVERRIDE
-	{
-		for ( int i = 0; i < m_PortalBlasts.Count(); ++i )
-		{
-			CEffectData &data = m_PortalBlasts[i];
-			data.m_flScale += gpGlobals->curtime;
-			PortalBlastCallback( data );
-			m_PortalBlasts.Remove( i );
-			i = 0;
-		}
-	}
-
-	void Shutdown() OVERRIDE
-	{
-		m_PortalBlasts.Purge();
-	}
-
-	CUtlVector<CEffectData> m_PortalBlasts;
-};
-
-CPortalBlastManager g_PortalBlastManager;
-
-
-void AddPortalBlast( CEffectData &data )
-{
-	data.m_flScale -= gpGlobals->curtime;
-	
-	g_PortalBlastManager.m_PortalBlasts.AddToTail( data );
-//	C_PortalBlast::Create( ( data.m_nColor == 1 ) ? ( false ) : ( true ), (PortalPlacedByType)data.m_nDamageType, data.m_vOrigin, data.m_vStart, data.m_vAngles, data.m_flScale, (PortalColorSet_t)data.m_nHitBox, cl_entitylist->GetBaseEntityFromHandle( data.m_hEntity ) );
-}

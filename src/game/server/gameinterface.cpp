@@ -1009,7 +1009,7 @@ void UpdatePortalGameType( const char *pMapName )
 #ifdef PORTAL
 bool g_bFirstFrameSimulated = false;
 #endif
-float g_flServerCurTime = 0.0f;
+float g_flGameCurTime = 0.0f;
 
 // Called any time a new level is started (after GameInit() also on level transitions within a game)
 bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, char const *pOldLevel, char const *pLandmarkName, bool loadGame, bool background )
@@ -1024,7 +1024,7 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	g_bFirstFrameSimulated = false;
 #endif
 
-	g_flServerCurTime = gpGlobals->curtime;
+	g_flGameCurTime = gpGlobals->curtime;
 
 #ifdef USES_ECON_ITEMS
 	GameItemSchema_t *pItemSchema = ItemSystem()->GetItemSchema();
@@ -1294,7 +1294,7 @@ void CServerGameDLL::GameFrame( bool simulating )
 		g_bFirstFrameSimulated = true; // The first frame was simulated
 	}
 #endif
-	g_flServerCurTime = gpGlobals->curtime;
+	g_flGameCurTime = gpGlobals->curtime;
 	float oldframetime = gpGlobals->frametime;
 
 #ifdef _DEBUG

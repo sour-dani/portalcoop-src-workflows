@@ -1325,12 +1325,15 @@ void CHLClient::HudProcessInput( bool bActive )
 	g_pClientMode->ProcessInput( bActive );
 }
 
+float g_flGameCurTime = 0.0f;
+
 //-----------------------------------------------------------------------------
 // Purpose: Called when shared data gets changed, allows dll to modify data
 // Input  : bActive - 
 //-----------------------------------------------------------------------------
 void CHLClient::HudUpdate( bool bActive )
 {
+	g_flGameCurTime = gpGlobals->curtime;
 	float frametime = gpGlobals->frametime;
 
 #if defined( TF_CLIENT_DLL )
@@ -1648,6 +1651,8 @@ void CHLClient::LevelInitPreEntity( char const* pMapName )
 	if (g_bLevelInitialized)
 		return;
 	g_bLevelInitialized = true;
+
+	g_flGameCurTime = gpGlobals->curtime;
 
 	input->LevelInit();
 

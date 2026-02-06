@@ -535,11 +535,11 @@ void CWeaponPortalgun::DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iP
 	if ( !prediction->IsFirstTimePredicted() )
 		return;
 #endif
-	
+	extern float g_flGameCurTime;
 	CEffectData	fxData;
 	fxData.m_vOrigin = ptStart;
 	fxData.m_vStart = ptFinalPos;
-	fxData.m_flScale = gpGlobals->curtime + fDelay;
+	fxData.m_flScale = g_flGameCurTime + fDelay;
 	fxData.m_vAngles = qStartAngles;
 	fxData.m_nColor = ( ( bPortal2 ) ? ( 2 ) : ( 1 ) );
 	fxData.m_nDamageType = iPlacedBy;
@@ -552,8 +552,8 @@ void CWeaponPortalgun::DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iP
 #endif
 	
 #ifdef CLIENT_DLL
-	extern void AddPortalBlast( CEffectData &data );
-	AddPortalBlast( fxData );
+	extern void PortalBlastCallback( const CEffectData &data );
+	PortalBlastCallback( fxData );
 #else
 	DispatchEffect( "PortalBlast", fxData );
 #endif
