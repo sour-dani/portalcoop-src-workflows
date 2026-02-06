@@ -1141,11 +1141,7 @@ int CPortal_Player::GetPlayerConcept( void )
 void CPortal_Player::UpdateExpression( void )
 {
 	if ( !m_pExpresser )
-	{
-		if (this != UTIL_GetListenServerHost())
-			Warning("!m_pExpresser\n");
 		return;
-	}
 
 	int iConcept = GetPlayerConcept();
 	if ( IsDead() )
