@@ -1194,8 +1194,6 @@ bool C_Portal_Player::ShouldCollide(int collisionGroup, int contentsMask) const
 	return BaseClass::ShouldCollide( collisionGroup, contentsMask );
 }
 
-#if USEMOVEMENTFORPORTALLING
-
 void C_Portal_Player::ApplyTransformToInterpolators( const VMatrix &matTransform, float fUpToTime, bool bIsRevertingPreviousTransform, bool bDuckForced )
 {
 	Vector vOriginToCenter = (VEC_HULL_MAX + VEC_HULL_MIN) * 0.5f;
@@ -1445,7 +1443,7 @@ void C_Portal_Player::UnrollPredictedTeleportations( int iCommandNumber )
 		//player->pl.v_angle = qVAngles;
 	}
 }
-#endif // USEMOVEMENTFORPORTALLING
+
 void C_Portal_Player::ForceDropOfCarriedPhysObjects(CBaseEntity* pOnlyIfHoldingThis)
 {
 	m_bHeldObjectOnOppositeSideOfPortal = false;

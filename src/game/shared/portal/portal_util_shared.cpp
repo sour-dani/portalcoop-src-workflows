@@ -180,99 +180,48 @@ Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet )
 	return Color( 255, 255, 255, 255 );
 }
 
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor )
+void UTIL_Ping_Color( PortalColorSet_t iPortalColorSet, Color &color )
 {
-	vColor = Vector(1.0, 0.6274509804, 0.1254901961); // 255 160 32
-
-	if (!pPlayer)
+	switch ( iPortalColorSet )
 	{
-		return;
-	}	
-	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
-
-	PortalColorSet_t iPortalColorSet;
-	if (pPortalgun)
-	{
-		iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
+		case PORTAL_COLOR_SET_LIGHTBLUE_PURPLE:
+		{
+			color = Color(128, 0, 255, 255);
+			break;
+		}		
+		case PORTAL_COLOR_SET_YELLOW_RED:
+		{
+			color = Color(255, 0, 0, 255);
+			break;
+		}		
+		case PORTAL_COLOR_SET_GREEN_PINK:
+		{
+			color = Color(0, 255, 0, 255);
+			break;
+		}
+		case PORTAL_COLOR_SET_BLUE_ORANGE:
+		default:
+		{
+			color = Color(255, 160, 32, 255);
+			break;
+		}
 	}
-	else // We don't have a portalgun, but this should theoretically accurately get our colors
-	{
-		iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
-	}
-		
+}
+
+void UTIL_Ping_Color( PortalColorSet_t iPortalColorSet, Vector &vColor )
+{
+	// The purple needs to look purpler
 	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
+	{
 		vColor = Vector(0.6, 0, 1.0); // 153 0 255
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
-		vColor = Vector(1.0, 0, 0); // 255 0 0
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
-		vColor = Vector(0.0, 1.0, 0); // 0 255 0
-}
-
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color )
-{
-	color = Color(255, 160, 32);
-	
-	if (!pPlayer)
-	{
-		return;
-	}	
-	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
-
-	PortalColorSet_t iPortalColorSet;
-	if (pPortalgun)
-	{
-		iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
-	}
-	else // We don't have a portalgun, but this should theoretically accurately get our colors
-	{
-		iPortalColorSet = ConvertLinkageIDToColorSet( pPlayer->entindex() ); // The linkage group ID of the portalgun is equal to the player's ent index, so use that instead
-	}
-	
-	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
-		color = Color(128, 0, 255);
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
-		color = Color(255, 0, 0);
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
-		color = Color(0, 255, 0);
-}
-
-
-void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Vector &vColor )
-{
-	vColor = Vector(1.0, 0.6274509804, 0.1254901961); // 255 160 32
-
-	if (!pPortalgun)
-	{
 		return;
 	}
+	Color color;
+	UTIL_Ping_Color( iPortalColorSet, color );
 
-	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
-		
-	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
-		vColor = Vector(0.6, 0, 1.0); // 153 0 255
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
-		vColor = Vector(1.0, 0, 0); // 255 0 0
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
-		vColor = Vector(0.0, 1.0, 0); // 0 255 0
-}
-
-void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Color &color )
-{
-	color = PORTAL_COLOR_DEFAULT;
-	
-	if (!pPortalgun)
-	{
-		return;
-	}
-
-	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
-	
-	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
-		color = Color(128, 0, 255, 255);
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED )
-		color = Color(255, 0, 0, 255);
-	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
-		color = Color(0, 255, 0, 255);
+	vColor.x = color.r() / 255;
+	vColor.y = color.g() / 255;
+	vColor.z = color.b() / 255;
 }
 
 void UTIL_Portal_Trace_Filter( CTraceFilterSimpleClassnameList *traceFilterPortalShot )

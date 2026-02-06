@@ -13,7 +13,7 @@
 #include "c_team.h"
 #include "c_playerresource.h"
 #include "ihudlcd.h"
-
+#include "portal_shareddefs.h"
 
 
 DECLARE_HUDELEMENT( CHudChat );
@@ -102,7 +102,9 @@ Color CHudChat::GetClientColor( int clientIndex )
 	}
 	else if( g_PR )
 	{
-		return g_PR->GetPortalgunColor( clientIndex );
+		Color color;
+		UTIL_Ping_Color( ConvertLinkageIDToColorSet( clientIndex ), color );
+		return color;
 	}
 
 	return g_ColorYellow;

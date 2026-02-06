@@ -1327,7 +1327,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		// Get our ping color information
 		Vector vColor;
-		UTIL_Ping_Color( this, vColor );
+		UTIL_Ping_Color( ConvertLinkageIDToColorSet( entindex() ), vColor );
 		
 		// Get the base animating
 		CBaseAnimating *pAnimating = tr.m_pEnt ? tr.m_pEnt->GetBaseAnimating() : NULL;
@@ -1534,7 +1534,7 @@ void CPortal_Player::PreThink(void)
 	}
 
 	Color color;
-	UTIL_Ping_Color( this, color );
+	UTIL_Ping_Color( ConvertLinkageIDToColorSet( entindex() ), color);
 
 	m_flGlowR = color.r() / 255;
 	m_flGlowG = color.g() / 255;

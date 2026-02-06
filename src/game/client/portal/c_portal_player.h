@@ -190,8 +190,6 @@ public:
 	IPhysicsObject *GetHeldPhysicsPortal(void) { return m_pHeldPhysicsPortal; }
 	void SetHeldPhysicsPortal( IPhysicsObject *pPhys ) { m_pHeldPhysicsPortal = pPhys; }
 	
-#if USEMOVEMENTFORPORTALLING
-
 	virtual void ApplyTransformToInterpolators( const VMatrix &matTransform, float fUpToTime, bool bIsRevertingPreviousTransform, bool bDuckForced );
 	
 	//single player doesn't predict portal teleportations. This is the call you'll receive when we determine the server portalled us.
@@ -202,8 +200,6 @@ public:
 	virtual void UndoPredictedPortalTeleportation( const C_Prop_Portal *pEnteredPortal, float fOriginallyAppliedTime, const VMatrix &matUndo, bool bDuckForced ); //fOriginallyAppliedTime is the value of gpGlobals->curtime when ApplyPredictedPortalTeleportation was called. Which will be in the future when this gets called
 
 	void UnrollPredictedTeleportations( int iCommandNumber ); //unroll all predicted teleportations at or after the target tick
-
-#endif
 
 	Activity TranslateActivity( Activity baseAct, bool *pRequired = NULL );
 	CWeaponPortalBase* GetActivePortalWeapon() const;

@@ -503,9 +503,7 @@ void CProp_Portal::TeleportTouchingEntity( CBaseEntity *pOther )
 		//NDebugOverlay::EntityBounds( pOther, 255, 0, 0, 128, 60.0f );
 		pOtherAsPlayer = (CPortal_Player *)pOther;
 		qPlayerEyeAngles = pOtherAsPlayer->pl.v_angle;
-#if USEMOVEMENTFORPORTALLING
 		Warning( "PORTALLING PLAYER SHOULD BE DONE IN GAMEMOVEMENT\n" );
-#endif
 	}
 	else
 	{

@@ -15,7 +15,9 @@
 #include "c_playerresource.h"
 #include "voice_common.h"
 #include "vgui_avatarimage.h"
-
+#ifdef PORTAL
+#include "portal_shareddefs.h"
+#endif
 ConVar *sv_alltalk = NULL;
 
 //=============================================================================
@@ -357,7 +359,8 @@ void CHudVoiceStatus::Paint()
 #ifndef PORTAL
 		Color c = g_PR->GetTeamColor( g_PR ? g_PR->GetTeam(playerId) : TEAM_UNASSIGNED );
 #else
-		Color c = g_PR->GetPortalgunColor( playerId );
+		Color c;
+		UTIL_Ping_Color( ConvertLinkageIDToColorSet( playerId ), c);
 #endif
 
 		c[3] = 128;

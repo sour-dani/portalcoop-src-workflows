@@ -612,7 +612,7 @@ void CTFAnnotationsPanelCallout::PerformLayout( void )
 	Color color = Color( 255, 255, 255, 255 );
 
 	if ( m_hOwner.Get() )
-		color = g_PR->GetPortalgunColor( m_hOwner.Get()->entindex() );
+		UTIL_Ping_Color( ConvertLinkageIDToColorSet( m_hOwner.Get()->entindex() ), color);
 
 	if (m_pArrow)
 		m_pArrow->SetDrawColor(color);

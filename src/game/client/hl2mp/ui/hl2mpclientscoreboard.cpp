@@ -663,7 +663,9 @@ void CHL2MPClientScoreBoardDialog::UpdatePlayerInfo()
 			// set the row color based on the players team
 			m_pPlayerList->SetItemFgColor( itemID, g_PR->GetTeamColor( g_PR->GetTeam( i ) ) );
 #else
-			m_pPlayerList->SetItemFgColor( itemID, g_PR->GetPortalgunColor( i ) );
+			Color fgColor;
+			UTIL_Ping_Color( ConvertLinkageIDToColorSet( i ), fgColor );
+			m_pPlayerList->SetItemFgColor( itemID, fgColor );
 #endif
 			playerData->deleteThis();
 		}

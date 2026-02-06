@@ -44,8 +44,6 @@ public:
 	void VidInit( void );
 
 private:
-	Color			GetColorForPortalgun( int iIndex );
-	Color			GetColorForPortal( int iIndex );
 
 	vgui::HFont		m_hFont;
 	EHANDLE			m_hLastEnt;
@@ -101,16 +99,6 @@ void CTargetID::VidInit()
 	m_flLastPortalChangeTime = 0;
 	m_hLastEnt = NULL;
 }
-
-Color CTargetID::GetColorForPortalgun( int iIndex )
-{
-	return g_PR->GetPortalgunColor( iIndex );
-} 
-
-Color CTargetID::GetColorForPortal( int iIndex )
-{
-	return g_PR->GetPortalColor( iIndex );
-} 
 
 //-----------------------------------------------------------------------------
 // Purpose: Draw function for the element
@@ -198,7 +186,7 @@ void CTargetID::Paint()
 
 				g_pVGuiLocalize->ConvertANSIToUnicode(pszPlayerOnly, wszPlayerName, sizeof(wszPlayerName));
 
-				UTIL_Portalgun_Color(pPortalGunTarget, c);
+				UTIL_Ping_Color( ConvertLinkageIDToColorSet( pPortalGunTarget->m_iPortalLinkageGroupID ), c);
 			}
 		}
 		else if ( pPortal )
@@ -210,7 +198,7 @@ void CTargetID::Paint()
 
 				g_pVGuiLocalize->ConvertANSIToUnicode( sLinkageID,  wszPortalLinkageID, sizeof(wszPortalLinkageID) );
 
-				c = GetColorForPortal(pPortal->entindex());
+				UTIL_Ping_Color( ConvertLinkageIDToColorSet( pPortal->m_iLinkageGroupID ), c );
 
 				bShowPortalLinkageID = true;
 			
@@ -228,11 +216,11 @@ void CTargetID::Paint()
 
 				pPortalgun = static_cast<C_WeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
 			}
-					
-			c = GetColorForPortalgun(pPlayer->entindex());
 						
 			if ( pPortalgun )
 			{
+				UTIL_Ping_Color( ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID ), c );
+
 				int iLinkageGroupID = pPortalgun->m_iPortalLinkageGroupID;
 				std::string s = std::to_string(iLinkageGroupID);
 				const char *sLinkageID = (s.c_str());
