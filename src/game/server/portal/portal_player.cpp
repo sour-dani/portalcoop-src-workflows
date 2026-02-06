@@ -1405,15 +1405,15 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			CBaseEntity *pParent = pAnimating->GetParent();
 			if ( pParent )
 			{
-#if 0
 				while ( pParent->GetParent() != NULL )
 				{
 					if ( pParent->GetParent() )
 						pParent = pParent->GetParent();
 				}
-#endif
-				Assert( pParent );
-				PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true );
+			}
+			if ( pParent && PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true ) )
+			{
+				// Nothing
 			}
 			else
 			{
@@ -1488,10 +1488,10 @@ void CPortal_Player::PlayCoopPingEffect( void )
 	FirePlayerProxyOutput( "OnCoopPing", variant_t(), this, this );
 }
 
-void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent )
+bool CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent )
 {
 	if ( bParent && !CanParentBePinged( pEntity ) )
-		return;
+		return false;
 
 	CBaseAnimating *pChild = NULL;
 	CBaseAnimating *pChildForLinker = NULL;
@@ -1546,6 +1546,8 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 	{
 		ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
 	}
+
+	return true;
 }
 
 void CPortal_Player::PreThink(void)
