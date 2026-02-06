@@ -186,7 +186,7 @@ void CTargetID::Paint()
 
 				g_pVGuiLocalize->ConvertANSIToUnicode(pszPlayerOnly, wszPlayerName, sizeof(wszPlayerName));
 
-				UTIL_Ping_Color( ConvertLinkageIDToColorSet( pPortalGunTarget->m_iPortalLinkageGroupID ), c);
+				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortalGunTarget->m_iPortalLinkageGroupID ), c );
 			}
 		}
 		else if ( pPortal )
@@ -198,7 +198,7 @@ void CTargetID::Paint()
 
 				g_pVGuiLocalize->ConvertANSIToUnicode( sLinkageID,  wszPortalLinkageID, sizeof(wszPortalLinkageID) );
 
-				UTIL_Ping_Color( ConvertLinkageIDToColorSet( pPortal->m_iLinkageGroupID ), c );
+				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortal->m_iLinkageGroupID ), c );
 
 				bShowPortalLinkageID = true;
 			
@@ -219,7 +219,7 @@ void CTargetID::Paint()
 						
 			if ( pPortalgun )
 			{
-				UTIL_Ping_Color( ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID ), c );
+				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID ), c );
 
 				int iLinkageGroupID = pPortalgun->m_iPortalLinkageGroupID;
 				std::string s = std::to_string(iLinkageGroupID);
@@ -245,6 +245,7 @@ void CTargetID::Paint()
 			}
 			else
 			{
+				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPlayer->entindex() ), c );
 				//if (!pPlayer->IsLocalPlayer())
 					printFormatString = "#Playerid_name";
 					//else

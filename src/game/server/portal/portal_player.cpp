@@ -1534,7 +1534,7 @@ void CPortal_Player::PreThink(void)
 	}
 
 	Color color;
-	UTIL_Ping_Color( ConvertLinkageIDToColorSet( entindex() ), color);
+	UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( entindex() ), color );
 
 	m_flGlowR = color.r() / 255;
 	m_flGlowG = color.g() / 255;

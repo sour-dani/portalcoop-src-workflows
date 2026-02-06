@@ -180,7 +180,7 @@ Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet )
 	return Color( 255, 255, 255, 255 );
 }
 
-void UTIL_Ping_Color( PortalColorSet_t iPortalColorSet, Color &color )
+void UTIL_Portal_ColorSet_Color( PortalColorSet_t iPortalColorSet, Color &color )
 {
 	switch ( iPortalColorSet )
 	{
@@ -217,7 +217,7 @@ void UTIL_Ping_Color( PortalColorSet_t iPortalColorSet, Vector &vColor )
 		return;
 	}
 	Color color;
-	UTIL_Ping_Color( iPortalColorSet, color );
+	UTIL_Portal_ColorSet_Color( iPortalColorSet, color );
 
 	vColor.x = color.r() / 255;
 	vColor.y = color.g() / 255;
