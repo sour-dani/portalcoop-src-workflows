@@ -707,7 +707,7 @@ ConVar sv_portal_coop_allow_ping("sv_portal_coop_allow_ping", "1", FCVAR_REPLICA
 //#define COOP_PING_PARTICLE_NAME "command_target_ping"
 #define COOP_PING_PARTICLE_NAME_ORANGE "command_target_ping_orange"
 #define COOP_PING_PARTICLE_NAME_RED "command_target_ping_red"
-#define COOP_PING_PARTICLE_NAME_PURPLE "command_target_ping_purple"
+#define COOP_PING_PARTICLE_NAME_LIGHTBLUE "command_target_ping_lightblue"
 #define COOP_PING_PARTICLE_NAME_GREEN "command_target_ping_green"
 
 extern float IntervalDistance(float x, float x0, float x1);
@@ -807,7 +807,7 @@ void CPortal_Player::Precache(void)
 	//PrecacheParticleSystem( COOP_PING_PARTICLE_NAME );
 	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_ORANGE );
 	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_RED );
-	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_PURPLE );
+	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_LIGHTBLUE );
 	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_GREEN );
 	//PrecacheParticleSystem( "command_target_ping_just_arrows" );
 	PrecacheScriptSound( COOP_PING_SOUNDSCRIPT_NAME );
@@ -1119,10 +1119,6 @@ void CPortal_Player::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 	pWeapon->m_flGlowR = m_flGlowR;
 	pWeapon->m_flGlowG = m_flGlowG;
 	pWeapon->m_flGlowB = m_flGlowB;
-	//if ( ConvertLinkageIDToColorSet( entindex() ) == PORTAL_COLOR_SET_GREEN_PINK )
-	{
-		Msg( "Weapon glow colors: %f %f %f\n", m_flGlowR.Get(), m_flGlowR.Get(), m_flGlowR.Get() );
-	}
 }
 
 void CPortal_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget /* = NULL */, const Vector *pVelocity /* = NULL */ )
@@ -1382,7 +1378,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		{
 			PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( entindex() );
 			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
-				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_PURPLE, tr.endpos, angNormal, this );
+				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_LIGHTBLUE, tr.endpos, angNormal, this );
 			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_RED, tr.endpos, angNormal, this );
 			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
