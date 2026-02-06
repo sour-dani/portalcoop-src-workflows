@@ -1129,9 +1129,9 @@ void CPortal_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvec
 {
 	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
 
-	pWeapon->m_flGlowR = 0.0;
-	pWeapon->m_flGlowG = 0.0;
-	pWeapon->m_flGlowB = 0.0;
+	pWeapon->m_flGlowR = 0.76f;
+	pWeapon->m_flGlowG = 0.76f;
+	pWeapon->m_flGlowB = 0.76f;
 }
 
 int CPortal_Player::GetPlayerConcept( void )
