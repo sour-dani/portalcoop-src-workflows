@@ -1329,8 +1329,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		// Get our ping color information
 		Vector vColor;
-		int iPortalColorSet;
-		UTIL_Ping_Color( this, vColor, iPortalColorSet );
+		UTIL_Ping_Color( this, vColor );
 		
 		// Get the base animating
 		CBaseAnimating *pAnimating = tr.m_pEnt ? tr.m_pEnt->GetBaseAnimating() : NULL;
@@ -1406,6 +1405,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 
 		if (bShouldCreateCrosshair)
 		{
+			PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( entindex() );
 			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_PURPLE, tr.endpos, angNormal, this );
 			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
@@ -1535,11 +1535,8 @@ void CPortal_Player::PreThink(void)
 		}
 	}
 
-
-	
-	int iPortalColorSet;
 	Color color;
-	UTIL_Ping_Color( this, color, iPortalColorSet );
+	UTIL_Ping_Color( this, color );
 
 	m_flGlowR = color.r() / 255;
 	m_flGlowG = color.g() / 255;

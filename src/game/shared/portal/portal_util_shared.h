@@ -41,8 +41,8 @@ extern bool g_bBulletPortalTrace;
 enum PortalColorSet_t;
 Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet );
 
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColorSet );
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSet );
+void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor );
+void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color );
 
 void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Vector &vColor );
 void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Color &color );

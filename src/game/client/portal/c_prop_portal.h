@@ -80,7 +80,7 @@ public:
 	void					CreateAttachedParticles( void );
 	void					DestroyAttachedParticles( void );
 	
-	void					DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE, bool bDelayedPos = true ); //display cool visual effect
+	void					DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet, bool bDelayedPos = true ); //display cool visual effect
 	void					Fizzle( void ); //display cool visual effect
 
 	void					PlacePortal( const Vector &vOrigin, const QAngle &qAngles, float fPlacementSuccess, bool bDelay = false );

@@ -1178,7 +1178,7 @@ void CPortalRenderable_FlatBasic::DrawPortal( void )
 	if( (view->GetDrawFlags() & DF_RENDER_REFLECTION) != 0 )
 		return;
 
-	int iPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE;
+	PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE;
 
 	C_Prop_Portal *pPropPortal = GetPropPortal();
 

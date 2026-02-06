@@ -267,7 +267,7 @@ void C_WeaponPortalgun::StartEffects( void )
 		}
 	}
 
-	int iPortalColorSet = ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID );
+	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID );
 
 	if ( m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID )
 	{

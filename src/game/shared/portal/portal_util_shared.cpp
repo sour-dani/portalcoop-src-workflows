@@ -180,19 +180,17 @@ Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet )
 	return Color( 255, 255, 255, 255 );
 }
 
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColorSet )
+void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor )
 {
-
-	iPortalColorSet = 0;
 	vColor = Vector(1.0, 0.6274509804, 0.1254901961); // 255 160 32
 
 	if (!pPlayer)
 	{
 		return;
-	}
-	
+	}	
 	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
 
+	PortalColorSet_t iPortalColorSet;
 	if (pPortalgun)
 	{
 		iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
@@ -210,18 +208,17 @@ void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColor
 		vColor = Vector(0.0, 1.0, 0); // 0 255 0
 }
 
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSet )
+void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color )
 {
-	iPortalColorSet = 0;
 	color = Color(255, 160, 32);
 	
 	if (!pPlayer)
 	{
 		return;
-	}
-	
+	}	
 	CWeaponPortalgun *pPortalgun = static_cast<CWeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
-	
+
+	PortalColorSet_t iPortalColorSet;
 	if (pPortalgun)
 	{
 		iPortalColorSet = ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID );
