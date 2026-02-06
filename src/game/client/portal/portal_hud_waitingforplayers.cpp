@@ -90,7 +90,7 @@ void CWaitingForPlayersText::Paint()
 			vgui::surface()->DrawSetTextFont( m_hFont );
 			vgui::surface()->DrawSetTextPos( xpos, ypos );
 		
-			Color c = Color( 255, 160, 32, 255 );
+			Color c = PORTAL_COLOR_ORANGE;
 
 			vgui::surface()->DrawSetTextColor( c );
 			vgui::surface()->DrawPrintText( wszObserverText, wcslen(wszObserverText) );
@@ -110,7 +110,7 @@ void CWaitingForPlayersText::Paint()
 		vgui::surface()->DrawSetTextFont( m_hFont );
 		vgui::surface()->DrawSetTextPos( xpos, ypos );
 		
-		Color c = Color( 255, 160, 32, 255 );
+		Color c = PORTAL_COLOR_ORANGE;
 
 		vgui::surface()->DrawSetTextColor( c );
 		vgui::surface()->DrawPrintText( wszWaitingText, wcslen(wszWaitingText) );

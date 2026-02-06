@@ -157,24 +157,24 @@ Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet )
 		case 1:
 			// PORTAL 1
 			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
-				return Color(128, 244, 255, 255); //light blue
+				return PORTAL_COLOR_LIGHTBLUE; //light blue
 			if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
-				return Color( 255, 255, 0, 255 ); //yellow
+				return PORTAL_COLOR_YELLOW; //yellow
 			if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
-				return Color( 0, 255, 0, 255 ); //green
+				return PORTAL_COLOR_GREEN; //green
 			else
-				return Color( 64, 160, 255, 255 ); // Default Blue
+				return PORTAL_COLOR_BLUE; // Default Blue
 
 		case 2:
 			// PORTAL 2
 			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
-				return Color(128, 0, 255, 255); //purple
+				return PORTAL_COLOR_PURPLE; //purple
 			if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
-				return Color( 255, 0, 0, 255 ); //red
+				return PORTAL_COLOR_RED; //red
 			if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
-				return Color( 255, 0, 255, 255 ); //pink
+				return PORTAL_COLOR_PINK; //pink
 			else
-				return Color( 255, 160, 32, 255 ); //default orange
+				return PORTAL_COLOR_ORANGE; //default orange
 	}
 
 	return Color( 255, 255, 255, 255 );
@@ -186,23 +186,23 @@ void UTIL_Portal_ColorSet_Color( PortalColorSet_t iPortalColorSet, Color &color 
 	{
 		case PORTAL_COLOR_SET_LIGHTBLUE_PURPLE:
 		{
-			color = Color(128, 0, 255, 255);
+			color = PORTAL_COLOR_PURPLE;
 			break;
 		}		
 		case PORTAL_COLOR_SET_YELLOW_RED:
 		{
-			color = Color(255, 0, 0, 255);
+			color = PORTAL_COLOR_RED;
 			break;
 		}		
 		case PORTAL_COLOR_SET_GREEN_PINK:
 		{
-			color = Color(0, 255, 0, 255);
+			color = PORTAL_COLOR_GREEN;
 			break;
 		}
 		case PORTAL_COLOR_SET_BLUE_ORANGE:
 		default:
 		{
-			color = Color(255, 160, 32, 255);
+			color = PORTAL_COLOR_ORANGE;
 			break;
 		}
 	}

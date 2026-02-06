@@ -198,7 +198,7 @@ void CTargetID::Paint()
 
 				g_pVGuiLocalize->ConvertANSIToUnicode( sLinkageID,  wszPortalLinkageID, sizeof(wszPortalLinkageID) );
 
-				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortal->m_iLinkageGroupID ), c );
+				c = UTIL_Portal_Color( pPortal->m_bIsPortal2 ? 2 : 1, ConvertLinkageIDToColorSet( pPortal->m_iLinkageGroupID ) );
 
 				bShowPortalLinkageID = true;
 			
