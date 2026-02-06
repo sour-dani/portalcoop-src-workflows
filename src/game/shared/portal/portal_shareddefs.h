@@ -102,8 +102,6 @@ enum PortalColorSet_t
 
 #define PORTAL_COLOR_DEFAULT Color(255,160,32,255)
 
-#define PORTAL_COLOR_RED Color(0,255,32)
-
 PortalColorSet_t ConvertLinkageIDToColorSet( int iPortalLinkageID );
 
 // It's better to have a list of Portal mods instead of having a 
