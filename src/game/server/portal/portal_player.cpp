@@ -1223,6 +1223,27 @@ void PingBaseAnimating( CBaseAnimating *pAnimating, Vector vColor )
 	pAnimating->RemoveGlowTime(PINGTIME);
 }
 
+bool TestForPingLinkers( CBaseAnimating *pAnimating, Vector &vColor, CBaseEntity *pOwner )
+{
+	bool bPingSingular = true;
+	//Find a ping linker to use
+	CBaseEntity *pEntityTemp = NULL;
+	while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
+	{
+		CPointPingLinker *pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
+		if ( !pPingLinker )
+			continue;
+
+		if ( pPingLinker->HasThisEntity( pAnimating ) )
+		{
+			pPingLinker->PingLinkedEntities( vColor, pOwner );
+			bPingSingular = false;
+		}
+	}
+
+	return bPingSingular;
+}
+
 bool BrushEntityMoves( CBaseEntity *pEntity )
 {
 	CBaseDoor *pDoor = dynamic_cast<CBaseDoor*>( pEntity );
@@ -1320,30 +1341,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			}
 			else
 			{
-				CPointPingLinker *pPingLinker = NULL;
-				//Find a ping linker to use
-				CBaseEntity *pEntityTemp = NULL;
-				while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
-				{
-					pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
-					if ( !pPingLinker )
-						continue;
-
-					if ( pPingLinker->HasThisEntity( pAnimating ) )
-					{
-						break;
-					}
-					else
-					{
-						pPingLinker = NULL;
-					}
-				}
-
-				if ( pPingLinker )
-				{
-					pPingLinker->PingLinkedEntities( vColor, this );
-				}
-				else
+				if ( TestForPingLinkers( pAnimating, vColor, this ) )
 				{
 					PingBaseAnimating( pAnimating, vColor );
 					ShowAnnotation( pAnimating->GetAbsOrigin(), pAnimating->entindex(), entindex() );
@@ -1399,7 +1397,6 @@ bool CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 
 	CBaseAnimating *pChild = NULL;
 	CBaseAnimating *pChildForLinker = NULL;
-	CPointPingLinker *pPingLinker = NULL;
 		
 	CUtlVector<CBaseEntity *> children;
 	GetAllChildren( pEntity, children );
@@ -1424,29 +1421,9 @@ bool CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 		}
 	}
 
-	//Find a ping linker to use
-	CBaseEntity *pEntityTemp = NULL;
-	while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
-	{
-		pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
-		if ( !pPingLinker )
-			continue;
-			
-		if ( pPingLinker->HasThisEntity( pChildForLinker ) )
-		{
-			break;
-		}
-		else
-		{
-			pPingLinker = NULL;
-		}
-	}
+	bool bPingSingular = TestForPingLinkers( pChildForLinker, vColor, this );
 
-	if (pPingLinker)
-	{
-		pPingLinker->PingLinkedEntities( vColor, this );
-	}
-	else if ( !bShouldCreateCrosshair ) // Ping Linkers fire their own events
+	if ( !bShouldCreateCrosshair && bPingSingular ) // Ping Linkers fire their own events
 	{
 		ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
 	}
