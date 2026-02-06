@@ -110,7 +110,6 @@ public:
 	virtual void StopLoopingSounds( void );
 	virtual void Spawn( void );
 	virtual void OnRestore( void );
-	virtual void Activate( void );
 	
 	virtual void OnPause( void ) OVERRIDE;
 	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
@@ -153,6 +152,8 @@ public:
 	virtual bool WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
 	virtual void FireBullets ( const FireBulletsInfo_t &info );
 	virtual bool Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0);
+	virtual void Weapon_Equip( CBaseCombatWeapon *pWeapon );
+	virtual	void Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget /* = NULL */, const Vector *pVelocity /* = NULL */ );
 	virtual bool BumpWeapon( CBaseCombatWeapon *pWeapon );
 	virtual void ShutdownUseEntity( void );
 	bool WantsToBeObserver();
@@ -327,8 +328,6 @@ public:
 	friend class CProp_Portal;
 	
 	virtual CBaseEntity* EntSelectSpawnPoint( void ) OVERRIDE;
-
-	bool					m_bInvisible;
 
 #ifdef PORTAL_MP
 public:

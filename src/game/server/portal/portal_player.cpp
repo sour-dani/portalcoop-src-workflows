@@ -188,48 +188,7 @@ void TE_PlayerAnimEvent(CBasePlayer* pPlayer, PlayerAnimEvent_t event, int nData
 	g_TEPlayerAnimEvent.Create(filter, 0);
 }
 
-ConVar  *sv_cheats = NULL;
-
-CON_COMMAND(invisible, "Makes the command user invisible")
-{
-	if (sv_cheats->GetBool() == false)
-		return;
-	
-	CPortal_Player *pPlayer = (CPortal_Player*)UTIL_GetCommandClient();
-	if ( !pPlayer )
-		return;
-
-	CBaseCombatWeapon *pWeapon = pPlayer->GetActiveWeapon();
-
-	if (pPlayer->m_bInvisible)
-		pPlayer->m_bInvisible = false;
-	else
-		pPlayer->m_bInvisible = true;
-
-	if (pPlayer->m_bInvisible)
-	{
-		pPlayer->SetRenderMode(kRenderTransAdd);
-		pPlayer->SetRenderColorA(0);
-		pPlayer->AddEffects(EF_NOSHADOW);
-		if (pWeapon)
-		{
-			pWeapon->SetRenderMode(kRenderTransAdd);
-			pWeapon->SetRenderColorA(0);
-			pWeapon->AddEffects(EF_NOSHADOW);
-		}
-	}
-	else
-	{
-		pPlayer->SetRenderMode(kRenderNormal);
-		pPlayer->SetRenderColorA(255);
-		pPlayer->RemoveEffects(EF_NOSHADOW);
-		if (pWeapon)
-		{
-			pWeapon->SetRenderMode(kRenderNormal);
-			pWeapon->SetRenderColorA(255);
-		}
-	}
-}
+extern ConVar *sv_cheats;
 
 //=================================================================================
 //
@@ -794,8 +753,6 @@ CPortal_Player::CPortal_Player()
 
 	m_bForceBumpWeapon = false;
 
-	m_bInvisible = false;
-
 	AddToPauseList( this );
 
 	m_bWasPaused = false;
@@ -956,6 +913,13 @@ const char *s_pHudHintContext = "HudHintContext";
 //-----------------------------------------------------------------------------
 void CPortal_Player::Spawn(void)
 {
+	Vector vColor;
+	UTIL_Portal_ColorSet_GlowColor( ConvertLinkageIDToColorSet( entindex() ), vColor );
+
+	m_flGlowR.Set( vColor.x );
+	m_flGlowG.Set( vColor.y );
+	m_flGlowB.Set( vColor.z );
+
 	SetPlayerModel();
 
 	BaseClass::Spawn();
@@ -998,17 +962,8 @@ void CPortal_Player::Spawn(void)
 #ifdef PORTAL_MP
 	PickTeam();
 #endif
-
-	m_bInvisible = false;
 }
 
-void CPortal_Player::Activate(void)
-{
-	BaseClass::Activate();
-	
-	const char *pszName = engine->GetClientConVarValue( entindex(), "cl_player_funnel_into_portals" );
-	m_bPortalFunnel = atoi( pszName ) != 0;
-}
 #ifdef PORTAL
 extern int g_iPauseTick;
 void CPortal_Player::OnPause( void )
@@ -1155,6 +1110,28 @@ bool CPortal_Player::Weapon_Switch(CBaseCombatWeapon* pWeapon, int viewmodelinde
 	}
 
 	return bRet;
+}
+
+void CPortal_Player::Weapon_Equip( CBaseCombatWeapon *pWeapon )
+{
+	BaseClass::Weapon_Equip( pWeapon );
+	
+	pWeapon->m_flGlowR = m_flGlowR;
+	pWeapon->m_flGlowG = m_flGlowG;
+	pWeapon->m_flGlowB = m_flGlowB;
+	//if ( ConvertLinkageIDToColorSet( entindex() ) == PORTAL_COLOR_SET_GREEN_PINK )
+	{
+		Msg( "Weapon glow colors: %f %f %f\n", m_flGlowR.Get(), m_flGlowR.Get(), m_flGlowR.Get() );
+	}
+}
+
+void CPortal_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget /* = NULL */, const Vector *pVelocity /* = NULL */ )
+{
+	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
+
+	pWeapon->m_flGlowR = 0.0;
+	pWeapon->m_flGlowG = 0.0;
+	pWeapon->m_flGlowB = 0.0;
 }
 
 int CPortal_Player::GetPlayerConcept( void )
@@ -1327,7 +1304,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		// Get our ping color information
 		Vector vColor;
-		UTIL_Ping_Color( ConvertLinkageIDToColorSet( entindex() ), vColor );
+		UTIL_Portal_ColorSet_GlowColor( ConvertLinkageIDToColorSet( entindex() ), vColor );
 		
 		// Get the base animating
 		CBaseAnimating *pAnimating = tr.m_pEnt ? tr.m_pEnt->GetBaseAnimating() : NULL;
@@ -1531,25 +1508,6 @@ void CPortal_Player::PreThink(void)
 				m_flLastPingTime = gpGlobals->curtime;
 			}
 		}
-	}
-
-	Color color;
-	UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( entindex() ), color );
-
-	m_flGlowR = color.r() / 255;
-	m_flGlowG = color.g() / 255;
-	m_flGlowB = color.b() / 255;
-	
-	for (int i = 0; i < WeaponCount(); ++i)
-	{					
-		CBaseCombatWeapon *pWeapon = GetWeapon(i);
-
-		if (!pWeapon)
-			continue;
-
-		pWeapon->m_flGlowR = m_flGlowR;
-		pWeapon->m_flGlowG = m_flGlowG;
-		pWeapon->m_flGlowB = m_flGlowB;
 	}
 
 	//Reset bullet force accumulator, only lasts one frame

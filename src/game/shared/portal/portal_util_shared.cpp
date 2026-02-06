@@ -186,7 +186,7 @@ void UTIL_Portal_ColorSet_Color( PortalColorSet_t iPortalColorSet, Color &color 
 	{
 		case PORTAL_COLOR_SET_LIGHTBLUE_PURPLE:
 		{
-			color = PORTAL_COLOR_PURPLE;
+			color = PORTAL_COLOR_LIGHTBLUE;
 			break;
 		}		
 		case PORTAL_COLOR_SET_YELLOW_RED:
@@ -208,20 +208,14 @@ void UTIL_Portal_ColorSet_Color( PortalColorSet_t iPortalColorSet, Color &color 
 	}
 }
 
-void UTIL_Ping_Color( PortalColorSet_t iPortalColorSet, Vector &vColor )
+void UTIL_Portal_ColorSet_GlowColor( PortalColorSet_t iPortalColorSet, Vector &vColor )
 {
-	// The purple needs to look purpler
-	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
-	{
-		vColor = Vector(0.6, 0, 1.0); // 153 0 255
-		return;
-	}
 	Color color;
 	UTIL_Portal_ColorSet_Color( iPortalColorSet, color );
 
-	vColor.x = color.r() / 255;
-	vColor.y = color.g() / 255;
-	vColor.z = color.b() / 255;
+	vColor.x = (float)color.r() / 255.0;
+	vColor.y = (float)color.g() / 255.0;
+	vColor.z = (float)color.b() / 255.0;
 }
 
 void UTIL_Portal_Trace_Filter( CTraceFilterSimpleClassnameList *traceFilterPortalShot )

@@ -77,8 +77,6 @@ public:
 		void Materialize( void );
 	#endif
 		
-	virtual void	ItemPreFrame( void );
-
 	// All predicted weapons need to implement and return true
 	virtual bool	IsPredicted() const;
 
