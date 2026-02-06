@@ -316,7 +316,6 @@ const char *g_ppszPortalMPModels[] =
 	"models/player/Chell.mdl",
 	"models/player/Mel.mdl",
 	"models/player/Abby.mdl",
-	"models/player/male_portal_player.mdl"
 };
 
 // specific to the local player
