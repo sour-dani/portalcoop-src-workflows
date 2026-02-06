@@ -36,6 +36,7 @@ KeyValues *LoadRadioData()
 	if ( !radios->LoadFromFile( g_pFullFileSystem, RADIO_DATA_FILE, "MOD" ) )
 	{
 		AssertMsg( false, "Failed to load radio data" );
+		radios->deleteThis();
 		return NULL;
 	}
 
