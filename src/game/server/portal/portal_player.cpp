@@ -1238,6 +1238,7 @@ bool TestForPingLinkers( CBaseAnimating *pAnimating, Vector &vColor, CBaseEntity
 		{
 			pPingLinker->PingLinkedEntities( vColor, pOwner );
 			bPingSingular = false;
+			break;
 		}
 	}
 
