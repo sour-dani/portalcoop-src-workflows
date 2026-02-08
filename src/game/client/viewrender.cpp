@@ -2817,30 +2817,6 @@ void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCus
 	QAngle vecOldAngles = CurrentViewAngles();
 
 	int iCurrentViewID = g_CurrentViewID;
-	int iRecursionLevel = g_pPortalRender->GetViewRecursionLevel();
-	Assert( iRecursionLevel > 0 );
-
-	//get references to reflection textures
-	CTextureReference pPrimaryWaterReflectionTexture;
-	pPrimaryWaterReflectionTexture.Init( GetWaterReflectionTexture() );
-	CTextureReference pReplacementWaterReflectionTexture;
-	if ( pReplacementWaterReflectionTexture != NULL )
-		pReplacementWaterReflectionTexture.Init( portalrendertargets->GetWaterReflectionTextureForStencilDepth( iRecursionLevel ) );
-
-	//get references to refraction textures
-	CTextureReference pPrimaryWaterRefractionTexture;
-	pPrimaryWaterRefractionTexture.Init( GetWaterRefractionTexture() );
-	CTextureReference pReplacementWaterRefractionTexture;
-	if ( pReplacementWaterReflectionTexture != NULL )
-		pReplacementWaterRefractionTexture.Init( portalrendertargets->GetWaterRefractionTextureForStencilDepth( iRecursionLevel ) );
-
-
-	//swap texture contents for the primary render targets with those we set aside for this recursion level
-	if( pReplacementWaterReflectionTexture != NULL )
-		pPrimaryWaterReflectionTexture->SwapContents( pReplacementWaterReflectionTexture );
-
-	if( pReplacementWaterRefractionTexture != NULL )
-		pPrimaryWaterRefractionTexture->SwapContents( pReplacementWaterRefractionTexture );
 
 	bool bDrew3dSkybox = false;
 	SkyboxVisibility_t nSkyboxVisible = SKYBOX_NOT_VISIBLE;
@@ -2932,14 +2908,6 @@ void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCus
 	// Return to the previous view
 	SetupCurrentView( vecOldOrigin, vecOldAngles, (view_id_t)iCurrentViewID );
 	g_CurrentViewID = iCurrentViewID; //just in case the cast to view_id_t screwed up the id #
-
-
-	//swap back the water render targets
-	if( pReplacementWaterReflectionTexture != NULL )
-		pPrimaryWaterReflectionTexture->SwapContents( pReplacementWaterReflectionTexture );
-
-	if( pReplacementWaterRefractionTexture != NULL )
-		pPrimaryWaterRefractionTexture->SwapContents( pReplacementWaterRefractionTexture );
 }
 
 void CViewRender::Draw3dSkyboxworld_Portal( const CViewSetup &view, int &nClearFlags, bool &bDrew3dSkybox, SkyboxVisibility_t &nSkyboxVisible, ITexture *pRenderTarget ) 
