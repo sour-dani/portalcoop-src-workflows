@@ -25,8 +25,6 @@
 
 static ConVar hud_centerid( "hud_centerid", "1" );
 static ConVar hud_showtargetid( "hud_showtargetid", "1" );
-ConVar hud_showportalid("hud_showportalid", "0", FCVAR_ARCHIVE );
-
 ConVar hud_showportals( "hud_showportals", "0", FCVAR_ARCHIVE );
 
 //-----------------------------------------------------------------------------
@@ -119,15 +117,6 @@ void CTargetID::Paint()
 	// Get our target's ent index
 	CBaseEntity *pEnt = pLocalPlayer->GetTargetIDEnt();
 
-	//Nonsensical debugging
-#if 0
-	CBasePlayer *pPlayerIndex = UTIL_PlayerByIndex(iEntIndex);
-
-	if (pPlayerIndex == pPlayer)
-	{
-		Msg("Paint is me??\n");
-	}
-#endif
 	// Didn't find one?
 	if ( !pEnt )
 	{
@@ -152,23 +141,20 @@ void CTargetID::Paint()
 	// Is this an entindex sent by the server?
 	if ( pEnt )
 	{
-		C_Prop_Portal *pPortal = ( pEnt && FClassnameIs( pEnt, "prop_portal" ) )? static_cast<C_Prop_Portal*>( pEnt ) : NULL;
+		C_Prop_Portal *pPortal = ( pEnt && FClassnameIs( pEnt, "prop_portal" ) ) ? static_cast<C_Prop_Portal*>( pEnt ) : NULL;
 
-		C_BasePlayer *pPlayer = ToBasePlayer( pEnt );
-		C_WeaponPortalgun *pPortalGunTarget = dynamic_cast<C_WeaponPortalgun*>( pEnt );
+		C_BasePlayer *pTargetPlayer = ToBasePlayer( pEnt );
+		C_WeaponPortalgun *pPortalGunTarget = ( pEnt && FClassnameIs( pEnt, "weapon_portalgun" ) ) ? static_cast<C_WeaponPortalgun*>( pEnt ) : NULL;
 		
-	//	C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
-
 		const char *printFormatString = NULL;
 		wchar_t wszPlayerName[ MAX_PLAYER_NAME_LENGTH + 32 ];
 		wchar_t wszLinkageID[ 4 ];
-		wchar_t wszPortalLinkageID[4];
+		wchar_t wszPortalOwner[MAX_PLAYER_NAME_LENGTH];
 		bool bShowPlayerName = false;
 		//Portals
-		bool bShowLinkageID = false;
 		bool bShowOtherPortalgun = false;
 		bool bShowMyPortalgun = false;
-		bool bShowPortalLinkageID = false;
+		bool bShowPortalOwner = false;
 
 		// Some entities we always want to check, cause the text may change
 		// even while we're looking at it
@@ -196,32 +182,44 @@ void CTargetID::Paint()
 				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortalGunTarget->m_iPortalLinkageGroupID ), c );
 			}
 		}
-		else if ( pPortal )
+		else if ( pPortal && hud_showportals.GetBool() )
 		{
-			if (hud_showportals.GetBool())
+			C_Portal_Player *pPortalOwner = NULL;
+			for ( int i = 1; i <= gpGlobals->maxClients; ++i )
 			{
-				std::string s = std::to_string( pPortal->m_iLinkageGroupID );
-				const char *sLinkageID = (s.c_str());
+				C_Portal_Player *pPlayer = (C_Portal_Player*)UTIL_PlayerByIndex( i );
+				if ( !pPlayer )
+					continue;
 
-				g_pVGuiLocalize->ConvertANSIToUnicode( sLinkageID,  wszPortalLinkageID, sizeof(wszPortalLinkageID) );
+				C_WeaponPortalgun *pPortalgun = (C_WeaponPortalgun *)pPlayer->Weapon_OwnsThisType( "weapon_portalgun" );
+				if ( !pPortalgun || pPortalgun->m_iPortalLinkageGroupID != pPortal->m_iLinkageGroupID )
+					continue;
+
+				pPortalOwner = pPlayer;
+				break;
+			}
+
+			if ( pPortalOwner )
+			{
+				g_pVGuiLocalize->ConvertANSIToUnicode( pPortalOwner->GetPlayerName(), wszPortalOwner, sizeof(wszPortalOwner));
 
 				c = UTIL_Portal_Color( pPortal->m_bIsPortal2 ? 2 : 1, ConvertLinkageIDToColorSet( pPortal->m_iLinkageGroupID ) );
 
-				bShowPortalLinkageID = true;
+				bShowPortalOwner = true;
 			
-				printFormatString = "#Portalid_linkageid";
+				printFormatString = "#Portalid_owner";
 			}
 		}
-		else if ( pPlayer && !pPlayer->IsLocalPlayer() )
+		else if ( pTargetPlayer && !pTargetPlayer->IsLocalPlayer() )
 		{
 			C_WeaponPortalgun *pPortalgun = NULL;
 			bShowPlayerName = true;
 
-			if ( pPlayer && !pPlayer->IsLocalPlayer() )
+			if ( pTargetPlayer && !pTargetPlayer->IsLocalPlayer() )
 			{
-				g_pVGuiLocalize->ConvertANSIToUnicode( pPlayer->GetPlayerName(),  wszPlayerName, sizeof(wszPlayerName) );
+				g_pVGuiLocalize->ConvertANSIToUnicode( pTargetPlayer->GetPlayerName(),  wszPlayerName, sizeof(wszPlayerName) );
 
-				pPortalgun = static_cast<C_WeaponPortalgun*>(pPlayer->Weapon_OwnsThisType("weapon_portalgun"));
+				pPortalgun = static_cast<C_WeaponPortalgun*>(pTargetPlayer->Weapon_OwnsThisType("weapon_portalgun"));
 			}
 						
 			if ( pPortalgun )
@@ -233,27 +231,12 @@ void CTargetID::Paint()
 				const char *sLinkageID = (s.c_str());
 
 				g_pVGuiLocalize->ConvertANSIToUnicode( sLinkageID,  wszLinkageID, sizeof(wszLinkageID) );
-								
-				if ( hud_showportalid.GetBool() )
-				{
-					bShowLinkageID = true;
-					//if (!pPlayer->IsLocalPlayer())
-						printFormatString = "#Playerid_linkageid";
-					//else
-					//	printFormatString = "#Playerid_linkageid_you";
-				}
-				else
-				{
-					//if (!pPlayer->IsLocalPlayer())
-						printFormatString = "#Playerid_name";
-					//else
-					//	printFormatString = "#Playerid_name_you";
-				}
+				printFormatString = "#Playerid_name";
 			}
 			else
 			{
-				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPlayer->entindex() ), c );
-				//if (!pPlayer->IsLocalPlayer())
+				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pTargetPlayer->entindex() ), c );
+				//if (!pTargetPlayer->IsLocalPlayer())
 					printFormatString = "#Playerid_name";
 					//else
 					//	printFormatString = "#Playerid_name_you";
@@ -263,17 +246,13 @@ void CTargetID::Paint()
 		if ( printFormatString )
 		{
 			//For showing players
-			if (bShowPlayerName && bShowLinkageID)
-			{
-				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 2, wszPlayerName, wszLinkageID );
-			}
-			else if ( bShowPlayerName )
+			if ( bShowPlayerName )
 			{
 				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPlayerName );
 			}			
-			else if ( bShowPortalLinkageID )
+			else if ( bShowPortalOwner )
 			{
-				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPortalLinkageID );
+				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPortalOwner );
 			}
 			else if ( bShowOtherPortalgun )
 			{
