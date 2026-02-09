@@ -407,13 +407,11 @@ void CBaseAnimating::SetGlowEffectColor(float r, float g, float b)
 
 void CBaseAnimating::SetGlowEnabled(inputdata_t& inputdata)
 {
-	m_bGlowEnabled.Set(true);
-	DispatchUpdateTransmitState();
+	AddGlowEffect();
 }
 void CBaseAnimating::SetGlowDisabled(inputdata_t& inputdata)
 {
-	m_bGlowEnabled.Set(false);
-	DispatchUpdateTransmitState();
+	RemoveGlowEffect();
 }
 void CBaseAnimating::SetGlowColorRed(inputdata_t& inputdata)
 {
