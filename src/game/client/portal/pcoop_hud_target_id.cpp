@@ -166,7 +166,8 @@ void CTargetID::Paint()
 		bool bShowPlayerName = false;
 		//Portals
 		bool bShowLinkageID = false;
-		bool bShowPortalgun = false;
+		bool bShowOtherPortalgun = false;
+		bool bShowMyPortalgun = false;
 		bool bShowPortalLinkageID = false;
 
 		// Some entities we always want to check, cause the text may change
@@ -174,17 +175,23 @@ void CTargetID::Paint()
 				
 		if (pPortalGunTarget)
 		{
-			const char *pszPlayerOnly = NULL;
-
 			C_Portal_Player *pPlayer = static_cast<C_Portal_Player*>( UTIL_PlayerByIndex( pPortalGunTarget->m_iValidPlayer ) );
 
-			if (pPlayer && !pPlayer->IsLocalPlayer())
+			if (pPlayer )
 			{
-				bShowPortalgun = true;
-				printFormatString = "#portalgunid_validpickup";
-				pszPlayerOnly = pPlayer->GetPlayerName();
-
-				g_pVGuiLocalize->ConvertANSIToUnicode(pszPlayerOnly, wszPlayerName, sizeof(wszPlayerName));
+				if ( !pPlayer->IsLocalPlayer() )
+				{
+					printFormatString = "#portalgunid_validpickup";
+					const char *pszPlayerOnly = pPlayer->GetPlayerName();
+					g_pVGuiLocalize->ConvertANSIToUnicode(pszPlayerOnly, wszPlayerName, sizeof(wszPlayerName));
+					bShowOtherPortalgun = true;
+				}
+				else
+				{
+					printFormatString = "#portalgunid_yours";
+					g_pVGuiLocalize->ConvertANSIToUnicode("", wszPlayerName, sizeof(wszPlayerName));
+					bShowMyPortalgun = true;
+				}
 
 				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortalGunTarget->m_iPortalLinkageGroupID ), c );
 			}
@@ -268,9 +275,13 @@ void CTargetID::Paint()
 			{
 				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPortalLinkageID );
 			}
-			else if ( bShowPortalgun )
+			else if ( bShowOtherPortalgun )
 			{
 				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPlayerName );
+			}
+			else if ( bShowMyPortalgun )
+			{
+				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 0 );
 			}
 			else
 			{
