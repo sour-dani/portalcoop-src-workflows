@@ -153,8 +153,9 @@ void CTargetID::Paint()
 		bool bShowPlayerName = false;
 		//Portals
 		bool bShowOtherPortalgun = false;
-		bool bShowMyPortalgun = false;
-		bool bShowPortalOwner = false;
+		//bool bShowMyPortalgun = false;
+		bool bShowOtherPortal = false;
+		//bool bShowMyPortal = false;
 
 		// Some entities we always want to check, cause the text may change
 		// even while we're looking at it
@@ -176,7 +177,7 @@ void CTargetID::Paint()
 				{
 					printFormatString = "#portalgunid_yours";
 					g_pVGuiLocalize->ConvertANSIToUnicode("", wszPlayerName, sizeof(wszPlayerName));
-					bShowMyPortalgun = true;
+					//bShowMyPortalgun = true;
 				}
 
 				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortalGunTarget->m_iPortalLinkageGroupID ), c );
@@ -201,13 +202,20 @@ void CTargetID::Paint()
 
 			if ( pPortalOwner )
 			{
-				g_pVGuiLocalize->ConvertANSIToUnicode( pPortalOwner->GetPlayerName(), wszPortalOwner, sizeof(wszPortalOwner));
+				if ( !pPortalOwner->IsLocalPlayer() )
+				{
+					g_pVGuiLocalize->ConvertANSIToUnicode( pPortalOwner->GetPlayerName(), wszPortalOwner, sizeof(wszPortalOwner));
+					bShowOtherPortal = true;
+					printFormatString = "#Portalid_owner";
+				}
+				else
+				{
+					g_pVGuiLocalize->ConvertANSIToUnicode( "", wszPortalOwner, sizeof(wszPortalOwner));
+					//bShowMyPortal = true;
+					printFormatString = "#portalid_yours";
+				}
 
 				c = UTIL_Portal_Color( pPortal->m_bIsPortal2 ? 2 : 1, ConvertLinkageIDToColorSet( pPortal->m_iLinkageGroupID ) );
-
-				bShowPortalOwner = true;
-			
-				printFormatString = "#Portalid_owner";
 			}
 		}
 		else if ( pTargetPlayer && !pTargetPlayer->IsLocalPlayer() )
@@ -250,7 +258,7 @@ void CTargetID::Paint()
 			{
 				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPlayerName );
 			}			
-			else if ( bShowPortalOwner )
+			else if ( bShowOtherPortal )
 			{
 				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPortalOwner );
 			}
@@ -258,11 +266,7 @@ void CTargetID::Paint()
 			{
 				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 1, wszPlayerName );
 			}
-			else if ( bShowMyPortalgun )
-			{
-				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 0 );
-			}
-			else
+			else // if ( bShowMyPortalgun || bShowMyPortal )
 			{
 				g_pVGuiLocalize->ConstructString( sIDString, sizeof(sIDString), g_pVGuiLocalize->Find(printFormatString), 0 );
 			}
