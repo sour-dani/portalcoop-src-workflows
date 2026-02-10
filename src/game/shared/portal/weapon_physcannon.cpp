@@ -1213,6 +1213,11 @@ void CPlayerPickupController::InitController( CBasePlayer *pPlayer, CBaseEntity 
 #ifdef DISABLE_PREDICTED_GRABBING
 	return;
 #endif
+	
+	CGrabController *pGrabController = GetGrabControllerForEntity( pObject );
+	if (pGrabController)
+		pGrabController->DetachEntity(false);
+
 #ifdef GAME_DLL
 	m_hAttachedObject = pObject;
 	// Holster player's weapon
