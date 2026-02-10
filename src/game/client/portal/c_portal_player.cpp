@@ -616,11 +616,6 @@ CStudioHdr *C_Portal_Player::OnNewModel( void )
 {
 	CStudioHdr *hdr = BaseClass::OnNewModel();
 	
-	if (m_PlayerAnimState)
-		m_PlayerAnimState->Release();
-
-	m_PlayerAnimState = CreatePortalPlayerAnimState(this);
-
 	Initialize( );
 
 	return hdr;
