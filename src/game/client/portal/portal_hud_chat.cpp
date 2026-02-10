@@ -103,7 +103,7 @@ Color CHudChat::GetClientColor( int clientIndex )
 	else if( g_PR )
 	{
 		Color color;
-		UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( clientIndex ), color );
+		UTIL_Portal_ColorSet_Color( GetColorSetForPlayer( clientIndex ), color );
 		return color;
 	}
 

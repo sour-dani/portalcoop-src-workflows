@@ -243,7 +243,7 @@ void CTargetID::Paint()
 			}
 			else
 			{
-				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pTargetPlayer->entindex() ), c );
+				UTIL_Portal_ColorSet_Color( GetColorSetForPlayer( pTargetPlayer->entindex() ), c );
 				//if (!pTargetPlayer->IsLocalPlayer())
 					printFormatString = "#Playerid_name";
 					//else

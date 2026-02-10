@@ -612,7 +612,7 @@ void CTFAnnotationsPanelCallout::PerformLayout( void )
 	Color color = Color( 255, 255, 255, 255 );
 
 	if ( m_hOwner.Get() )
-		UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( m_hOwner.Get()->entindex() ), color );
+		UTIL_Portal_ColorSet_Color( GetColorSetForPlayer( m_hOwner.Get()->entindex() ), color );
 
 	if (m_pArrow)
 		m_pArrow->SetDrawColor(color);

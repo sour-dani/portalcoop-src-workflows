@@ -178,8 +178,6 @@ public:
 	virtual void SetupVisibility( CBaseEntity *pViewEntity, unsigned char *pvs, int pvssize );
 	virtual void UpdatePortalViewAreaBits( unsigned char *pvs, int pvssize );
 	
-	bool	ValidatePlayerModel( const char *pModel );
-
 	QAngle GetAnimEyeAngles( void ) { return m_angEyeAngles.Get(); }
 
 	Vector GetAttackSpread( CBaseCombatWeapon *pWeapon, CBaseEntity *pTarget = NULL );

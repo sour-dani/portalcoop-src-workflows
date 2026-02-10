@@ -8,6 +8,9 @@
 #include "filesystem.h"
 #ifdef CLIENT_DLL
 #include "replay/IEngineReplay.h"
+#include "c_playerresource.h"
+#else
+#include "player_resource.h"
 #endif
 
 ConVar pcoop_require_all_players( "pcoop_require_all_players", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Effectively pauses the game when there are not enough players in the server" );
@@ -28,6 +31,21 @@ PortalColorSet_t ConvertLinkageIDToColorSet( int iPortalLinkageID )
 {
 	// The % PORTAL_COLOR_SET_LAST is necessary for >3 maxplayer servers
 	return (PortalColorSet_t)(iPortalLinkageID % (PORTAL_COLOR_SET_LAST+1));
+}
+
+PortalColorSet_t GetColorSetForPlayer( int iPlayer )
+{
+	CBasePlayer *pPlayer = UTIL_PlayerByIndex( iPlayer );
+	if ( pPlayer )
+	{
+		if ( pPlayer->IsObserver() )
+		{
+			return PORTAL_COLOR_SET_OBSERVER;
+		}
+	}
+
+	// Linkage IDs are based on the player index
+	return ConvertLinkageIDToColorSet( iPlayer );
 }
 
 KeyValues *LoadRadioData()

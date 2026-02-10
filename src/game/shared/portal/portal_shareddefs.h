@@ -94,7 +94,10 @@ enum PortalColorSet_t
 	PORTAL_COLOR_SET_BLUE_ORANGE,
 	PORTAL_COLOR_SET_LIGHTBLUE_PURPLE,
 	PORTAL_COLOR_SET_YELLOW_RED,
-	PORTAL_COLOR_SET_GREEN_PINK,
+	PORTAL_COLOR_SET_GREEN_PINK, // The last "real" color set
+
+	// Not a real color set
+	PORTAL_COLOR_SET_OBSERVER,
 };
 
 #define PORTAL_COLOR_SET_DEFAULT PORTAL_COLOR_SET_BLUE_ORANGE
@@ -113,6 +116,7 @@ enum PortalColorSet_t
 #define PORTAL_COLOR_PINK Color(255,0,255,255)
 
 PortalColorSet_t ConvertLinkageIDToColorSet( int iPortalLinkageID );
+PortalColorSet_t GetColorSetForPlayer( int iPlayer );
 
 // It's better to have a list of Portal mods instead of having a 
 // single cvar for Rexaura in case we want to add more mods (Portal: Prelude, Portal: Pro, Blue Portals, etc...)

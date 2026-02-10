@@ -262,13 +262,6 @@ END_SEND_TABLE()
 
 extern void SendProxy_Origin( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
 
-enum
-{
-	MODEL_CHELL,
-	MODEL_MEL,
-	MODEL_ABBY,
-};
-
 const char *g_ppszPortalMPModels[] =
 {
 	"models/player/Chell.mdl",
@@ -914,7 +907,7 @@ const char *s_pHudHintContext = "HudHintContext";
 void CPortal_Player::Spawn(void)
 {
 	Vector vColor;
-	UTIL_Portal_ColorSet_GlowColor( ConvertLinkageIDToColorSet( entindex() ), vColor );
+	UTIL_Portal_ColorSet_GlowColor( GetColorSetForPlayer( entindex() ), vColor );
 
 	m_flGlowR.Set( vColor.x );
 	m_flGlowG.Set( vColor.y );
@@ -1033,22 +1026,6 @@ void CPortal_Player::OnRestore(void)
 //	return false;
 //}
 
-bool CPortal_Player::ValidatePlayerModel(const char* pModel)
-{
-	int iModels = ARRAYSIZE(g_ppszPortalMPModels);
-	int i;
-
-	for (i = 0; i < iModels; ++i)
-	{
-		if (!Q_stricmp(g_ppszPortalMPModels[i], pModel))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 const char* DefaultPlayerModel()
 {
 	// Some mods don't use Chell, so this function is being setup just in case another mod is added in the future that uses a different model
@@ -1058,7 +1035,7 @@ const char* DefaultPlayerModel()
 void CPortal_Player::SetPlayerModel(void)
 {
 	const char *szModelName;
-	PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( entindex() );
+	PortalColorSet_t iPortalColorSet = GetColorSetForPlayer( entindex() );
 	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 	{
 		szModelName = "models/player/mel.mdl";
@@ -1318,7 +1295,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		// Get our ping color information
 		Vector vColor;
-		UTIL_Portal_ColorSet_GlowColor( ConvertLinkageIDToColorSet( entindex() ), vColor );
+		UTIL_Portal_ColorSet_GlowColor( GetColorSetForPlayer( entindex() ), vColor );
 		
 		// Get the base animating
 		CBaseAnimating *pAnimating = tr.m_pEnt ? tr.m_pEnt->GetBaseAnimating() : NULL;
@@ -1371,7 +1348,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 
 		if (bShouldCreateCrosshair)
 		{
-			PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( entindex() );
+			PortalColorSet_t iPortalColorSet = GetColorSetForPlayer( entindex() );
 			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_LIGHTBLUE, tr.endpos, angNormal, this );
 			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)

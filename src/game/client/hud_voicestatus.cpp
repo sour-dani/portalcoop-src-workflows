@@ -360,7 +360,7 @@ void CHudVoiceStatus::Paint()
 		Color c = g_PR->GetTeamColor( g_PR ? g_PR->GetTeam(playerId) : TEAM_UNASSIGNED );
 #else
 		Color c;
-		UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( playerId ), c );
+		UTIL_Portal_ColorSet_Color( GetColorSetForPlayer( playerId ), c );
 #endif
 
 		c[3] = 128;
