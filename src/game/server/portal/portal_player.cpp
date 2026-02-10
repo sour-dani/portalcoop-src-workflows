@@ -710,7 +710,7 @@ extern float IntervalDistance(float x, float x0, float x1);
 
 CPortal_Player::CPortal_Player()
 {
-//	m_PlayerAnimState = CreatePortalPlayerAnimState(this);
+	m_PlayerAnimState = CreatePortalPlayerAnimState(this);
 	CreateExpresser();
 
 	UseClientSideAnimation();
@@ -1049,15 +1049,7 @@ void CPortal_Player::SetPlayerModel(void)
 		szModelName = "models/player/chell.mdl";
 	}
 
-	if (m_PlayerAnimState)
-		m_PlayerAnimState->Release();
-
 	SetModel(szModelName);
-	ResetAnimation();
-	m_PlayerAnimState = CreatePortalPlayerAnimState(this);
-	ResetAnimation();
-
-	UpdateExpression();
 }
 
 void CPortal_Player::ResetAnimation(void)
