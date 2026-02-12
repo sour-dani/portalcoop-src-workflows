@@ -109,14 +109,13 @@ bool CBaseTrigger::PassesTriggerFilters(CBaseEntity *pOther)
 				if ( pPlayer->IsInAVehicle() )
 					return false;
 			}
-
+#ifndef CLIENT_DLL
 			if ( HasSpawnFlags( SF_TRIGGER_DISALLOW_BOTS ) )
 			{
-#ifndef CLIENT_DLL
 				if ( pPlayer->IsFakeClient() )
-#endif
 					return false;
 			}
+#endif
 		}
 
 		CBaseFilter *pFilter = m_hFilter.Get();
