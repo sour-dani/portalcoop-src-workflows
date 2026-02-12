@@ -19,10 +19,12 @@ IMPLEMENT_NETWORKCLASS_ALIASED( BaseTrigger, DT_BaseTrigger )
 BEGIN_NETWORK_TABLE( CBaseTrigger, DT_BaseTrigger )
 #ifdef GAME_DLL
 	SendPropBool( SENDINFO( m_bDisabled ) ),
-	SendPropInt( SENDINFO(m_spawnflags), -1, SPROP_NOSCALE )
+	SendPropInt( SENDINFO(m_spawnflags), -1, SPROP_NOSCALE ),
+	SendPropEHandle( SENDINFO( m_hFilter ) )
 #else
 	RecvPropBool( RECVINFO( m_bDisabled ) ),
-	RecvPropInt( RECVINFO(m_spawnflags) )
+	RecvPropInt( RECVINFO(m_spawnflags) ),
+	RecvPropEHandle( RECVINFO( m_hFilter ) )
 #endif
 END_NETWORK_TABLE()
 

@@ -8083,6 +8083,17 @@ bool CLogicalEntity::KeyValue( const char *szKeyName, const char *szValue )
 	return BaseClass::KeyValue( szKeyName, szValue );
 }
 
+bool CNetworkableLogicalEntity::KeyValue( const char *szKeyName, const char *szValue ) 
+{
+	if ( FStrEq( szKeyName, "mins" ) || FStrEq( szKeyName, "maxs" ) )
+	{
+		Warning("Warning! Can't specify mins/maxs for point entities! (%s)\n", GetClassname() );
+		return true;
+	}
+
+	return BaseClass::KeyValue( szKeyName, szValue );
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Sets the entity invisible, and makes it remove itself on the next frame

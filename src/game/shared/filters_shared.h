@@ -27,7 +27,6 @@
 
 #ifdef CLIENT_DLL
 #include "c_baseentity.h"
-#define CLogicalEntity C_BaseEntity
 #define CBaseFilter C_BaseFilter
 #define CFilterMultiple C_FilterMultiple
 #define CFilterName C_FilterName
@@ -44,10 +43,17 @@
 // ###################################################################
 //	> BaseFilter
 // ###################################################################
-class CBaseFilter : public CLogicalEntity
+#ifdef CLIENT_DLL
+class CBaseFilter : public CBaseEntity
+#else
+class CBaseFilter : public CNetworkableLogicalEntity
+#endif
 {
-	DECLARE_CLASS( CBaseFilter, CLogicalEntity );
-
+#ifdef CLIENT_DLL
+	DECLARE_CLASS( CBaseFilter, CBaseEntity );
+#else
+	DECLARE_CLASS( CBaseFilter, CNetworkableLogicalEntity );
+#endif
 public:
 	DECLARE_NETWORKCLASS();
 #ifndef CLIENT_DLL
