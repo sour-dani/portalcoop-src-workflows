@@ -1863,7 +1863,7 @@ int CBaseHeadcrab::SelectSchedule( void )
 	}
 
 	// If we're hidden or waiting until seen, don't do much at all
-	if ( m_bHidden || HasSpawnFlags(SF_NPC_WAIT_TILL_SEEN) )
+	if ( m_bHidden || WaitsUntilSeen() )
 	{
 		if( HasCondition( COND_HEADCRAB_UNHIDE ) )
 		{
@@ -2704,7 +2704,7 @@ void CFastHeadcrab::PrescheduleThink( void )
 //-----------------------------------------------------------------------------
 int	CFastHeadcrab::SelectSchedule( void )
 {
-	if ( HasSpawnFlags(SF_NPC_WAIT_TILL_SEEN) )
+	if ( WaitsUntilSeen() )
 	{
 		return SCHED_IDLE_STAND;
 	}
@@ -3223,7 +3223,7 @@ int CBlackHeadcrab::SelectSchedule( void )
 	// don't override inherited behavior when hanging from ceiling
 	if ( !IsHangingFromCeiling() )
 	{
-		if ( HasSpawnFlags(SF_NPC_WAIT_TILL_SEEN) )
+		if ( WaitsUntilSeen() )
 		{
 			return SCHED_IDLE_STAND;
 		}

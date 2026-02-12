@@ -93,6 +93,8 @@ public:
 	void			Spawn( void );
 	virtual void	Activate( void );
 
+	virtual bool	WaitsUntilSeen( void ) OVERRIDE { return false; }
+
 	virtual ITraceFilter*	GetBeamTraceFilter( void );
 	void	UpdateOnRemove( void );
 	bool	CreateVPhysics( void );

@@ -122,7 +122,7 @@ void CAI_Senses::Listen( void )
 
 	int iSoundMask = GetOuter()->GetSoundInterests();
 	
-	if ( iSoundMask != SOUND_NONE && !(GetOuter()->HasSpawnFlags(SF_NPC_WAIT_TILL_SEEN)) )
+	if ( iSoundMask != SOUND_NONE && !(GetOuter()->WaitsUntilSeen()) )
 	{
 		int	iSound = CSoundEnt::ActiveList();
 		
@@ -155,7 +155,7 @@ bool CAI_Senses::ShouldSeeEntity( CBaseEntity *pSightEnt )
 		return false;
 
 	// don't notice anyone waiting to be seen by the player
-	if ( pSightEnt->m_spawnflags & SF_NPC_WAIT_TILL_SEEN )
+	if ( GetOuter()->WaitsUntilSeen() )
 		return false;
 
 	if ( !pSightEnt->CanBeSeenBy( GetOuter() ) )
@@ -211,7 +211,7 @@ void CAI_Senses::NoteSeenEntity( CBaseEntity *pSightEnt )
 
 bool CAI_Senses::WaitingUntilSeen( CBaseEntity *pSightEnt )
 {
-	if ( GetOuter()->m_spawnflags & SF_NPC_WAIT_TILL_SEEN )
+	if ( GetOuter()->WaitsUntilSeen() )
 	{
 		if ( pSightEnt->IsPlayer() )
 		{

@@ -877,6 +877,9 @@ public:
 	void				SetState( NPC_STATE State );
 	virtual bool		ShouldGoToIdleState( void ) 							{ return ( false ); }
 	virtual	void 		OnStateChange( NPC_STATE OldState, NPC_STATE NewState ) {/*Base class doesn't care*/};
+
+	// PCOOP Hack for rocket turrets
+	virtual bool		WaitsUntilSeen( void )									{ return m_spawnflags & SF_NPC_WAIT_TILL_SEEN; }
 	
 	NPC_STATE			GetState( void )										{ return m_NPCState; }
 
