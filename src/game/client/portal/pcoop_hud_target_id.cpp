@@ -220,35 +220,12 @@ void CTargetID::Paint()
 		}
 		else if ( pTargetPlayer && !pTargetPlayer->IsLocalPlayer() )
 		{
-			C_WeaponPortalgun *pPortalgun = NULL;
 			bShowPlayerName = true;
-
-			if ( pTargetPlayer && !pTargetPlayer->IsLocalPlayer() )
-			{
-				g_pVGuiLocalize->ConvertANSIToUnicode( pTargetPlayer->GetPlayerName(),  wszPlayerName, sizeof(wszPlayerName) );
-
-				pPortalgun = static_cast<C_WeaponPortalgun*>(pTargetPlayer->Weapon_OwnsThisType("weapon_portalgun"));
-			}
-						
-			if ( pPortalgun )
-			{
-				UTIL_Portal_ColorSet_Color( ConvertLinkageIDToColorSet( pPortalgun->m_iPortalLinkageGroupID ), c );
-
-				int iLinkageGroupID = pPortalgun->m_iPortalLinkageGroupID;
-				std::string s = std::to_string(iLinkageGroupID);
-				const char *sLinkageID = (s.c_str());
-
-				g_pVGuiLocalize->ConvertANSIToUnicode( sLinkageID,  wszLinkageID, sizeof(wszLinkageID) );
+			UTIL_Portal_ColorSet_Color( GetColorSetForPlayer( pTargetPlayer->entindex() ), c );
+			//if (!pTargetPlayer->IsLocalPlayer())
 				printFormatString = "#Playerid_name";
-			}
-			else
-			{
-				UTIL_Portal_ColorSet_Color( GetColorSetForPlayer( pTargetPlayer->entindex() ), c );
-				//if (!pTargetPlayer->IsLocalPlayer())
-					printFormatString = "#Playerid_name";
-					//else
-					//	printFormatString = "#Playerid_name_you";
-			}
+				//else
+				//	printFormatString = "#Playerid_name_you";
 		}
 
 		if ( printFormatString )
