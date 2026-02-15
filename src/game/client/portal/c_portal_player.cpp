@@ -628,174 +628,164 @@ CStudioHdr *C_Portal_Player::OnNewModel( void )
 
 void C_Portal_Player::UpdateLookAt( void )
 {
-	//Only I can see me looking at myself
-	//if (IsLocalPlayer())
+	// head yaw
+	if (m_headYawPoseParam < 0 || m_headPitchPoseParam < 0)
+		return;
+
+	// This is buggy with dt 0, just skip since there is no work to do.
+	if ( gpGlobals->frametime <= 0.0f )
+		return;
+
+	// Player looks at themselves through portals. Pick the portal we're turned towards.
+	const int iPortalCount = CProp_Portal_Shared::AllPortals.Count();
+	CProp_Portal **pPortals = CProp_Portal_Shared::AllPortals.Base();
+	float *fPortalDot = (float *)stackalloc( sizeof( float ) * iPortalCount );
+	float flLowDot = 1.0f;
+	int iUsePortal = -1;
+
+	bool bIsLocalPlayer = IsLocalPlayer();
+
+	// defaults if no portals are around
+	Vector vPlayerForward;
+	//GetVectors( &vPlayerForward, NULL, NULL );
+	if ( bIsLocalPlayer )
+		AngleVectors( GetLocalAngles(), &vPlayerForward );
+	else
+		AngleVectors( m_angEyeAngles, &vPlayerForward );
+
+
+	Vector vCurLookTarget = EyePosition();
+
+	if ( !IsAlive() )
 	{
-		//Don't try to always look at me if I don't have a Portal otherwise it looks weird to other people/players
-		//Nope, this completely makes heads snappy
-		//if (!m_hPortalEnvironment)
-		//	return;
-
-		// head yaw
-		if (m_headYawPoseParam < 0 || m_headPitchPoseParam < 0)
-			return;
-
-		// This is buggy with dt 0, just skip since there is no work to do.
-		if ( gpGlobals->frametime <= 0.0f )
-			return;
-
-		// Player looks at themselves through portals. Pick the portal we're turned towards.
-		const int iPortalCount = CProp_Portal_Shared::AllPortals.Count();
-		CProp_Portal **pPortals = CProp_Portal_Shared::AllPortals.Base();
-		float *fPortalDot = (float *)stackalloc( sizeof( float ) * iPortalCount );
-		float flLowDot = 1.0f;
-		int iUsePortal = -1;
-
-		// defaults if no portals are around
-		Vector vPlayerForward;
-		//GetVectors( &vPlayerForward, NULL, NULL );
-		if (IsLocalPlayer())
-			AngleVectors( GetLocalAngles(), &vPlayerForward );
-		else
-			AngleVectors( m_angEyeAngles, &vPlayerForward );
-
-
-		Vector vCurLookTarget = EyePosition();
-
-		if ( !IsAlive() )
-		{
-			m_viewtarget = EyePosition() + vPlayerForward*10.0f;
-			return;
-		}
-
-		bool bFoundViewTarget = false;
-
-		if ( IsLocalPlayer() )
-		{
-			if ( UTIL_IntersectEntityExtentsWithPortal( this ) != NULL )
-			{
-				// player is in a portal
-				vCurLookTarget = EyePosition() + vPlayerForward*10.0f;
-			}
-			else if ( pPortals && pPortals[0] )
-			{
-				// Test through any active portals: This may be a shorter distance to the target
-				for( int i = 0; i != iPortalCount; ++i )
-				{
-					CProp_Portal *pTempPortal = pPortals[i];
-
-					if( pTempPortal && pTempPortal->IsActive() && pTempPortal->m_hLinkedPortal.Get() )
-					{
-						Vector vEyeForward, vPortalForward;
-						EyeVectors( &vEyeForward );
-						pTempPortal->GetVectors( &vPortalForward, NULL, NULL );
-						fPortalDot[i] = vEyeForward.Dot( vPortalForward );
-						if ( fPortalDot[i] < flLowDot )
-						{
-							flLowDot = fPortalDot[i];
-							iUsePortal = i;
-						}
-					}
-				}
-
-				if ( iUsePortal >= 0 )
-				{
-					C_Prop_Portal* pPortal = pPortals[iUsePortal];
-					if ( pPortal )
-					{
-						vCurLookTarget = pPortal->MatrixThisToLinked()*vCurLookTarget;
-					}
-				}
-			}
-		}
-		else // if ( IsLocalPlayer() )
-		{
-			for( int iClient = 1; iClient <= gpGlobals->maxClients; ++iClient )
-			{
-				CBasePlayer *pEnt = UTIL_PlayerByIndex( iClient );
-				if( !pEnt )
-					continue;
-
-				if ( pEnt->entindex() == entindex() )
-					continue;
-
-				Vector vTargetOrigin = pEnt->GetAbsOrigin();
-				Vector vMyOrigin = GetAbsOrigin();
-
-				Vector vDir = vTargetOrigin - vMyOrigin;
-		
-				if ( vDir.Length() > 128 ) 
-				{
-					continue;
-				}
-
-				VectorNormalize( vDir );
-
-				if ( DotProduct( vPlayerForward, vDir ) < 0.0f )
-				{
-					 continue;
-				}
-				vCurLookTarget = pEnt->EyePosition();
-
-				bFoundViewTarget = true;
-				
-				break;
-			}
-
-			if (bFoundViewTarget == false)
-			{
-				vCurLookTarget = EyePosition() + vPlayerForward*10.0f;
-			}
-		}
-
-
-		// Figure out where we want to look in world space.
-
-		Vector to;
-
-		QAngle desiredAngles;
-		if (bFoundViewTarget)
-			to = vCurLookTarget - GetAbsOrigin() + Vector(0,0,0);
-		else
-			to = vCurLookTarget - EyePosition();
-
-
-		VectorAngles( to, desiredAngles );
-		
-		if (bFoundViewTarget)
-			desiredAngles[PITCH] = 0; // Just set it to 0 because it looks weird without this hack.
-
-		//if (IsLocalPlayer())
-		//Msg("desiredAngles: %f %f %f\n", desiredAngles.x, desiredAngles.y, desiredAngles.z);
-
-		// Figure out where our body is facing in world space.
-		QAngle bodyAngles( 0, 0, 0 );
-		if ( IsLocalPlayer() )
-			bodyAngles[YAW] = GetLocalAngles()[YAW];
-		else
-			bodyAngles[YAW] = m_angEyeAngles[YAW];
-
-		// Set the head's yaw.
-		float desiredYaw = AngleNormalize( desiredAngles[YAW] - bodyAngles[YAW] );
-		desiredYaw = clamp( desiredYaw, m_headYawMin, m_headYawMax );
-
-		float desiredPitch = AngleNormalize( desiredAngles[PITCH] );
-		desiredPitch = clamp( desiredPitch, m_headPitchMin, m_headPitchMax );
-		
-		float dt = (gpGlobals->frametime);
-		float flSpeed	= 1.0f - ExponentialDecay( 0.7f, 0.033f, dt );
-		
-		m_flCurrentHeadYaw = m_flCurrentHeadYaw + flSpeed * ( desiredYaw - m_flCurrentHeadYaw );
-		m_flCurrentHeadYaw	= AngleNormalize( m_flCurrentHeadYaw );
-		SetPoseParameter( m_headYawPoseParam, m_flCurrentHeadYaw );	
-
-		m_flCurrentHeadPitch = m_flCurrentHeadPitch + flSpeed * ( desiredPitch - m_flCurrentHeadPitch );
-		m_flCurrentHeadPitch = AngleNormalize( m_flCurrentHeadPitch );
-		SetPoseParameter( m_headPitchPoseParam, m_flCurrentHeadPitch );
-
-		// This orients the eyes
-		m_viewtarget = m_vLookAtTarget = vCurLookTarget;
+		m_viewtarget = EyePosition() + vPlayerForward*10.0f;
+		return;
 	}
+
+	bool bFoundViewTarget = false;
+
+	if ( bIsLocalPlayer )
+	{
+		if ( UTIL_IntersectEntityExtentsWithPortal( this ) != NULL )
+		{
+			// player is in a portal
+			vCurLookTarget = EyePosition() + vPlayerForward*10.0f;
+		}
+		else if ( pPortals && pPortals[0] )
+		{
+			// Test through any active portals: This may be a shorter distance to the target
+			for( int i = 0; i != iPortalCount; ++i )
+			{
+				CProp_Portal *pTempPortal = pPortals[i];
+
+				if( pTempPortal && pTempPortal->IsActive() && pTempPortal->m_hLinkedPortal.Get() )
+				{
+					Vector vEyeForward, vPortalForward;
+					EyeVectors( &vEyeForward );
+					pTempPortal->GetVectors( &vPortalForward, NULL, NULL );
+					fPortalDot[i] = vEyeForward.Dot( vPortalForward );
+					if ( fPortalDot[i] < flLowDot )
+					{
+						flLowDot = fPortalDot[i];
+						iUsePortal = i;
+					}
+				}
+			}
+
+			if ( iUsePortal >= 0 )
+			{
+				C_Prop_Portal* pPortal = pPortals[iUsePortal];
+				if ( pPortal )
+				{
+					vCurLookTarget = pPortal->MatrixThisToLinked()*vCurLookTarget;
+				}
+			}
+		}
+	}
+	else
+	{
+		for( int iClient = 1; iClient <= gpGlobals->maxClients; ++iClient )
+		{
+			CBasePlayer *pEnt = UTIL_PlayerByIndex( iClient );
+			if( !pEnt )
+				continue;
+
+			if ( pEnt->entindex() == entindex() )
+				continue;
+
+			Vector vTargetOrigin = pEnt->GetAbsOrigin();
+			Vector vMyOrigin = GetAbsOrigin();
+
+			Vector vDir = vTargetOrigin - vMyOrigin;
+		
+			if ( vDir.Length() > 128 ) 
+			{
+				continue;
+			}
+
+			VectorNormalize( vDir );
+
+			if ( DotProduct( vPlayerForward, vDir ) < 0.0f )
+			{
+					continue;
+			}
+			vCurLookTarget = pEnt->EyePosition();
+
+			bFoundViewTarget = true;
+				
+			break;
+		}
+
+		if (bFoundViewTarget == false)
+		{
+			vCurLookTarget = EyePosition() + vPlayerForward*10.0f;
+		}
+	}
+
+
+	// Figure out where we want to look in world space.
+
+	Vector to;
+
+	QAngle desiredAngles;
+	if (bFoundViewTarget)
+		to = vCurLookTarget - GetAbsOrigin() + Vector(0,0,0);
+	else
+		to = vCurLookTarget - EyePosition();
+
+
+	VectorAngles( to, desiredAngles );
+		
+	if (bFoundViewTarget)
+		desiredAngles[PITCH] = 0; // Just set it to 0 because it looks weird without this hack.
+
+	// Figure out where our body is facing in world space.
+	QAngle bodyAngles( 0, 0, 0 );
+	if ( bIsLocalPlayer )
+		bodyAngles[YAW] = GetLocalAngles()[YAW];
+	else
+		bodyAngles[YAW] = m_angEyeAngles[YAW];
+
+	// Set the head's yaw.
+	float desiredYaw = AngleNormalize( desiredAngles[YAW] - bodyAngles[YAW] );
+	desiredYaw = clamp( desiredYaw, m_headYawMin, m_headYawMax );
+
+	float desiredPitch = AngleNormalize( desiredAngles[PITCH] );
+	desiredPitch = clamp( desiredPitch, m_headPitchMin, m_headPitchMax );
+		
+	float dt = (gpGlobals->frametime);
+	float flSpeed	= 1.0f - ExponentialDecay( 0.7f, 0.033f, dt );
+		
+	m_flCurrentHeadYaw = m_flCurrentHeadYaw + flSpeed * ( desiredYaw - m_flCurrentHeadYaw );
+	m_flCurrentHeadYaw	= AngleNormalize( m_flCurrentHeadYaw );
+	SetPoseParameter( m_headYawPoseParam, m_flCurrentHeadYaw );	
+
+	m_flCurrentHeadPitch = m_flCurrentHeadPitch + flSpeed * ( desiredPitch - m_flCurrentHeadPitch );
+	m_flCurrentHeadPitch = AngleNormalize( m_flCurrentHeadPitch );
+	SetPoseParameter( m_headPitchPoseParam, m_flCurrentHeadPitch );
+
+	// This orients the eyes
+	m_viewtarget = m_vLookAtTarget = vCurLookTarget;
 }
 
 #define ACTIVATE_GLOW_SOUNDSCRIPT "Player.Activate_Player_Glow"
@@ -1079,18 +1069,7 @@ const QAngle& C_Portal_Player::GetRenderAngles()
 
 void C_Portal_Player::UpdateClientSideAnimation( void )
 {
-
 	UpdateLookAt();
-
-	/*
-	// Update the animation data. It does the local check here so this works when using
-	// a third-person camera (and we don't have valid player angles).
-	if ( this == C_Portal_Player::GetLocalPortalPlayer() )
-		m_PlayerAnimState->Update( EyeAngles()[YAW], m_angEyeAngles[PITCH] );
-	else
-		m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
-	*/
-	
 
 	// Update the animation data. It does the local check here so this works when using
 	// a third-person camera (and we don't have valid player angles).
@@ -1757,17 +1736,6 @@ void C_Portal_Player::AddEntity( void )
 	vTempAngles[PITCH] = m_angEyeAngles[PITCH];
 
 	SetLocalAngles( vTempAngles );
-
-	//UpdateLookAt();
-	
-#if 0
-	// Update the animation data. It does the local check here so this works when using
-	// a third-person camera (and we don't have valid player angles).
-	if ( IsLocalPlayer() )
-		m_PlayerAnimState->Update( EyeAngles()[YAW], m_angEyeAngles[PITCH] );
-	else
-		m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
-#endif
 
 	// Zero out model pitch, blending takes care of all of it.
 	SetLocalAnglesDim( X_INDEX, 0 );
