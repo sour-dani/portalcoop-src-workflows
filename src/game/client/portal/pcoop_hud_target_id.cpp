@@ -221,6 +221,7 @@ void CTargetID::Paint()
 		else if ( pTargetPlayer && !pTargetPlayer->IsLocalPlayer() )
 		{
 			bShowPlayerName = true;
+			g_pVGuiLocalize->ConvertANSIToUnicode( pTargetPlayer->GetPlayerName(),  wszPlayerName, sizeof(wszPlayerName) );
 			UTIL_Portal_ColorSet_Color( GetColorSetForPlayer( pTargetPlayer->entindex() ), c );
 			//if (!pTargetPlayer->IsLocalPlayer())
 				printFormatString = "#Playerid_name";
