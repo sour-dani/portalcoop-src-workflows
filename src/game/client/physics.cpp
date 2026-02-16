@@ -394,13 +394,13 @@ void CPhysicsSystem::PhysicsSimulate()
 }
 
 #ifdef PORTAL
-ConVar cl_fullsyncclones("cl_fullsyncclones", "1", FCVAR_CHEAT );
+//ConVar cl_fullsyncclones("cl_fullsyncclones", "1", FCVAR_CHEAT );
 void PortalPhysicsSimulate() //small wrapper for PhysFrame that simulates all environments at once
 {
 	CPortalSimulator::PrePhysFrame();
 
-	if( cl_fullsyncclones.GetBool() )
-		CPhysicsShadowClone::FullSyncAllClones();
+	//if( cl_fullsyncclones.GetBool() )
+	//	CPhysicsShadowClone::FullSyncAllClones();
 
 	g_Collisions.BufferTouchEvents( true );
 

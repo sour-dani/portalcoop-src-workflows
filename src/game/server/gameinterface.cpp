@@ -125,6 +125,7 @@ extern ConVar tf_mm_servermode;
 #include "portal_player.h"
 #include "portal_shareddefs.h"
 #include "portal_gamerules.h"
+#include "player_resource.h"
 #endif
 
 #if defined( REPLAY_ENABLED )
@@ -1008,7 +1009,7 @@ void UpdatePortalGameType( const char *pMapName )
 #ifdef PORTAL
 bool g_bFirstFrameSimulated = false;
 #endif
-float g_flServerCurTime = 0.0f;
+float g_flGameCurTime = 0.0f;
 
 // Called any time a new level is started (after GameInit() also on level transitions within a game)
 bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, char const *pOldLevel, char const *pLandmarkName, bool loadGame, bool background )
@@ -1023,7 +1024,7 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	g_bFirstFrameSimulated = false;
 #endif
 
-	g_flServerCurTime = gpGlobals->curtime;
+	g_flGameCurTime = gpGlobals->curtime;
 
 #ifdef USES_ECON_ITEMS
 	GameItemSchema_t *pItemSchema = ItemSystem()->GetItemSchema();
@@ -1293,7 +1294,7 @@ void CServerGameDLL::GameFrame( bool simulating )
 		g_bFirstFrameSimulated = true; // The first frame was simulated
 	}
 #endif
-	g_flServerCurTime = gpGlobals->curtime;
+	g_flGameCurTime = gpGlobals->curtime;
 	float oldframetime = gpGlobals->frametime;
 
 #ifdef _DEBUG
@@ -1349,6 +1350,11 @@ void CServerGameDLL::GameFrame( bool simulating )
 
 			// The portal gamerules freezes players, so it should be ok to fully simulate players since they can't move or do anything.
 			pPlayer->PhysicsSimulate();
+		}
+
+		if ( g_pPlayerResource )
+		{
+			g_pPlayerResource->PhysicsRunThink();
 		}
 
 		//gpGlobals->frametime = flOldFrameTime;
@@ -2537,6 +2543,7 @@ void CServerGameEnts::SetDebugEdictBase(edict_t *base)
 //-----------------------------------------------------------------------------
 void CServerGameEnts::MarkEntitiesAsTouching( edict_t *e1, edict_t *e2 )
 {
+	Assert( "CServerGameEnts::MarkEntitiesAsTouching shouldn't be used anymore!" );
 	CBaseEntity *entity = GetContainingEntity( e1 );
 	CBaseEntity *entityTouched = GetContainingEntity( e2 );
 	if ( entity && entityTouched )

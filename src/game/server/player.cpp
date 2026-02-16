@@ -6076,7 +6076,7 @@ void CBasePlayer::ImpulseCommands( )
 		break;
 
 	case	201:// paint decal
-		
+#ifndef PORTAL // No sprays in Portal: Cooperative!
 		if ( gpGlobals->curtime < m_flNextDecalTime )
 		{
 			// too early!
@@ -6116,7 +6116,7 @@ void CBasePlayer::ImpulseCommands( )
 			//=============================================================================
 #endif			
 		}
-
+#endif
 		break;
 
 	case	202:// player jungle sound 

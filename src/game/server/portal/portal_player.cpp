@@ -188,48 +188,7 @@ void TE_PlayerAnimEvent(CBasePlayer* pPlayer, PlayerAnimEvent_t event, int nData
 	g_TEPlayerAnimEvent.Create(filter, 0);
 }
 
-ConVar  *sv_cheats = NULL;
-
-CON_COMMAND(invisible, "Makes the command user invisible")
-{
-	if (sv_cheats->GetBool() == false)
-		return;
-	
-	CPortal_Player *pPlayer = (CPortal_Player*)UTIL_GetCommandClient();
-	if ( !pPlayer )
-		return;
-
-	CBaseCombatWeapon *pWeapon = pPlayer->GetActiveWeapon();
-
-	if (pPlayer->m_bInvisible)
-		pPlayer->m_bInvisible = false;
-	else
-		pPlayer->m_bInvisible = true;
-
-	if (pPlayer->m_bInvisible)
-	{
-		pPlayer->SetRenderMode(kRenderTransAdd);
-		pPlayer->SetRenderColorA(0);
-		pPlayer->AddEffects(EF_NOSHADOW);
-		if (pWeapon)
-		{
-			pWeapon->SetRenderMode(kRenderTransAdd);
-			pWeapon->SetRenderColorA(0);
-			pWeapon->AddEffects(EF_NOSHADOW);
-		}
-	}
-	else
-	{
-		pPlayer->SetRenderMode(kRenderNormal);
-		pPlayer->SetRenderColorA(255);
-		pPlayer->RemoveEffects(EF_NOSHADOW);
-		if (pWeapon)
-		{
-			pWeapon->SetRenderMode(kRenderNormal);
-			pWeapon->SetRenderColorA(255);
-		}
-	}
-}
+extern ConVar *sv_cheats;
 
 //=================================================================================
 //
@@ -303,28 +262,12 @@ END_SEND_TABLE()
 
 extern void SendProxy_Origin( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
 
-enum
-{
-	MODEL_CHELL,
-	MODEL_MEL,
-	MODEL_ABBY,
-	MODEL_MALE_PORTAL_PLAYER
-};
-
 const char *g_ppszPortalMPModels[] =
 {
 	"models/player/Chell.mdl",
 	"models/player/Mel.mdl",
 	"models/player/Abby.mdl",
-	"models/player/male_portal_player.mdl"
 };
-
-void BotSetupModelConVarValue( CPortal_Player *pBot )
-{	
-	int nHeads = ARRAYSIZE(g_ppszPortalMPModels);
-	const char *pszModel = g_ppszPortalMPModels[ RandomInt(0, nHeads ) ];
-	engine->SetFakeClientConVarValue( pBot->edict(), "cl_playermodel", pszModel );
-}
 
 // specific to the local player
 BEGIN_SEND_TABLE_NOBASE( CPortal_Player, DT_PortalLocalPlayerExclusive )
@@ -387,7 +330,6 @@ SendPropDataTable( "portalnonlocaldata", 0, &REFERENCE_SEND_TABLE( DT_PortalNonL
 	SendPropBool(SENDINFO(m_bSuppressingCrosshair)),
 	SendPropBool(SENDINFO(m_bIsListenServerHost)),
 	SendPropBool(SENDINFO(m_bHeldObjectOnOppositeSideOfPortal)),
-	SendPropInt(SENDINFO(m_iCustomPortalColorSet)),
 	
 	SendPropVector( SENDINFO( m_vecAnimStateBaseVelocity ), 0, SPROP_COORD_MP | SPROP_CHANGES_OFTEN ),
 
@@ -428,7 +370,6 @@ DEFINE_SOUNDPATCH(m_pWooshSound),
 	DEFINE_FIELD(m_angEyeAngles, FIELD_VECTOR),
 	DEFINE_FIELD(m_hSurroundingLiquidPortal, FIELD_EHANDLE),
 	DEFINE_FIELD(m_flLastPingTime, FIELD_FLOAT),
-	DEFINE_FIELD(m_iCustomPortalColorSet, FIELD_INTEGER),
 
 DEFINE_INPUTFUNC( FIELD_VOID, "DoPingHudHint", InputDoPingHudHint ),
 
@@ -759,7 +700,7 @@ ConVar sv_portal_coop_allow_ping("sv_portal_coop_allow_ping", "1", FCVAR_REPLICA
 //#define COOP_PING_PARTICLE_NAME "command_target_ping"
 #define COOP_PING_PARTICLE_NAME_ORANGE "command_target_ping_orange"
 #define COOP_PING_PARTICLE_NAME_RED "command_target_ping_red"
-#define COOP_PING_PARTICLE_NAME_PURPLE "command_target_ping_purple"
+#define COOP_PING_PARTICLE_NAME_LIGHTBLUE "command_target_ping_lightblue"
 #define COOP_PING_PARTICLE_NAME_GREEN "command_target_ping_green"
 
 extern float IntervalDistance(float x, float x0, float x1);
@@ -769,7 +710,7 @@ extern float IntervalDistance(float x, float x0, float x1);
 
 CPortal_Player::CPortal_Player()
 {
-//	m_PlayerAnimState = CreatePortalPlayerAnimState(this);
+	m_PlayerAnimState = CreatePortalPlayerAnimState(this);
 	CreateExpresser();
 
 	UseClientSideAnimation();
@@ -804,8 +745,6 @@ CPortal_Player::CPortal_Player()
 	m_flLookForUseEntityTime = 0;
 
 	m_bForceBumpWeapon = false;
-
-	m_bInvisible = false;
 
 	AddToPauseList( this );
 
@@ -861,7 +800,7 @@ void CPortal_Player::Precache(void)
 	//PrecacheParticleSystem( COOP_PING_PARTICLE_NAME );
 	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_ORANGE );
 	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_RED );
-	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_PURPLE );
+	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_LIGHTBLUE );
 	PrecacheParticleSystem( COOP_PING_PARTICLE_NAME_GREEN );
 	//PrecacheParticleSystem( "command_target_ping_just_arrows" );
 	PrecacheScriptSound( COOP_PING_SOUNDSCRIPT_NAME );
@@ -967,6 +906,13 @@ const char *s_pHudHintContext = "HudHintContext";
 //-----------------------------------------------------------------------------
 void CPortal_Player::Spawn(void)
 {
+	Vector vColor;
+	UTIL_Portal_ColorSet_GlowColor( GetColorSetForPlayer( entindex() ), vColor );
+
+	m_flGlowR.Set( vColor.x );
+	m_flGlowG.Set( vColor.y );
+	m_flGlowB.Set( vColor.z );
+
 	SetPlayerModel();
 
 	BaseClass::Spawn();
@@ -1009,20 +955,8 @@ void CPortal_Player::Spawn(void)
 #ifdef PORTAL_MP
 	PickTeam();
 #endif
-
-	if ( IsBot() )
-		BotSetupModelConVarValue( this );
-
-	m_bInvisible = false;
 }
 
-void CPortal_Player::Activate(void)
-{
-	BaseClass::Activate();
-	
-	const char *pszName = engine->GetClientConVarValue( entindex(), "cl_player_funnel_into_portals" );
-	m_bPortalFunnel = atoi( pszName ) != 0;
-}
 #ifdef PORTAL
 extern int g_iPauseTick;
 void CPortal_Player::OnPause( void )
@@ -1092,22 +1026,6 @@ void CPortal_Player::OnRestore(void)
 //	return false;
 //}
 
-bool CPortal_Player::ValidatePlayerModel(const char* pModel)
-{
-	int iModels = ARRAYSIZE(g_ppszPortalMPModels);
-	int i;
-
-	for (i = 0; i < iModels; ++i)
-	{
-		if (!Q_stricmp(g_ppszPortalMPModels[i], pModel))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 const char* DefaultPlayerModel()
 {
 	// Some mods don't use Chell, so this function is being setup just in case another mod is added in the future that uses a different model
@@ -1116,61 +1034,22 @@ const char* DefaultPlayerModel()
 
 void CPortal_Player::SetPlayerModel(void)
 {
-	const char* szModelName = NULL;
-	const char *pszCurrentModelName = modelinfo->GetModelName(GetModel());
-
-	szModelName = engine->GetClientConVarValue( entindex(), "cl_playermodel");
-		
-	if (ValidatePlayerModel(szModelName) == false)
+	const char *szModelName;
+	PortalColorSet_t iPortalColorSet = GetColorSetForPlayer( entindex() );
+	if ( iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
 	{
-		char szReturnString[512];
-		
-		if ( ValidatePlayerModel( pszCurrentModelName ) == false )
-		{
-			pszCurrentModelName = DefaultPlayerModel();
-		}
-
-		Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", pszCurrentModelName);
-		engine->ClientCommand(edict(), szReturnString);
-
-		szModelName = pszCurrentModelName;
+		szModelName = "models/player/mel.mdl";
 	}
-
-	int modelIndex = modelinfo->GetModelIndex(szModelName);
-
-	if (modelIndex == -1)
+	else if ( iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK )
 	{
-		szModelName = DefaultPlayerModel();
-
-		char szReturnString[512];
-
-		Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", szModelName);
-		engine->ClientCommand(edict(), szReturnString);
+		szModelName = "models/player/abby.mdl";
 	}
-		
-	if (m_PlayerAnimState)
-		m_PlayerAnimState->Release();
+	else
+	{
+		szModelName = "models/player/chell.mdl";
+	}
 
 	SetModel(szModelName);
-	ResetAnimation();
-	m_PlayerAnimState = CreatePortalPlayerAnimState(this);
-	ResetAnimation();
-
-	UpdateExpression();
-}
-
-void CPortal_Player::SetupSkin( void )
-{
-	int iPortalColorSet;
-	UTIL_Ping_Color( this, Color(), iPortalColorSet );
-
-	if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE )
-		m_nSkin = 1;
-	else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
-		m_nSkin = 2;
-	else
-		m_nSkin = 0;
-
 }
 
 void CPortal_Player::ResetAnimation(void)
@@ -1202,28 +1081,26 @@ bool CPortal_Player::Weapon_Switch(CBaseCombatWeapon* pWeapon, int viewmodelinde
 	return bRet;
 }
 
+void CPortal_Player::Weapon_Equip( CBaseCombatWeapon *pWeapon )
+{
+	BaseClass::Weapon_Equip( pWeapon );
+	
+	pWeapon->m_flGlowR = m_flGlowR;
+	pWeapon->m_flGlowG = m_flGlowG;
+	pWeapon->m_flGlowB = m_flGlowB;
+}
+
+void CPortal_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget /* = NULL */, const Vector *pVelocity /* = NULL */ )
+{
+	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
+
+	pWeapon->m_flGlowR = 0.76f;
+	pWeapon->m_flGlowG = 0.76f;
+	pWeapon->m_flGlowB = 0.76f;
+}
+
 int CPortal_Player::GetPlayerConcept( void )
 {
-	const char *pszPlayerModel = GetModelName().ToCStr();
-
-	if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_CHELL])) // Chell
-		return CONCEPT_CHELL_IDLE;
-	else if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_MEL])) // Mel
-	{
-		if ( GlobalEntity_GetState("pcoop_escape_expressions") == GLOBAL_ON )
-		{
-			return CONCEPT_MEL_ESCAPE_IDLE; // We don't want Mel smiling when she's entering a fire pit or escaping
-		}
-		else
-		{
-			return CONCEPT_MEL_IDLE;
-		}
-	}
-	else if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_ABBY])) // Abby
-		return CONCEPT_ABBY_IDLE;
-	else if (!strcmp(pszPlayerModel, g_ppszPortalMPModels[MODEL_MALE_PORTAL_PLAYER])) // male_portal_player
-		return CONCEPT_MALE_PORTAL_PLAYER_IDLE;
-
 	return CONCEPT_CHELL_IDLE;
 
 }
@@ -1233,11 +1110,7 @@ int CPortal_Player::GetPlayerConcept( void )
 void CPortal_Player::UpdateExpression( void )
 {
 	if ( !m_pExpresser )
-	{
-		if (this != UTIL_GetListenServerHost())
-			Warning("!m_pExpresser\n");
 		return;
-	}
 
 	int iConcept = GetPlayerConcept();
 	if ( IsDead() )
@@ -1319,6 +1192,28 @@ void PingBaseAnimating( CBaseAnimating *pAnimating, Vector vColor )
 	pAnimating->RemoveGlowTime(PINGTIME);
 }
 
+bool TestForPingLinkers( CBaseAnimating *pAnimating, Vector &vColor, CBaseEntity *pOwner )
+{
+	bool bPingSingular = true;
+	//Find a ping linker to use
+	CBaseEntity *pEntityTemp = NULL;
+	while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
+	{
+		CPointPingLinker *pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
+		if ( !pPingLinker )
+			continue;
+
+		if ( pPingLinker->HasThisEntity( pAnimating ) )
+		{
+			pPingLinker->PingLinkedEntities( vColor, pOwner );
+			bPingSingular = false;
+			break;
+		}
+	}
+
+	return bPingSingular;
+}
+
 bool BrushEntityMoves( CBaseEntity *pEntity )
 {
 	CBaseDoor *pDoor = dynamic_cast<CBaseDoor*>( pEntity );
@@ -1392,8 +1287,7 @@ void CPortal_Player::PlayCoopPingEffect( void )
 		
 		// Get our ping color information
 		Vector vColor;
-		int iPortalColorSet;
-		UTIL_Ping_Color( this, vColor, iPortalColorSet );
+		UTIL_Portal_ColorSet_GlowColor( GetColorSetForPlayer( entindex() ), vColor );
 		
 		// Get the base animating
 		CBaseAnimating *pAnimating = tr.m_pEnt ? tr.m_pEnt->GetBaseAnimating() : NULL;
@@ -1405,42 +1299,19 @@ void CPortal_Player::PlayCoopPingEffect( void )
 			CBaseEntity *pParent = pAnimating->GetParent();
 			if ( pParent )
 			{
-#if 0
 				while ( pParent->GetParent() != NULL )
 				{
 					if ( pParent->GetParent() )
 						pParent = pParent->GetParent();
 				}
-#endif
-				Assert( pParent );
-				PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true );
+			}
+			if ( pParent && PingChildrenOfEntity( pParent, vColor, bShouldCreateCrosshair, true ) )
+			{
+				// Nothing
 			}
 			else
 			{
-				CPointPingLinker *pPingLinker = NULL;
-				//Find a ping linker to use
-				CBaseEntity *pEntityTemp = NULL;
-				while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
-				{
-					pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
-					if ( !pPingLinker )
-						continue;
-
-					if ( pPingLinker->HasThisEntity( pAnimating ) )
-					{
-						break;
-					}
-					else
-					{
-						pPingLinker = NULL;
-					}
-				}
-
-				if ( pPingLinker )
-				{
-					pPingLinker->PingLinkedEntities( vColor, this );
-				}
-				else
+				if ( TestForPingLinkers( pAnimating, vColor, this ) )
 				{
 					PingBaseAnimating( pAnimating, vColor );
 					ShowAnnotation( pAnimating->GetAbsOrigin(), pAnimating->entindex(), entindex() );
@@ -1469,8 +1340,9 @@ void CPortal_Player::PlayCoopPingEffect( void )
 
 		if (bShouldCreateCrosshair)
 		{
+			PortalColorSet_t iPortalColorSet = GetColorSetForPlayer( entindex() );
 			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
-				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_PURPLE, tr.endpos, angNormal, this );
+				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_LIGHTBLUE, tr.endpos, angNormal, this );
 			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( COOP_PING_PARTICLE_NAME_RED, tr.endpos, angNormal, this );
 			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
@@ -1488,14 +1360,13 @@ void CPortal_Player::PlayCoopPingEffect( void )
 	FirePlayerProxyOutput( "OnCoopPing", variant_t(), this, this );
 }
 
-void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent )
+bool CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent )
 {
 	if ( bParent && !CanParentBePinged( pEntity ) )
-		return;
+		return false;
 
 	CBaseAnimating *pChild = NULL;
 	CBaseAnimating *pChildForLinker = NULL;
-	CPointPingLinker *pPingLinker = NULL;
 		
 	CUtlVector<CBaseEntity *> children;
 	GetAllChildren( pEntity, children );
@@ -1520,39 +1391,18 @@ void CPortal_Player::PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, 
 		}
 	}
 
-	//Find a ping linker to use
-	CBaseEntity *pEntityTemp = NULL;
-	while ( ( pEntityTemp = gEntList.FindEntityByClassname( pEntityTemp, "point_ping_linker" ) ) != NULL )
-	{
-		pPingLinker = dynamic_cast<CPointPingLinker*>( pEntityTemp );
-		if ( !pPingLinker )
-			continue;
-			
-		if ( pPingLinker->HasThisEntity( pChildForLinker ) )
-		{
-			break;
-		}
-		else
-		{
-			pPingLinker = NULL;
-		}
-	}
+	bool bPingSingular = TestForPingLinkers( pChildForLinker, vColor, this );
 
-	if (pPingLinker)
-	{
-		pPingLinker->PingLinkedEntities( vColor, this );
-	}
-	else if ( !bShouldCreateCrosshair ) // Ping Linkers fire their own events
+	if ( !bShouldCreateCrosshair && bPingSingular ) // Ping Linkers fire their own events
 	{
 		ShowAnnotation( pEntity->GetAbsOrigin(), pEntity->entindex(), entindex() );
 	}
+
+	return true;
 }
 
 void CPortal_Player::PreThink(void)
 {
-	QAngle vOldAngles = GetLocalAngles();
-	QAngle vTempAngles = GetLocalAngles();
-
 	if (m_flLookForUseEntityTime >= gpGlobals->curtime && m_bLookForUseEntity)
 	{
 		SetLookingForUseEntity(true);
@@ -1566,6 +1416,9 @@ void CPortal_Player::PreThink(void)
 		// This should allow us to play the sound again if we press use again while we're already searching
 		SetLookingForUseEntity(false);
 	}
+
+	QAngle vOldAngles = GetLocalAngles();
+	QAngle vTempAngles = GetLocalAngles();
 
 	vTempAngles = EyeAngles();
 
@@ -1594,28 +1447,6 @@ void CPortal_Player::PreThink(void)
 				m_flLastPingTime = gpGlobals->curtime;
 			}
 		}
-	}
-
-
-	
-	int iPortalColorSet;
-	Color color;
-	UTIL_Ping_Color( this, color, iPortalColorSet );
-
-	m_flGlowR = color.r() / 255;
-	m_flGlowG = color.g() / 255;
-	m_flGlowB = color.b() / 255;
-	
-	for (int i = 0; i < WeaponCount(); ++i)
-	{					
-		CBaseCombatWeapon *pWeapon = GetWeapon(i);
-
-		if (!pWeapon)
-			continue;
-
-		pWeapon->m_flGlowR = m_flGlowR;
-		pWeapon->m_flGlowG = m_flGlowG;
-		pWeapon->m_flGlowB = m_flGlowB;
 	}
 
 	//Reset bullet force accumulator, only lasts one frame

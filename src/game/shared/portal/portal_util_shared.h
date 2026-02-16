@@ -19,7 +19,6 @@ extern bool g_bBulletPortalTrace;
 	#include "client_class.h"
 	#include "interpolatedvar.h"
 	class C_Prop_Portal;
-	typedef C_Prop_Portal CProp_Portal;
 	class C_Beam;
 	typedef C_Beam CBeam;
 	class C_Portal_Player;
@@ -28,6 +27,7 @@ extern bool g_bBulletPortalTrace;
 
 #define CPortal_Player C_Portal_Player
 #define CWeaponPortalgun C_WeaponPortalgun
+#define CProp_Portal C_Prop_Portal
 
 #else
 	class CPortal_Player;
@@ -36,17 +36,11 @@ extern bool g_bBulletPortalTrace;
 	class CWeaponPortalgun;
 #endif
 
-#define USEMOVEMENTFORPORTALLING 1
-
 enum PortalColorSet_t;
 Color UTIL_Portal_Color( int iPortal, PortalColorSet_t iPortalColorSet );
 
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Vector &vColor, int &iPortalColorSet );
-void UTIL_Ping_Color( CPortal_Player *pPlayer, Color &color, int &iPortalColorSet );
-
-void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Vector &vColor );
-void UTIL_Portalgun_Color( CWeaponPortalgun *pPortalgun, Color &color );
-
+void UTIL_Portal_ColorSet_Color( PortalColorSet_t iPortalColorSet, Color &color );
+void UTIL_Portal_ColorSet_GlowColor( PortalColorSet_t iPortalColorSet, Vector &vColor );
 
 #undef CPortal_Player
 #undef CWeaponPortalgun

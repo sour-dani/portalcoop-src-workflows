@@ -7,6 +7,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#undef CBaseToggle
 IMPLEMENT_CLIENTCLASS_DT( C_BaseToggle, DT_BaseToggle, CBaseToggle )
 	RecvPropVector( RECVINFO( m_vecFinalDest ) ),
 	RecvPropInt( RECVINFO( m_movementType ) ),

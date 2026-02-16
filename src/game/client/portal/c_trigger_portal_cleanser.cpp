@@ -26,51 +26,10 @@ END_RECV_TABLE()
 
 LINK_ENTITY_TO_CLASS( trigger_portal_cleanser, C_TriggerPortalCleanser );
 
-C_TriggerPortalCleanser::C_TriggerPortalCleanser()
-{
-
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void C_TriggerPortalCleanser::Spawn( void )
-{	
-	BaseClass::Spawn();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Make this trigger touchable for the client
-//-----------------------------------------------------------------------------
-void C_TriggerPortalCleanser::UpdatePartitionListEntry()
-{
-#if 1
-	if ( !m_bClientSidePredicted )
-	{
-		BaseClass::UpdatePartitionListEntry();
-		return;
-	}
-
-	::partition->RemoveAndInsert(
-		PARTITION_CLIENT_STATIC_PROPS,  // remove
-		PARTITION_CLIENT_TRIGGER_ENTITIES | PARTITION_CLIENT_SOLID_EDICTS | PARTITION_CLIENT_RESPONSIVE_EDICTS | PARTITION_CLIENT_NON_STATIC_EDICTS,  // add
-		CollisionProp()->GetPartitionHandle() );
-#endif
-
-	BaseClass::UpdatePartitionListEntry();
-
-}
-
-
 // We only need to remove portals mid-flight because attempting to remove client sided portals just won't work and causes particles and sounds to play too much.
 void C_TriggerPortalCleanser::Touch( C_BaseEntity *pOther )
 {	
 	if (!PassesTriggerFilters(pOther))
-	{
-		return;
-	}
-
-	if (m_bDisabled )
 	{
 		return;
 	}
@@ -91,6 +50,14 @@ void C_TriggerPortalCleanser::Touch( C_BaseEntity *pOther )
 				{
 					CProp_Portal *pPortal = pPortalgun->m_hPrimaryPortal;
 
+					if ( pPortal && pPortal->IsActive() )
+					{
+						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->GetColorSet(), false );
+						pPortal->Fizzle();
+
+						bFizzledPortal = true;
+					}
+
 					// Cancel portals that are still mid flight
 					if ( pPortal && pPortal->GetNextThink( s_pDelayedPlacementContext ) > gpGlobals->curtime )
 					{
@@ -103,6 +70,14 @@ void C_TriggerPortalCleanser::Touch( C_BaseEntity *pOther )
 				{
 					CProp_Portal *pPortal = pPortalgun->m_hSecondaryPortal;
 
+					if ( pPortal && pPortal->IsActive() )
+					{
+						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->GetColorSet(), false );
+						pPortal->Fizzle();
+
+						bFizzledPortal = true;
+					}
+
 					// Cancel portals that are still mid flight
 					if (pPortal && pPortal->GetNextThink(s_pDelayedPlacementContext) > gpGlobals->curtime)
 					{
@@ -114,6 +89,7 @@ void C_TriggerPortalCleanser::Touch( C_BaseEntity *pOther )
 				if ( bFizzledPortal )
 				{
 					pPortalgun->SendWeaponAnim( ACT_VM_FIZZLE );
+					pPortalgun->SetLastFiredPortal( 0 );
 				}
 			}
 		}

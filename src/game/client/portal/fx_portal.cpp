@@ -23,7 +23,7 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
+extern float g_flGameCurTime;
 
 class C_PortalBlast : public C_BaseEntity
 {
@@ -74,7 +74,7 @@ void C_PortalBlast::Init( bool bIsPortal2, PortalPlacedByType ePlacedBy, const V
 
 	SetAbsOrigin( m_ptCreationPoint );
 	
-	m_fCreationTime = gpGlobals->curtime;
+	m_fCreationTime = g_flGameCurTime;
 
 	m_fDeathTime = fDeathTime;
 

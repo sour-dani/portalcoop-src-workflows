@@ -1097,8 +1097,7 @@ COptionsSubMultiplayer::COptionsSubMultiplayer(vgui::Panel *parent) : vgui::Prop
 		0.0f, 255.0f, "bottomcolor" );
 	
 	m_pHighQualityModelCheckBox = new CCvarToggleCheckButton( this, "High Quality Models", "#GameUI_HighModels", "cl_himodels" );
-	m_pShowPortalIDCheckBox = new CCvarToggleCheckButton(this, "CheckShowPortalID", "#GameUI_MultiplayerShowPortalID", "hud_showportalid");
-	m_pShowPortalInfoCheckBox = new CCvarToggleCheckButton(this, "CheckShowPortalInfo", "#GameUI_MultiplayerShowPortalInfo", "hud_showportals");
+	m_pShowPortalInfoCheckBox = new CCvarToggleCheckButton(this, "CheckShowPortalInfo", "#GameUI_MultiplayerShowPortalOwner", "hud_showportals");
 	m_pShowPingAlertsCheckBox = new CCvarToggleCheckButton(this, "ShowPingAlerts", "#GameUI_MultiplayerShowPingAlerts", "cl_portal_coop_show_annotations");
 	
 	m_pModelList = new CLabeledCommandComboBox( this, "Player model" );
@@ -1807,7 +1806,6 @@ void COptionsSubMultiplayer::OnApplyChanges()
 	m_pLogoList->ApplyChanges();
     m_pLogoList->GetText(m_LogoName, sizeof(m_LogoName));
 	m_pHighQualityModelCheckBox->ApplyChanges();
-	m_pShowPortalIDCheckBox->ApplyChanges();
 	m_pShowPortalInfoCheckBox->ApplyChanges();
 	m_pShowPingAlertsCheckBox->ApplyChanges();
 

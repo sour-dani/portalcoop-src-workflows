@@ -45,11 +45,7 @@ class C_TriggerPortalCleanser : public C_BaseTrigger
 	DECLARE_CLIENTCLASS();
 public:
 
-	C_TriggerPortalCleanser();
-
-	void Spawn(void);
+	virtual bool IsPredicted(void) { return true; }
 	void Touch( C_BaseEntity *pOther );
-
-	void UpdatePartitionListEntry( void );
 };
 #endif

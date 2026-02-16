@@ -29,8 +29,9 @@ public:
 #if RADIO_DEBUG_SERVER
 	int DrawDebugTextOverlays( void );
 #endif
-
+#ifndef USE_BASIC_RADIOS
 	CNetworkVar( string_t, m_iszSoundName );
+#endif
 	CNetworkVar( float, m_flInnerRadius );
 	CNetworkVar( float, m_flOuterRadius );
 	CNetworkVar( int, m_nSignalID );
@@ -42,7 +43,9 @@ public:
 LINK_ENTITY_TO_CLASS( info_radio_signal, CDinosaurSignal );
 
 BEGIN_DATADESC( CDinosaurSignal )
+#ifndef USE_BASIC_RADIOS
 	DEFINE_KEYFIELD( m_iszSoundName, FIELD_STRING, "soundname" ),
+#endif
 	DEFINE_KEYFIELD( m_flOuterRadius, FIELD_FLOAT, "outerradius" ),
 	DEFINE_KEYFIELD( m_flInnerRadius, FIELD_FLOAT, "innerradius" ),
 	DEFINE_KEYFIELD( m_nSignalID, FIELD_INTEGER, "signalid" ),
@@ -52,7 +55,9 @@ BEGIN_DATADESC( CDinosaurSignal )
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CDinosaurSignal, DT_DinosaurSignal )
+#ifndef USE_BASIC_RADIOS
 	SendPropStringT( SENDINFO(m_iszSoundName) ), 
+#endif
 	SendPropFloat( SENDINFO(m_flOuterRadius) ),
 	SendPropFloat( SENDINFO(m_flInnerRadius) ),
 	SendPropInt( SENDINFO(m_nSignalID) ),
@@ -60,7 +65,9 @@ END_SEND_TABLE()
 
 void CDinosaurSignal::Spawn()
 {
+#ifndef USE_BASIC_RADIOS
 	PrecacheScriptSound( m_iszSoundName.Get().ToCStr() );
+#endif
 	BaseClass::Spawn();
 	SetTransmitState( FL_EDICT_ALWAYS );
 }
@@ -99,9 +106,11 @@ public:
 	virtual void Activate();
 
 	void ScanThink();
-
+#ifndef USE_BASIC_RADIOS
 	CNetworkHandle( CDinosaurSignal, m_hDinosaur_Signal );
-
+#else
+	CHandle< CDinosaurSignal > m_hDinosaur_Signal;
+#endif
 	string_t m_iszSignalName;
 	COutputEvent m_OnSignalReceived;
 	float m_flOldInnerBlend;
@@ -123,7 +132,9 @@ BEGIN_DATADESC( CPortal_Dinosaur )
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CPortal_Dinosaur, DT_PropDinosaur )
+#ifndef USE_BASIC_RADIOS
 	SendPropEHandle( SENDINFO( m_hDinosaur_Signal ) ),
+#endif
 END_SEND_TABLE()
 
 void CPortal_Dinosaur::Precache()
@@ -636,9 +647,11 @@ CDinosaurSignal *CSpawnDinosaurHack::SpawnSignal( radiolocs& loc )
 		pSignal->SetAbsOrigin( Vector( loc.soundpos[0], loc.soundpos[1], loc.soundpos[2] ) );
 		pSignal->m_flInnerRadius	= loc.soundinnerrad;
 		pSignal->m_flOuterRadius	= loc.soundouterrad;
+#ifndef USE_BASIC_RADIOS
 		char soundname[128];
 		V_strncpy( soundname, loc.soundname, 128 );
 		pSignal->m_iszSoundName.GetForModify() = AllocPooledString( soundname );
+#endif
 		pSignal->m_nSignalID		= loc.id;
 		DispatchSpawn( pSignal );
 	}

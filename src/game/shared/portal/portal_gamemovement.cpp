@@ -328,9 +328,8 @@ void CPortalGameMovement::ProcessMovement( CBasePlayer *pPlayer, CMoveData *pMov
 
 	g_bAllowForcePortalTrace = false;
 	g_bForcePortalTrace = false;
-#ifdef GAME_DLL
+
 	if ( !pPlayer->m_bForceDuckedByTriggerPlayerMove )
-#endif
 	{
 		pPlayer->UnforceButtons( IN_DUCK );
 	}
@@ -1303,15 +1302,6 @@ void CPortalGameMovement::HandlePortallingLegacy( void )
 		}
 	}
 #endif
-	//force the entity to be touching the other portal right this millisecond
-	{
-		trace_t Trace;
-		memset( &Trace, 0, sizeof(trace_t) );
-		//UTIL_TraceEntity( pOther, ptNewOrigin, ptNewOrigin, MASK_SOLID, pOther, COLLISION_GROUP_NONE, &Trace ); //fires off some asserts, and we just need a dummy anyways
-
-		player->PhysicsMarkEntitiesAsTouching( pPortal->m_hLinkedPortal.Get(), Trace );
-		pPortal->m_hLinkedPortal.Get()->PhysicsMarkEntitiesAsTouching( player, Trace );
-	}
 	
 #ifdef GAME_DLL
 	// Notify the entity that it's being teleported

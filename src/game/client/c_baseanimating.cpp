@@ -4597,9 +4597,6 @@ void C_BaseAnimating::GetRenderBounds( Vector& theMins, Vector& theMaxs )
 }
 
 #ifdef GLOWS_ENABLE
-
-ConVar g_debug_gloweeffect("g_debug_gloweeffect", "0", FCVAR_CHEAT, "Debugs glow effect color");
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -4608,13 +4605,6 @@ void C_BaseAnimating::GetGlowEffectColor( float *r, float *g, float *b )
 	*r = m_flGlowR;
 	*g = m_flGlowG;
 	*b = m_flGlowB;
-
-	if (g_debug_gloweeffect.GetBool())
-	{
-		Msg("m_flGlowR: %f\n", m_flGlowR);
-		Msg("m_flGlowG: %f\n", m_flGlowG);
-		Msg("m_flGlowB: %f\n", m_flGlowB);
-	}
 }
 
 //-----------------------------------------------------------------------------

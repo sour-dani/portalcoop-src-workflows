@@ -396,22 +396,6 @@ const CPortalSWeaponInfo &CWeaponPortalBase::GetPortalWpnData() const
 	return *pPortalInfo;
 }
 
-void CWeaponPortalBase::ItemPreFrame( void )
-{
-	BaseClass::ItemPreFrame();
-
-
-#ifdef GAME_DLL
-	CPortal_Player *pPlayer = GetPortalPlayerOwner();
-	if (pPlayer)
-	{
-		m_flGlowR = pPlayer->m_flGlowR;
-		m_flGlowB = pPlayer->m_flGlowG;
-		m_flGlowG = pPlayer->m_flGlowB;
-	}
-#endif
-}
-
 void CWeaponPortalBase::FireBullets( const FireBulletsInfo_t &info )
 {
 	FireBulletsInfo_t modinfo = info;

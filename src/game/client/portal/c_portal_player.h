@@ -149,15 +149,6 @@ public:
 	void	UpdateIDTarget( void );
 	bool	ShouldCollide( int collisionGroup, int contentsMask ) const;
 	void	AvoidPlayers( CUserCmd *pCmd );
-	
-	bool m_bEnableSeparation;		// Keeps separation forces on when player stops moving, but still penetrating
-	Vector m_vSeparationVelocity;	// Velocity used to keep player seperate from teammates
-
-	// Separation force
-	bool	IsSeparationEnabled( void ) const	{ return m_bEnableSeparation; }
-	void	SetSeparation( bool bEnable )		{ m_bEnableSeparation = bEnable; }
-	const Vector &GetSeparationVelocity( void ) const { return m_vSeparationVelocity; }
-	void	SetSeparationVelocity( const Vector &vSeparationVelocity ) { m_vSeparationVelocity = vSeparationVelocity; }
 
 	bool m_bHasSprintDevice;
 	bool m_bSprintEnabled;
@@ -199,8 +190,6 @@ public:
 	IPhysicsObject *GetHeldPhysicsPortal(void) { return m_pHeldPhysicsPortal; }
 	void SetHeldPhysicsPortal( IPhysicsObject *pPhys ) { m_pHeldPhysicsPortal = pPhys; }
 	
-#if USEMOVEMENTFORPORTALLING
-
 	virtual void ApplyTransformToInterpolators( const VMatrix &matTransform, float fUpToTime, bool bIsRevertingPreviousTransform, bool bDuckForced );
 	
 	//single player doesn't predict portal teleportations. This is the call you'll receive when we determine the server portalled us.
@@ -212,15 +201,11 @@ public:
 
 	void UnrollPredictedTeleportations( int iCommandNumber ); //unroll all predicted teleportations at or after the target tick
 
-#endif
-
 	Activity TranslateActivity( Activity baseAct, bool *pRequired = NULL );
 	CWeaponPortalBase* GetActivePortalWeapon() const;
 
 	bool IsSuppressingCrosshair( void ) { return m_bSuppressingCrosshair; }
-	
-	PortalColorSet_t m_iCustomPortalColorSet;
-	
+		
 	float GetLatestServerTeleport() { return m_fLatestServerTeleport; }
 
 	bool	m_bIntersectingPortalPlane;

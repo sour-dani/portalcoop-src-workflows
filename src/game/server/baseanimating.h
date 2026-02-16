@@ -61,7 +61,6 @@ public:
 #ifdef GLOWS_ENABLE
 	// Glows
 	void				SetGlowEffectColor(float r, float g, float b);	
-	void				SetGlowEffectColor(Color color);
 	void				AddGlowEffect(void);
 	void				RemoveGlowEffect(void);
 	bool				IsGlowEffectActive(void);

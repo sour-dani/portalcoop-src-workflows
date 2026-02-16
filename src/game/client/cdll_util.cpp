@@ -453,10 +453,14 @@ int UTIL_DropToFloor( CBaseEntity *pEntity, unsigned int mask, CBaseEntity *pIgn
 
 	return 1;
 }
-
-void UTIL_SetOrigin( C_BaseEntity *entity, const Vector &vecOrigin )
+	
+void UTIL_SetOrigin( CBaseEntity *entity, const Vector &vecOrigin, bool bFireTriggers )
 {
 	entity->SetLocalOrigin( vecOrigin );
+	if ( bFireTriggers )
+	{
+		entity->PhysicsTouchTriggers();
+	}
 }
 
 //#define PRECACHE_OTHER_ONCE

@@ -91,18 +91,32 @@ enum PortalColorSet_t
 {
 	PORTAL_COLOR_SET_INVALID = -1,
 
-	PORTAL_COLOR_SET_ID,
 	PORTAL_COLOR_SET_BLUE_ORANGE,
 	PORTAL_COLOR_SET_LIGHTBLUE_PURPLE,
 	PORTAL_COLOR_SET_YELLOW_RED,
-	PORTAL_COLOR_SET_GREEN_PINK,
+	PORTAL_COLOR_SET_GREEN_PINK, // The last "real" color set
+
+	// Not a real color set
+	PORTAL_COLOR_SET_OBSERVER,
 };
 
-#define PORTAL_COLOR_DEFAULT Color(255,160,32,255)
+#define PORTAL_COLOR_SET_DEFAULT PORTAL_COLOR_SET_BLUE_ORANGE
+#define PORTAL_COLOR_SET_LAST PORTAL_COLOR_SET_GREEN_PINK
 
-#define PORTAL_COLOR_RED Color(0,255,32)
+#define PORTAL_COLOR_ORANGE Color(255,160,32,255)
+#define PORTAL_COLOR_BLUE Color(64,160,255,255)
+
+#define PORTAL_COLOR_LIGHTBLUE Color(128,244,255,255)
+#define PORTAL_COLOR_PURPLE Color(128,0,255,255)
+
+#define PORTAL_COLOR_YELLOW Color(255,255,0,255)
+#define PORTAL_COLOR_RED Color(255,0,0,255)
+
+#define PORTAL_COLOR_GREEN Color(0,255,0,255)
+#define PORTAL_COLOR_PINK Color(255,0,255,255)
 
 PortalColorSet_t ConvertLinkageIDToColorSet( int iPortalLinkageID );
+PortalColorSet_t GetColorSetForPlayer( int iPlayer );
 
 // It's better to have a list of Portal mods instead of having a 
 // single cvar for Rexaura in case we want to add more mods (Portal: Prelude, Portal: Pro, Blue Portals, etc...)
@@ -118,6 +132,8 @@ extern char *g_ppszPortalPassThroughMaterials[];
 
 extern ConVar pcoop_require_all_players;
 extern ConVar pcoop_require_all_players_force_amount;
+
+#define USE_BASIC_RADIOS
 
 #define RADIO_DATA_FILE "scripts/radios.txt"
 extern KeyValues *LoadRadioData();

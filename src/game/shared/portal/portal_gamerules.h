@@ -118,8 +118,6 @@ public:
 	
 	float m_fTimeLastNumSecondsUpdate;
 
-	bool m_bOldAllowPortalCustomization;
-
 #endif
 	int NumPortalsPlaced( void ) const { return m_StatsThisLevel.iNumPortalsPlaced; }
 	int NumStepsTaken( void ) const { return m_StatsThisLevel.iNumStepsTaken; }

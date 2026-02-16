@@ -4,7 +4,9 @@
 //
 // $NoKeywords: $
 //=============================================================================//
-
+#ifdef CLIENT_DLL
+#define PHYSICSSHADOWCLONE_H
+#endif
 #ifndef PHYSICSSHADOWCLONE_H
 #define PHYSICSSHADOWCLONE_H
 

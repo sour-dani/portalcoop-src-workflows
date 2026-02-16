@@ -52,7 +52,6 @@ private:
 
 	CCvarToggleCheckButton		*m_pPortalFunnelCheckBox;
 	vgui::ComboBox				*m_pPortalDepthCombo;
-	vgui::ComboBox				*m_pPortalColorCombo;
 };
 
 

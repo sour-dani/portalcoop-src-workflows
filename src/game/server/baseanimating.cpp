@@ -405,26 +405,13 @@ void CBaseAnimating::SetGlowEffectColor(float r, float g, float b)
 	m_flGlowB = b;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CBaseAnimating::SetGlowEffectColor(Color color)
-{
-	m_flGlowR = color[0];
-	m_flGlowG = color[1];
-	m_flGlowB = color[2];
-}
-
-
 void CBaseAnimating::SetGlowEnabled(inputdata_t& inputdata)
 {
-	m_bGlowEnabled.Set(true);
-	DispatchUpdateTransmitState();
+	AddGlowEffect();
 }
 void CBaseAnimating::SetGlowDisabled(inputdata_t& inputdata)
 {
-	m_bGlowEnabled.Set(false);
-	DispatchUpdateTransmitState();
+	RemoveGlowEffect();
 }
 void CBaseAnimating::SetGlowColorRed(inputdata_t& inputdata)
 {

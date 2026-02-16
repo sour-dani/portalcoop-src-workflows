@@ -11,24 +11,17 @@
 #include "particles_localspace.h"
 #include "view.h"
 #include "particles_attractor.h"
-#include "weapon_physcannon.h"
 
-#ifdef CLIENTSHOULDNOTSEEPHYSCANNON
 class C_WeaponPhysCannon: public CBasePortalCombatWeapon
 {
 	DECLARE_CLASS( C_WeaponPhysCannon, CBasePortalCombatWeapon );
 public:
-	DECLARE_NETWORKCLASS();
-	DECLARE_PREDICTABLE();
 	C_WeaponPhysCannon( void );
-	
+
+	DECLARE_CLIENTCLASS();
+	DECLARE_PREDICTABLE();
+
 	virtual int DrawModel( int flags );
-
-	bool	CanHolster( void );
-	bool	Holster(C_BaseCombatWeapon *pSwitchingTo);
-
-	bool	m_bActive;
-	bool	m_bCanHolster;
 
 private:
 
@@ -41,20 +34,12 @@ private:
 	CSmartPtr<CSimpleEmitter>		m_pEmitter;
 	CSmartPtr<CParticleAttractor>	m_pAttractor;
 };
-#endif
-#ifdef CLIENTSHOULDNOTSEEPHYSCANNON
-IMPLEMENT_NETWORKCLASS_ALIASED(WeaponPhysCannon, DT_WeaponPhysCannon)
 
-BEGIN_NETWORK_TABLE(C_WeaponPhysCannon, DT_WeaponPhysCannon)
-#ifdef GAME_DLL
-#else
-RecvPropBool(RECVINFO(m_bIsCurrentlyUpgrading)),
-RecvPropBool(RECVINFO(m_bActive)),
-#endif
-END_NETWORK_TABLE()
+IMPLEMENT_CLIENTCLASS_DT( C_WeaponPhysCannon, DT_WeaponPhysCannon, CWeaponPhysCannon )
+	RecvPropBool( RECVINFO( m_bIsCurrentlyUpgrading ) ),
+END_RECV_TABLE()
 
-STUB_WEAPON_CLASS_IMPLEMENT(weapon_physcannon, C_WeaponPhysCannon);
-
+STUB_WEAPON_CLASS_IMPLEMENT( weapon_physcannon, C_WeaponPhysCannon );
 
 //-----------------------------------------------------------------------------
 // Constructor
@@ -63,36 +48,6 @@ C_WeaponPhysCannon::C_WeaponPhysCannon( void )
 {
 	m_bWasUpgraded = false;
 }
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-bool C_WeaponPhysCannon::CanHolster( void ) 
-{ 
-	//Don't holster this weapon if we're holding onto something
-	if ( m_bActive )
-		return false;
-
-	return BaseClass::CanHolster();
-};
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Output : Returns true on success, false on failure.
-//-----------------------------------------------------------------------------
-bool C_WeaponPhysCannon::Holster( C_BaseCombatWeapon *pSwitchingTo )
-{
-
-	//Don't holster this weapon if we're holding onto something
-	if ( m_bActive )
-	{		
-		return m_bCanHolster;
-	}
-
-	return BaseClass::Holster( pSwitchingTo );
-}
-
-#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 

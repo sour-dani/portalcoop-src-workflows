@@ -145,6 +145,7 @@ public:
 	float GetPortal2Placablity( void );
 	void SetPortal1Placablity( float flPlacablity ) { m_fCanPlacePortal1OnThisSurface = flPlacablity; }
 	void SetPortal2Placablity( float flPlacablity ) { m_fCanPlacePortal2OnThisSurface = flPlacablity; }
+	void SetLastFiredPortal( int iLastFiredPortal ) { m_iLastFiredPortal = iLastFiredPortal; }
 	int GetLastFiredPortal( void ) { return m_iLastFiredPortal; }
 	bool IsHoldingObject( void ) { return m_bOpenProngs; }
 
@@ -190,9 +191,7 @@ public:
 #ifdef ENABLE_PORTAL_EYE_INTERPOLATION_CODE
 	Vector m_vFirstPredictedShotPos;
 #endif
-	PortalColorSet_t m_iCustomPortalColorSet;
-	PortalColorSet_t m_iOldPortalColorSet;
-	PortalColorSet_t m_iPortalColorSet;
+
 	int m_iValidPlayer;
 	bool m_bCanAttack;
 

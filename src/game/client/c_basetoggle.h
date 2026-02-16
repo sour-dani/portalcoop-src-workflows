@@ -18,7 +18,7 @@ enum togglemovetypes_t
 	MOVE_TOGGLE_LINEAR = 1,
 	MOVE_TOGGLE_ANGULAR = 2,
 };
-
+#define CBaseToggle C_BaseToggle
 //--------------------------------------------------------------------------------------------------------
 class C_BaseToggle: public C_BaseEntity
 {

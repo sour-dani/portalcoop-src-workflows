@@ -8,6 +8,9 @@
 #include "filesystem.h"
 #ifdef CLIENT_DLL
 #include "replay/IEngineReplay.h"
+#include "c_playerresource.h"
+#else
+#include "player_resource.h"
 #endif
 
 ConVar pcoop_require_all_players( "pcoop_require_all_players", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Effectively pauses the game when there are not enough players in the server" );
@@ -26,24 +29,23 @@ char *g_ppszPortalPassThroughMaterials[] =
 
 PortalColorSet_t ConvertLinkageIDToColorSet( int iPortalLinkageID )
 {
-	switch ( iPortalLinkageID )
+	// The % PORTAL_COLOR_SET_LAST is necessary for >3 maxplayer servers
+	return (PortalColorSet_t)(iPortalLinkageID % (PORTAL_COLOR_SET_LAST+1));
+}
+
+PortalColorSet_t GetColorSetForPlayer( int iPlayer )
+{
+	CBasePlayer *pPlayer = UTIL_PlayerByIndex( iPlayer );
+	if ( pPlayer )
 	{
-		case 1:
+		if ( pPlayer->IsObserver() )
 		{
-			return PORTAL_COLOR_SET_LIGHTBLUE_PURPLE;
-		}
-		case 2:
-		{
-			return PORTAL_COLOR_SET_YELLOW_RED;
-		}
-		case 3:
-		{
-			return PORTAL_COLOR_SET_GREEN_PINK;
+			return PORTAL_COLOR_SET_OBSERVER;
 		}
 	}
 
-	// Use the default color
-	return PORTAL_COLOR_SET_BLUE_ORANGE;
+	// Linkage IDs are based on the player index
+	return ConvertLinkageIDToColorSet( iPlayer );
 }
 
 KeyValues *LoadRadioData()
@@ -52,6 +54,7 @@ KeyValues *LoadRadioData()
 	if ( !radios->LoadFromFile( g_pFullFileSystem, RADIO_DATA_FILE, "MOD" ) )
 	{
 		AssertMsg( false, "Failed to load radio data" );
+		radios->deleteThis();
 		return NULL;
 	}
 

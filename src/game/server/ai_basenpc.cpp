@@ -3392,7 +3392,7 @@ void CAI_BaseNPC::UpdateSleepState( bool bInPVS )
 				}
 			
 				// Should check for visible danger sounds
-				if ( (GetSoundInterests() & SOUND_DANGER) && !(HasSpawnFlags(SF_NPC_WAIT_TILL_SEEN)) )
+				if ( (GetSoundInterests() & SOUND_DANGER) && !WaitsUntilSeen() )
 				{
 					int	iSound = CSoundEnt::ActiveList();
 					

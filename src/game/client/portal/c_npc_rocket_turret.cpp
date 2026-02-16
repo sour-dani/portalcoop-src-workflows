@@ -44,7 +44,7 @@ private:
 	float	m_fPulseOffset;
 	QAngle  m_vecCurrentAngles;
 
-	CTraceFilterSkipTwoEntities		m_filterBeams;
+	CTraceFilterSimpleClassnameList		m_filterBeams;
 
 };
 
@@ -59,18 +59,10 @@ END_RECV_TABLE()
 
 
 C_NPC_RocketTurret::C_NPC_RocketTurret( void )
-	: m_filterBeams( NULL, NULL, COLLISION_GROUP_DEBRIS )
+	: m_filterBeams( NULL, COLLISION_GROUP_DEBRIS )
 {
 	m_filterBeams.SetPassEntity( this );
-	
-	C_BasePlayer *pPlayer = UTIL_PlayerByIndex( 1 );
-	if ( pPlayer)
-	{
-		for (int i = 1; i <= gpGlobals->maxClients; ++i)
-		{
-			m_filterBeams.SetPassEntity2( UTIL_PlayerByIndex( i ) );		
-		}
-	}
+	m_filterBeams.AddClassnameToIgnore( "player" );
 }
 
 C_NPC_RocketTurret::~C_NPC_RocketTurret( void )

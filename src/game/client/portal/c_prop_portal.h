@@ -17,10 +17,7 @@
 #include "view_shared.h"
 #include "viewrender.h"
 #include "PortalSimulation.h"
-#include "C_PortalGhostRenderable.h" 
-#include "PhysicsCloneArea.h"
-
-#define DISABLE_CLONE_AREA
+#include "C_PortalGhostRenderable.h"
 
 // FIX ME
 #include "portal_shareddefs.h"
@@ -31,7 +28,7 @@ static const char *s_pFizzleThink = "FizzleThink";
 
 struct dlight_t;
 class C_DynamicLight;
-class CPhysicsCloneArea;
+class C_PhysicsCloneArea;
 
 class C_Prop_Portal : public CPortalRenderable_FlatBasic, public CPortalSimulatorEventCallbacks
 {
@@ -57,6 +54,8 @@ public:
 	bool					m_bSharedEnvironmentConfiguration; //this will be set by an instance of CPortal_Environment when two environments are in close proximity
 
 	Vector4D				m_plane_Origin;	// The plane on which this portal is placed, normal facing outward (matching model forward vec)
+	
+	CHandle< C_PhysicsCloneArea > m_hAttachedCloningArea;
 
 	virtual void			Spawn( void );
 	virtual void			Precache( void );
@@ -81,7 +80,7 @@ public:
 	void					CreateAttachedParticles( void );
 	void					DestroyAttachedParticles( void );
 	
-	void					DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet = PORTAL_COLOR_SET_BLUE_ORANGE, bool bDelayedPos = true ); //display cool visual effect
+	void					DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet, bool bDelayedPos = true ); //display cool visual effect
 	void					Fizzle( void ); //display cool visual effect
 
 	void					PlacePortal( const Vector &vOrigin, const QAngle &qAngles, float fPlacementSuccess, bool bDelay = false );
@@ -109,9 +108,6 @@ public:
 
 	virtual void			PortalSimulator_TookOwnershipOfEntity(C_BaseEntity *pEntity);
 	virtual void			PortalSimulator_ReleasedOwnershipOfEntity(C_BaseEntity *pEntity);
-
-	void					SetupPortalColorSet(void);
-
 
 	struct Portal_PreDataChanged
 	{
@@ -174,13 +170,6 @@ public:
 	//bool DrawPortalsUsingStencils( CViewRender *pViewRender, int iLinkageGroupID ); 
 	
 	void	StealPortal( CProp_Portal *pHitPortal );
-
-	//C_Prop_Portal			*m_pHitPortal;
-	//C_Prop_Portal			*m_pPortalReplacingMe;
-
-	PortalColorSet_t m_iCustomPortalColorSet;
-	PortalColorSet_t m_iOldPortalColorSet;
-	PortalColorSet_t m_iPortalColorSet;
 	
 	C_PortalGhostRenderable *GetGhostRenderableForEntity( C_BaseEntity *pEntity );
 	
@@ -194,9 +183,9 @@ public:
 	static CProp_Portal		*FindPortal( unsigned char iLinkageGroupID, bool bPortal2, bool bCreateIfNothingFound = false );
 
 	virtual C_Prop_Portal *GetPropPortal() { return this; };
-#ifndef DISABLE_CLONE_AREA
-	CPhysicsCloneArea		*m_pAttachedCloningArea;
-#endif
+	
+	PortalColorSet_t GetColorSet( void );
+
 private:
 
 	bool m_bDoRenderThink;

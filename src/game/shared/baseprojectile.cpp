@@ -204,7 +204,7 @@ bool CBaseProjectile::ShouldTouchNonWorldSolid( CBaseEntity *pOther, const trace
 	return true;
 }
 
-extern float g_flServerCurTime;
+extern float g_flGameCurTime;
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -214,7 +214,7 @@ void CBaseProjectile::ResetCollideWithTeammates()
 	// Don't collide with players on the owner's team for the first bit of our life
 	m_bCanCollideWithTeammates = false;
 
-	// Josh: This now uses a new g_flServerCurTime which is not affected by rollback, etc
+	// Josh: This now uses a new g_flGameCurTime which is not affected by rollback, etc
 	// as Thinks like this should be in server time space, not client rollback time space.
 	// This fixes a bug where clients with higher ping would get shorter teammate collisions,
 	// as it was thinking for less time, and low ping local players would end up getting longer collisions,
@@ -227,7 +227,7 @@ void CBaseProjectile::ResetCollideWithTeammates()
 	if ( GetCollideWithTeammatesDelay() == 0.0f )
 		m_bCanCollideWithTeammates = true;
 	else
-		SetContextThink( &CBaseProjectile::CollideWithTeammatesThink, g_flServerCurTime + GetCollideWithTeammatesDelay(), "CollideWithTeammates" );
+		SetContextThink( &CBaseProjectile::CollideWithTeammatesThink, g_flGameCurTime + GetCollideWithTeammatesDelay(), "CollideWithTeammates" );
 }
 
 #endif // GAME_DLL

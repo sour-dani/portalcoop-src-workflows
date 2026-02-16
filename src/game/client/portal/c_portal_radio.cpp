@@ -20,15 +20,18 @@ class C_Dinosaur_Signal : public C_BaseEntity
 public:
 	DECLARE_CLIENTCLASS();
 	DECLARE_CLASS( C_Dinosaur_Signal, C_BaseEntity );
-
+#ifndef USE_BASIC_RADIOS
 	char  m_iszSoundName[128];
+#endif
 	float m_flInnerRadius;
 	float m_flOuterRadius;
 	int	  m_nSignalID;
 };
 
 IMPLEMENT_CLIENTCLASS_DT( C_Dinosaur_Signal, DT_DinosaurSignal, CDinosaurSignal )
+#ifndef USE_BASIC_RADIOS
 	RecvPropString( RECVINFO(m_iszSoundName) ), 
+#endif
 	RecvPropFloat( RECVINFO(m_flOuterRadius) ),
 	RecvPropFloat( RECVINFO(m_flInnerRadius) ),
 	RecvPropInt( RECVINFO(m_nSignalID) ),
@@ -52,25 +55,30 @@ public:
 	virtual bool HasPreferredCarryAnglesForPlayer( C_BasePlayer *pPlayer ) { return true; }
 
 	const char *GetRadioSongScript( void );
-
+#ifndef USE_BASIC_RADIOS
 	void ScanForSounds();
+#endif
 	void SetupSounds();
-
+#ifndef USE_BASIC_RADIOS
 	CHandle<C_Dinosaur_Signal> m_hDinosaur_Signal;
 	CHandle<C_Dinosaur_Signal> m_hOldDinosaur_Signal;
-	
+
 	float	m_flOldBlend;
 	bool	m_bAlreadyDiscovered;
 	bool	m_bDinosaurExtinct;
-
+#endif
 	// Sound envelopes
 	CSoundPatch		*m_pNormalSound;
+#ifndef USE_BASIC_RADIOS
 	CSoundPatch		*m_pStaticSound;
 	CSoundPatch		*m_pSignalSound;
+#endif
 };
 
 IMPLEMENT_CLIENTCLASS_DT( C_Portal_Dinosaur, DT_PropDinosaur, CPortal_Dinosaur )
+#ifndef USE_BASIC_RADIOS
 	RecvPropEHandle( RECVINFO( m_hDinosaur_Signal) ),
+#endif
 END_RECV_TABLE()
 
 LINK_ENTITY_TO_CLASS( prop_radio, C_Portal_Dinosaur );
@@ -78,8 +86,9 @@ LINK_ENTITY_TO_CLASS( prop_radio, C_Portal_Dinosaur );
 void C_Portal_Dinosaur::Spawn()
 {
 	Precache();
-
+#ifndef USE_BASIC_RADIOS
 	m_flOldBlend = 0.0f;
+#endif
 	BaseClass::Spawn();
 	SetThink( &C_Portal_Dinosaur::ClientThink );
 	SetNextClientThink( CLIENT_THINK_ALWAYS );
@@ -88,7 +97,7 @@ void C_Portal_Dinosaur::Spawn()
 void C_Portal_Dinosaur::OnDataChanged( DataUpdateType_t updatetype )
 {
 	BaseClass::OnDataChanged( updatetype );
-
+#ifndef USE_BASIC_RADIOS
 	KeyValues *radios = LoadRadioData();
 	if ( radios )
 	{
@@ -112,6 +121,7 @@ void C_Portal_Dinosaur::OnDataChanged( DataUpdateType_t updatetype )
 		}
 		radios->deleteThis();
 	}
+#endif
 }
 
 C_Portal_Dinosaur::~C_Portal_Dinosaur( void )
@@ -120,7 +130,7 @@ C_Portal_Dinosaur::~C_Portal_Dinosaur( void )
 	{
 		CSoundEnvelopeController::GetController().Shutdown( m_pNormalSound );
 	}
-
+#ifndef USE_BASIC_RADIOS
 	if ( m_pStaticSound != NULL )
 	{
 		CSoundEnvelopeController::GetController().Shutdown( m_pStaticSound );
@@ -130,6 +140,7 @@ C_Portal_Dinosaur::~C_Portal_Dinosaur( void )
 	{
 		CSoundEnvelopeController::GetController().Shutdown( m_pSignalSound );
 	}
+#endif
 }
 
 void C_Portal_Dinosaur::Precache( void )
@@ -181,9 +192,13 @@ void C_Portal_Dinosaur::SetupSounds()
 	if ( m_pNormalSound == NULL )
 	{
 		m_pNormalSound = CSoundEnvelopeController::GetController().SoundCreate( filter, entindex(), GetRadioSongScript() );
+#ifdef USE_BASIC_RADIOS // Basic radios play the full sound
+		CSoundEnvelopeController::GetController().Play( m_pNormalSound, VOL_NORM, PITCH_NORM );
+#else
 		CSoundEnvelopeController::GetController().Play( m_pNormalSound, 0.0, PITCH_NORM );
+#endif
 	}
-
+#ifndef USE_BASIC_RADIOS
 	if ( m_pStaticSound == NULL )
 	{
 		m_pStaticSound = CSoundEnvelopeController::GetController().SoundCreate( filter, entindex(), "UpdateItem.Static" );
@@ -196,12 +211,13 @@ void C_Portal_Dinosaur::SetupSounds()
 		//m_pSignalSound = CSoundEnvelopeController::GetController().SoundCreate( filter, entindex(), "UpdateItem.Signal" );
 		CSoundEnvelopeController::GetController().Play( m_pSignalSound, 0.0, PITCH_NORM );
 	}
+#endif
 }
 
 void C_Portal_Dinosaur::ClientThink()
 {
 	SetupSounds();
-
+#ifndef USE_BASIC_RADIOS
 	//if ( V_stristr( engine->GetLevelName(), "testchmb_a_00" ) != 0 )
 	if ( 0 )//m_hDinosaur_Signal.Get() && m_hDinosaur_Signal.Get()->m_nSignalID == 0 )
 	{
@@ -216,8 +232,9 @@ void C_Portal_Dinosaur::ClientThink()
 
 	if ( m_bDinosaurExtinct == false && m_bDinosaurExtinct != m_bAlreadyDiscovered )
 		m_bDinosaurExtinct = m_bAlreadyDiscovered;
+#endif
 }
-
+#ifndef USE_BASIC_RADIOS
 void C_Portal_Dinosaur::ScanForSounds()
 {
 	C_Dinosaur_Signal *pSignal = m_hDinosaur_Signal;
@@ -307,11 +324,11 @@ void C_Portal_Dinosaur::ScanForSounds()
 
 	m_flOldBlend = flInnerBlend;
 }
-
+#endif
 int C_Portal_Dinosaur::DrawModel( int flags )
 {
 	int nRet = BaseClass::DrawModel( flags );
-
+#ifndef USE_BASIC_RADIOS
 	CMaterialReference	hMaterial;
 	hMaterial.Init( "sprites/grav_light", TEXTURE_GROUP_CLIENT_EFFECTS );
 
@@ -328,6 +345,6 @@ int C_Portal_Dinosaur::DrawModel( int flags )
 	GetVectors( &vForward, &vRight, &vUp );
 	Vector vOffset = GetAbsOrigin() + ( vForward * 4.0f ) + ( vUp * 1.85f );
 	DrawSprite( vOffset, 6.0f, 6.0f, color );
-
+#endif
 	return nRet;
 }

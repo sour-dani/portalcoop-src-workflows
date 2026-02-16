@@ -84,7 +84,6 @@ private:
     CCvarSlider *m_pPrimaryColorSlider;
     CCvarSlider *m_pSecondaryColorSlider;
 	CCvarToggleCheckButton *m_pHighQualityModelCheckBox;
-	CCvarToggleCheckButton *m_pShowPortalIDCheckBox;
 	CCvarToggleCheckButton *m_pShowPortalInfoCheckBox;
 	CCvarToggleCheckButton *m_pShowPingAlertsCheckBox;
 

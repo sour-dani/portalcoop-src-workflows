@@ -1145,11 +1145,19 @@ public:
 	void (C_BaseEntity ::*m_pfnTouch)( C_BaseEntity *pOther );
 
 	void					PhysicsStep( void );
+	
+	bool		NameMatches( const char *pszNameOrWildcard );
+	bool		ClassMatches( const char *pszClassOrWildcard );
+
+private:
+	bool		NameMatchesComplex( const char *pszNameOrWildcard );
+	bool		ClassMatchesComplex( const char *pszClassOrWildcard );
 
 protected:
 	static bool				sm_bDisableTouchFuncs;	// Disables PhysicsTouch and PhysicsStartTouch function calls
 
 public:
+	static bool				sm_bAccurateTriggerBboxChecks;	// SOLID_BBOX entities do a fully accurate trigger vs bbox check when this is set
 	touchlink_t				*PhysicsMarkEntityAsTouched( C_BaseEntity *other );
 	void					PhysicsTouch( C_BaseEntity *pentOther );
 	void					PhysicsStartTouch( C_BaseEntity *pentOther );
@@ -1238,7 +1246,8 @@ public:
 
 	bool							IsWorld() { return entindex() == 0; }
 	/////////////////
-
+	
+	virtual bool					OnControls( CBaseEntity *pControls ) { return true; } // Returns true for the client because not every use entity is predicted
 	virtual bool					IsPlayer( void ) const { return false; };
 	virtual bool					IsBaseCombatCharacter( void ) { return false; };
 	virtual C_BaseCombatCharacter	*MyCombatCharacterPointer( void ) { return NULL; }
@@ -1694,6 +1703,11 @@ public:
 
 	PINGICON m_iPingIcon;
 #endif
+	
+	// Computes absolute position based on hierarchy
+	void CalcAbsolutePosition( );
+	void CalcAbsoluteVelocity();
+
 private:
 	friend void OnRenderStart();
 
@@ -1721,10 +1735,6 @@ private:
 
 	// Simulation in local space of rigid children
 	void PhysicsRigidChild( void );
-
-	// Computes absolute position based on hierarchy
-	void CalcAbsolutePosition( );
-	void CalcAbsoluteVelocity();
 
 	// Computes new angles based on the angular velocity
 	void SimulateAngles( float flFrameTime );
@@ -1960,13 +1970,27 @@ private:
 
 EXTERN_RECV_TABLE(DT_BaseEntity);
 
-inline bool FClassnameIs( C_BaseEntity *pEntity, const char *szClassname )
-{ 
-	Assert( pEntity );
-	if ( pEntity == NULL )
-		return false;
+inline bool CBaseEntity::NameMatches( const char *pszNameOrWildcard )
+{
+	// No m_iName for the client
+	//if ( IDENT_STRINGS(m_iName, pszNameOrWildcard) )
+	//	return true;
+	
+	return NameMatchesComplex( pszNameOrWildcard );
+}
 
-	return !strcmp( pEntity->GetClassname(), szClassname ) ? true : false; 
+inline bool CBaseEntity::ClassMatches( const char *pszClassOrWildcard )
+{
+	string_t iClassname = GetClassname();
+	if ( IDENT_STRINGS(iClassname, pszClassOrWildcard ) )
+		return true;
+
+	return ClassMatchesComplex( pszClassOrWildcard );
+}
+
+inline bool FClassnameIs(CBaseEntity *pEntity, const char *szClassname)
+{ 
+	return pEntity->ClassMatches(szClassname); 
 }
 
 #define SetThink( a ) ThinkSet( static_cast <void (CBaseEntity::*)(void)> (a), 0, NULL )

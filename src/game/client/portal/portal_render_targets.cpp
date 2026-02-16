@@ -144,7 +144,6 @@ void CPortalRenderTargets::InitPortalWaterTextures( IMaterialSystem* pMaterialSy
 
 ITexture* CPortalRenderTargets::GetWaterReflectionTextureForStencilDepth( int iStencilDepth )
 {
-	/*
 	if ( IsX360() )
 	{
 		return NULL;
@@ -152,16 +151,15 @@ ITexture* CPortalRenderTargets::GetWaterReflectionTextureForStencilDepth( int iS
 
 	if ( iStencilDepth > 2 )
 		return NULL;
-	*/
+
 	if ( iStencilDepth == 0 )
 		return m_WaterReflectionTexture; //from CBaseClientRenderTargets
-	Assert(m_WaterReflectionTexture);
+
 	return m_WaterReflectionTextures[ iStencilDepth - 1 ];
 }
 
 ITexture* CPortalRenderTargets::GetWaterRefractionTextureForStencilDepth( int iStencilDepth )
 {
-	/*
 	if ( IsX360() )
 	{
 		return NULL;
@@ -169,9 +167,10 @@ ITexture* CPortalRenderTargets::GetWaterRefractionTextureForStencilDepth( int iS
 
 	if ( iStencilDepth > 2 )
 		return NULL;
-	*/
+
 	if ( iStencilDepth == 0 )
 		return m_WaterRefractionTexture; //from CBaseClientRenderTargets
+
 	return m_WaterRefractionTextures[ iStencilDepth - 1 ];
 }
 

@@ -43,7 +43,8 @@ class CTriggerPortalCleanser : public CBaseTrigger
 	DECLARE_SERVERCLASS();
 
 public:
-
+	
+	virtual bool IsPredicted(void) { return true; }
 	void Spawn( void );
 	void Touch( CBaseEntity *pOther );
 	//CNetworkVar(bool, m_bDisabled);

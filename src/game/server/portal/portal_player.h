@@ -110,7 +110,6 @@ public:
 	virtual void StopLoopingSounds( void );
 	virtual void Spawn( void );
 	virtual void OnRestore( void );
-	virtual void Activate( void );
 	
 	virtual void OnPause( void ) OVERRIDE;
 	virtual void OnUnPause( float flAddedTime ) OVERRIDE;
@@ -153,6 +152,8 @@ public:
 	virtual bool WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
 	virtual void FireBullets ( const FireBulletsInfo_t &info );
 	virtual bool Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0);
+	virtual void Weapon_Equip( CBaseCombatWeapon *pWeapon );
+	virtual	void Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget /* = NULL */, const Vector *pVelocity /* = NULL */ );
 	virtual bool BumpWeapon( CBaseCombatWeapon *pWeapon );
 	virtual void ShutdownUseEntity( void );
 	bool WantsToBeObserver();
@@ -177,8 +178,6 @@ public:
 	virtual void SetupVisibility( CBaseEntity *pViewEntity, unsigned char *pvs, int pvssize );
 	virtual void UpdatePortalViewAreaBits( unsigned char *pvs, int pvssize );
 	
-	bool	ValidatePlayerModel( const char *pModel );
-
 	QAngle GetAnimEyeAngles( void ) { return m_angEyeAngles.Get(); }
 
 	Vector GetAttackSpread( CBaseCombatWeapon *pWeapon, CBaseEntity *pTarget = NULL );
@@ -194,8 +193,6 @@ public:
 
 	void SetPlayerModel( void );
 
-	void SetupSkin( void );
-	
 	int	GetPlayerConcept( void );
 	void UpdateExpression ( void );
 	void ClearExpression ( void );
@@ -251,8 +248,6 @@ public:
 
 	CProp_Portal *m_pPrimaryPortal;
 	CProp_Portal *m_pSecondaryPortal;
-
-	CNetworkVar(PortalColorSet_t, m_iCustomPortalColorSet);
 
 	PortalGunSpawnInfo_t m_PortalGunSpawnInfo;
 
@@ -326,13 +321,11 @@ public:
 	
 	// Coop ping effect
 	void	PlayCoopPingEffect( void );
-	void	PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent );
+	bool	PingChildrenOfEntity( CBaseEntity *pEntity, Vector vColor, bool &bShouldCreateCrosshair, bool bParent );
 
 	friend class CProp_Portal;
 	
 	virtual CBaseEntity* EntSelectSpawnPoint( void ) OVERRIDE;
-
-	bool					m_bInvisible;
 
 #ifdef PORTAL_MP
 public:

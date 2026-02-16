@@ -30,8 +30,6 @@
 	#include "view.h"
 #endif
 
-extern ConVar sv_allow_customized_portal_colors;
-
 #ifdef CLIENT_DLL
 	#define CWeaponPortalgun C_WeaponPortalgun
 	#define CTriggerPortalCleanser C_TriggerPortalCleanser
@@ -79,7 +77,6 @@ CWeaponPortalgun::CWeaponPortalgun( void )
 
 #ifdef CLIENT_DLL
 	m_iOldPortalLinkageGroupID = 255; // This has to be done so that m_iOldPortalLinkageGroupID != m_iPortalLinkageGroupID for OnDataChanged
-	m_iOldPortalColorSet = PORTAL_COLOR_SET_INVALID; // This has to be done so that m_iOldPortalColorSet != m_iPortalColorSet for OnDataChanged
 #endif
 
 	m_fMinRange1	= 0.0f;
@@ -424,11 +421,6 @@ bool CWeaponPortalgun::Deploy( void )
 				Assert( (m_iPortalLinkageGroupID >= 0) && (m_iPortalLinkageGroupID < 256) );
 			}
 		}
-		
-		CPortal_Player *pPlayer = ToPortalPlayer( pOwner );
-
-		if (pPlayer)
-			m_iCustomPortalColorSet = pPlayer->m_iCustomPortalColorSet;
 
 		m_hPrimaryPortal = CProp_Portal::FindPortal( m_iPortalLinkageGroupID, false, true );
 		m_hSecondaryPortal = CProp_Portal::FindPortal( m_iPortalLinkageGroupID, true, true );
@@ -543,11 +535,11 @@ void CWeaponPortalgun::DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iP
 	if ( !prediction->IsFirstTimePredicted() )
 		return;
 #endif
-	
+	extern float g_flGameCurTime;
 	CEffectData	fxData;
 	fxData.m_vOrigin = ptStart;
 	fxData.m_vStart = ptFinalPos;
-	fxData.m_flScale = gpGlobals->curtime + fDelay;
+	fxData.m_flScale = g_flGameCurTime + fDelay;
 	fxData.m_vAngles = qStartAngles;
 	fxData.m_nColor = ( ( bPortal2 ) ? ( 2 ) : ( 1 ) );
 	fxData.m_nDamageType = iPlacedBy;
@@ -560,7 +552,7 @@ void CWeaponPortalgun::DoEffectBlast( CBaseEntity *pOwner, bool bPortal2, int iP
 #endif
 	
 #ifdef CLIENT_DLL
-	extern void PortalBlastCallback( const CEffectData & data );
+	extern void PortalBlastCallback( const CEffectData &data );
 	PortalBlastCallback( fxData );
 #else
 	DispatchEffect( "PortalBlast", fxData );
@@ -763,13 +755,15 @@ float CWeaponPortalgun::FirePortal( bool bPortal2, Vector *pVector /*= 0*/, bool
 			fDelay = 0.1;
 		}
 
-		DoEffectBlast(pOwner, pPortal->m_bIsPortal2, ePlacedBy, vTracerOrigin, vFinalPosition, qFireAngles, fDelay, m_iPortalColorSet );
+		PortalColorSet_t iPortalColorSet = ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID );
+
+		DoEffectBlast(pOwner, pPortal->m_bIsPortal2, ePlacedBy, vTracerOrigin, vFinalPosition, qFireAngles, fDelay, iPortalColorSet );
 		if (fPlacementSuccess == PORTAL_ANALOG_SUCCESS_NEAR && pHitPortal)
 		{
 			if (bPortal2)
-				pHitPortal->DoFizzleEffect( PORTAL_FIZZLE_NEAR_RED, m_iPortalColorSet, false );
+				pHitPortal->DoFizzleEffect( PORTAL_FIZZLE_NEAR_RED, iPortalColorSet, false );
 			else
-				pHitPortal->DoFizzleEffect( PORTAL_FIZZLE_NEAR_BLUE, m_iPortalColorSet, false );
+				pHitPortal->DoFizzleEffect( PORTAL_FIZZLE_NEAR_BLUE, iPortalColorSet, false );
 		}
 
 		else
@@ -1290,19 +1284,6 @@ void CWeaponPortalgun::Think( void )
 		m_fCanPlacePortal2OnThisSurface = 1.0f;
 #endif
 		return;
-	}
-
-	// PCOOP: This should be moved elsewhere
-	{
-		m_iCustomPortalColorSet = pPlayer->m_iCustomPortalColorSet;
-	
-		if (m_iCustomPortalColorSet && sv_allow_customized_portal_colors.GetBool())
-		{
-			m_iPortalColorSet = m_iCustomPortalColorSet;
-		}
-		else
-			m_iPortalColorSet = ConvertLinkageIDToColorSet( m_iPortalLinkageGroupID );
-
 	}
 
 	// Test portal placement

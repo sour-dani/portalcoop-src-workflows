@@ -49,8 +49,6 @@ void CTriggerPortalCleanser::Spawn( void )
 	SetTransmitState( FL_EDICT_PVSCHECK );
 
 	BaseClass::Spawn();
-
-	m_bClientSidePredicted = true;
 	
 	InitTrigger();
 }
@@ -116,7 +114,7 @@ void CTriggerPortalCleanser::Touch( CBaseEntity *pOther )
 
 					if ( pPortal && pPortal->IsActive() )
 					{
-						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->m_iPortalColorSet, false );
+						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->GetColorSet(), false );
 						pPortal->Fizzle();
 						//pPortal->SetActive(false);
 						// HACK HACK! Used to make the gun visually change when going through a cleanser!
@@ -140,7 +138,7 @@ void CTriggerPortalCleanser::Touch( CBaseEntity *pOther )
 
 					if ( pPortal && pPortal->IsActive() )
 					{
-						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->m_iPortalColorSet, false );
+						pPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, pPortal->GetColorSet(), false );
 						pPortal->Fizzle();
 						//pPortal->SetActive(false);
 						// HACK HACK! Used to make the gun visually change when going through a cleanser!

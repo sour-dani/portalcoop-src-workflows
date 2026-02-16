@@ -2946,6 +2946,15 @@ public:
 	virtual bool KeyValue( const char *szKeyName, const char *szValue );
 };
 
+// Has no position or size
+class CNetworkableLogicalEntity : public CBaseEntity
+{
+	DECLARE_CLASS( CNetworkableLogicalEntity, CBaseEntity );
+
+public:
+	virtual bool KeyValue( const char *szKeyName, const char *szValue );
+};
+
 
 // Network proxy functions
 

@@ -46,8 +46,6 @@ ConVar sv_portal_new_velocity_check("sv_portal_new_velocity_check", "1", FCVAR_R
 
 CUtlVector<CProp_Portal *> s_PortalLinkageGroups[256];
 
-extern ConVar sv_allow_customized_portal_colors;
-
 BEGIN_DATADESC( CProp_Portal )
 	//saving
 	DEFINE_FIELD( m_hLinkedPortal,		FIELD_EHANDLE ),
@@ -69,10 +67,9 @@ BEGIN_DATADESC( CProp_Portal )
 	DEFINE_FIELD( m_qDelayedAngles,		FIELD_VECTOR ),
 	DEFINE_FIELD( m_iDelayedFailure,	FIELD_INTEGER ),
 	DEFINE_FIELD( m_hPlacedBy,			FIELD_EHANDLE ),
-	DEFINE_FIELD( m_iCustomPortalColorSet,	FIELD_INTEGER ),
 
 	// DEFINE_FIELD( m_plane_Origin, cplane_t ),
-	// DEFINE_FIELD( m_pAttachedCloningArea, CPhysicsCloneArea ),
+	// DEFINE_FIELD( m_hAttachedCloningArea, CPhysicsCloneArea ),
 	// DEFINE_FIELD( m_PortalSimulator, CPortalSimulator ),
 	// DEFINE_FIELD( m_pCollisionShape, CPhysCollide ),
 	
@@ -114,6 +111,7 @@ IMPLEMENT_SERVERCLASS_ST( CProp_Portal, DT_Prop_Portal )
 	SendPropVector( SENDINFO(m_ptOrigin), -1,  SPROP_NOSCALE, 0.0f, HIGH_DEFAULT ),
 	SendPropVector( SENDINFO(m_qAbsAngle), -1, SPROP_NOSCALE, 0.0f, HIGH_DEFAULT ),
 
+	SendPropEHandle( SENDINFO( m_hAttachedCloningArea ) ),
 	SendPropEHandle( SENDINFO(m_hLinkedPortal) ),
 	SendPropBool( SENDINFO(m_bActivated) ),
 	SendPropBool( SENDINFO(m_bOldActivatedState) ),
@@ -121,7 +119,6 @@ IMPLEMENT_SERVERCLASS_ST( CProp_Portal, DT_Prop_Portal )
 	SendPropEHandle( SENDINFO( m_hPlacedBy ) ),
 	SendPropEHandle( SENDINFO( m_hFiredByPlayer ) ),
 	SendPropInt( SENDINFO( m_nPlacementAttemptParity ), EF_PARITY_BITS, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO( m_iCustomPortalColorSet ), EF_PARITY_BITS, SPROP_UNSIGNED ),
 	
 	SendPropDataTable( SENDINFO_DT( m_PortalSimulator ), &REFERENCE_SEND_TABLE( DT_PortalSimulator ) )
 END_SEND_TABLE()
@@ -212,10 +209,10 @@ void CProp_Portal::UpdateOnRemove( void )
 		pRemote->UpdatePortalTeleportMatrix();
 	}
 
-	if( m_pAttachedCloningArea )
+	if( m_hAttachedCloningArea )
 	{
-		UTIL_Remove( m_pAttachedCloningArea );
-		m_pAttachedCloningArea = NULL;
+		UTIL_Remove( m_hAttachedCloningArea );
+		m_hAttachedCloningArea = NULL;
 	}
 	
 
@@ -366,8 +363,6 @@ void CProp_Portal::Spawn( void )
 
 	UpdateCollisionShape();
 
-	SetupPortalColorSet();
-
 	Assert( s_PortalLinkageGroups[m_iLinkageGroupID].Find( this ) == -1 );
 	s_PortalLinkageGroups[m_iLinkageGroupID].AddToTail( this );
 
@@ -391,7 +386,7 @@ void CProp_Portal::Spawn( void )
 
 	BaseClass::Spawn();
 
-	m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
+	m_hAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
 }
 
 void CProp_Portal::OnRestore()
@@ -401,12 +396,10 @@ void CProp_Portal::OnRestore()
 
 	UpdateCorners();
 
-	Assert( m_pAttachedCloningArea == NULL );
-	m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
+	Assert( m_hAttachedCloningArea == NULL );
+	m_hAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
 
 	BaseClass::OnRestore();
-
-	SetupPortalColorSet();
 }
 
 void DumpActiveCollision( const CPortalSimulator *pPortalSimulator, const char *szFileName );
@@ -542,9 +535,6 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 		}
 	}
 
-	// Just a little hack to always prevent particle inconsistencies.
-	SetupPortalColorSet();
-
 	bool bFilterUsePredictionRules = true;
 		
 	// Pick a fizzle effect
@@ -555,11 +545,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 			//DispatchEffect( "PortalFizzleCantFit", fxData );
 			//ep.m_pSoundName = "Portal.fizzle_invalid_surface";
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_nofit" ) : ( "portal_lightblue_nofit" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_nofit" ) : ( "portal_yellow_nofit" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_nofit" ) : ( "portal_green_nofit" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_nofit" ) : ( "portal_1_nofit" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
@@ -577,11 +567,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 
 			//DispatchEffect( "PortalFizzleOverlappedLinked", fxData );
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_overlap" ) : ( "portal_lightblue_overlap" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_overlap" ) : ( "portal_yellow_overlap" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_overlap" ) : ( "portal_green_overlap" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_overlap" ) : ( "portal_1_overlap" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
@@ -593,11 +583,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 		{
 			//DispatchEffect( "PortalFizzleBadVolume", fxData );
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_badvolume" ) : ( "portal_lightblue_badvolume" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_badvolume" ) : ( "portal_yellow_badvolume" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_badvolume" ) : ( "portal_green_badvolume" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_badvolume" ) : ( "portal_1_badvolume" ) ), fxData.m_vOrigin, fxData.m_vAngles );
@@ -608,11 +598,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 		{
 			//DispatchEffect( "PortalFizzleBadSurface", fxData );
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_badsurface" ) : ( "portal_lightblue_badsurface" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_badsurface" ) : ( "portal_yellow_badsurface" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_badsurface" ) : ( "portal_green_badsurface" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_badsurface" ) : ( "portal_1_badsurface" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
@@ -623,28 +613,28 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 		{
 			//DispatchEffect( "PortalFizzleKilled", fxData );
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_close" ) : ( "portal_lightblue_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_close" ) : ( "portal_yellow_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_close" ) : ( "portal_green_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_close" ) : ( "portal_1_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			ep.m_pSoundName = "Portal.fizzle_moved";
 
-			bFilterUsePredictionRules = false;
+			bFilterUsePredictionRules = true;
 			break;
 		}
 		case PORTAL_FIZZLE_CLEANSER:
 		{
 			//DispatchEffect( "PortalFizzleCleanser", fxData );
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_cleanser" ) : ( "portal_lightblue_cleanser" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_cleanser" ) : ( "portal_yellow_cleanser" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_cleanser" ) : ( "portal_green_cleanser" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_cleanser" ) : ( "portal_1_cleanser" ) ), fxData.m_vOrigin, fxData.m_vAngles, this );
@@ -654,11 +644,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 		case PORTAL_FIZZLE_CLOSE:
 			//DispatchEffect( "PortalFizzleKilled", fxData );
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_close" ) : ( "portal_lightblue_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_close" ) : ( "portal_yellow_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_close" ) : ( "portal_green_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_close" ) : ( "portal_1_close" ) ), fxData.m_vOrigin, fxData.m_vAngles );
@@ -714,11 +704,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 
 		case PORTAL_FIZZLE_SUCCESS:
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_success" ) : ( "portal_lightblue_success" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_success" ) : ( "portal_yellow_success" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK)
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_success" ) : ( "portal_green_success" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			else
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_success" ) : ( "portal_1_success" ) ), fxData.m_vOrigin, fxData.m_vAngles );
@@ -728,11 +718,11 @@ void CProp_Portal::DoFizzleEffect( int iEffect, PortalColorSet_t iPortalColorSet
 		case PORTAL_FIZZLE_STOLEN:
 			//DispatchEffect( "PortalFizzleBadSurface", fxData );
 			VectorAngles( vUp, vForward, fxData.m_vAngles );
-			if (m_iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE) // Purple / Light Blue
+			if (iPortalColorSet == PORTAL_COLOR_SET_LIGHTBLUE_PURPLE) // Purple / Light Blue
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_purple_stolen" ) : ( "portal_lightblue_stolen" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED) // Red / Yellow
+			else if (iPortalColorSet == PORTAL_COLOR_SET_YELLOW_RED) // Red / Yellow
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_red_stolen" ) : ( "portal_yellow_stolen" ) ), fxData.m_vOrigin, fxData.m_vAngles );
-			else if (m_iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK) // Pink / Green
+			else if (iPortalColorSet == PORTAL_COLOR_SET_GREEN_PINK) // Pink / Green
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_pink_stolen" ) : ( "portal_green_stolen" ) ), fxData.m_vOrigin, fxData.m_vAngles );
 			else // Default colors
 				DispatchParticleEffect( ( ( m_bIsPortal2 ) ? ( "portal_2_stolen" ) : ( "portal_1_stolen" ) ), fxData.m_vOrigin, fxData.m_vAngles );
@@ -912,8 +902,8 @@ void CProp_Portal::Activate( void )
 	if( s_PortalLinkageGroups[m_iLinkageGroupID].Find( this ) == -1 )
 		s_PortalLinkageGroups[m_iLinkageGroupID].AddToTail( this );
 
-	if( m_pAttachedCloningArea == NULL )
-		m_pAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
+	if( m_hAttachedCloningArea == NULL )
+		m_hAttachedCloningArea = CPhysicsCloneArea::CreatePhysicsCloneArea( this );
 
 	UpdatePortalTeleportMatrix();
 	
@@ -1837,7 +1827,7 @@ void CProp_Portal::InputSetActivatedState( inputdata_t &inputdata )
 
 void CProp_Portal::InputFizzle( inputdata_t &inputdata )
 {
-	DoFizzleEffect( PORTAL_FIZZLE_KILLED, m_iPortalColorSet, false );
+	DoFizzleEffect( PORTAL_FIZZLE_KILLED, GetColorSet(), false );
 	Fizzle();
 }
 
