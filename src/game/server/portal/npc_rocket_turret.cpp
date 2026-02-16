@@ -431,8 +431,40 @@ void CNPC_RocketTurret::Spawn( void )
 	SetNextThink( gpGlobals->curtime + ROCKET_TURRET_THINK_RATE );
 }
 
+//ConVar rocket_turret_baseup_offset( "rocket_turret_baseup_offset", "38", FCVAR_CHEAT );
+//ConVar rocket_turret_up_offset( "rocket_turret_up_offset", "1", FCVAR_CHEAT );
+//ConVar rocket_turret_forward_offset( "rocket_turret_forward_offset", "26", FCVAR_CHEAT );
+//ConVar rocket_turret_right_offset( "rocket_turret_right_offset", "12", FCVAR_CHEAT );
+//ConVar rocket_turret_box_time( "rocket_turret_box_time", "0", FCVAR_CHEAT );
+
+ConVar rocket_turret_use_new_muzzle_pos( "rocket_turret_use_new_muzzle_pos", "1", FCVAR_CHEAT );
+
 Vector CNPC_RocketTurret::GetMuzzlePos()
 {
+	if ( rocket_turret_use_new_muzzle_pos.GetBool()
+		//|| FStrEq( gpGlobals->mapname.ToCStr(), "p2coop_9" )
+		)
+	{
+		Vector forward, right, up;
+		AngleVectors( m_vecCurrentAngles, &forward, &right, &up );
+		
+		// Angled rocket launchers need to be taken into account too
+		Vector baseUp;
+		AngleVectors( GetAbsAngles(), NULL, NULL, &baseUp);
+
+		Vector base = GetAbsOrigin();
+		base += baseUp * 38;
+		base += up * 1;
+		base += forward * 26;
+		base -= right * 12;
+		
+		//if (rocket_turret_box_time.GetFloat() != 0.0)
+		//{
+		//	NDebugOverlay::Box( base, Vector(-4,-4,-4), Vector(4,4,4), 255, 0, 0, 255, rocket_turret_box_time.GetFloat() );
+		//	NDebugOverlay::Box( GetAbsOrigin() + (baseUp * rocket_turret_baseup_offset.GetFloat()), Vector(-4,-4,-4), Vector(4,4,4), 0, 255, 0, 255, rocket_turret_box_time.GetFloat() );
+		//}
+		return base;
+	}
 	Vector vMuzzlePos;
 	GetAttachment( ROCKET_TURRET_LASER_ATTACHMENT, vMuzzlePos, NULL, NULL, NULL );
 	return vMuzzlePos;
