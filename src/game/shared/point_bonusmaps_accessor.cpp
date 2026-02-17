@@ -11,10 +11,10 @@
 #include "GameUI/IGameUI.h"
 #include "fmtstr.h"
 #include "igameevents.h"
-#include "gameui/bonusmapsdatabase.h"
+#include "gameui/BonusMapsDatabase.h"
 #include "portal_gamerules.h"
 #ifdef CLIENT_DLL
-#include "gameui/bonusmapsdialog.h"
+#include "gameui/BonusMapsDialog.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!

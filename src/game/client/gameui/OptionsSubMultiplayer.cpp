@@ -35,7 +35,7 @@
 
 #include "CvarTextEntry.h"
 #include "CvarToggleCheckButton.h"
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 #include "LabeledCommandComboBox.h"
 #include "filesystem.h"
 #include "EngineInterface.h"

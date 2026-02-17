@@ -1,0 +1,30 @@
+name: Compile Linux
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  compile_linux:
+    name: Compile Linux
+    runs-on: ubuntu-latest  
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Portal Coop Source Code
+        uses: actions/checkout@v4
+      
+      - name: Build Project File
+        working-directory: src
+        run: |
+          ./buildallprojects
+
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-bins
+          path: |
+            game/bin/linux64/client.so
+            game/bin/linux64/server.so
+          if-no-files-found: error
+          retention-days: 1

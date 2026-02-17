@@ -7,7 +7,7 @@
 #include "cbase.h"
 #include "OptionsSubAudio.h"
 
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 #include "EngineInterface.h"
 #include "ModInfo.h"
 #include "vgui_controls/ComboBox.h"

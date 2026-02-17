@@ -11,6 +11,7 @@
 #endif
 
 #include "engine/IEngineTrace.h"
+#include "portal_shareddefs.h"
 
 extern bool g_bBulletPortalTrace;
 

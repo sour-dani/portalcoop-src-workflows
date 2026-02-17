@@ -4,7 +4,7 @@
 
 #include <vgui_controls/Controls.h>
 #include <vgui_controls/Panel.h>
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 class ControlBoxVisual : public vgui::Panel
 {
 	DECLARE_CLASS_SIMPLE(ControlBoxVisual,vgui::Panel);

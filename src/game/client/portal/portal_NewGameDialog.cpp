@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "Portal_NewGameDialog.h"
+#include "portal_NewGameDialog.h"
 //#include "EngineInterface.h"
 #include "vgui_controls/Button.h"
 #include "vgui_controls/CheckButton.h"
@@ -23,7 +23,7 @@
 #include "filesystem.h"
 #include "gameui/ModInfo.h"
 #include "tier1/convar.h"
-#include "Gameui/IGameUI.h"
+#include "GameUI/IGameUI.h"
 #include "tier0/icommandline.h"
 #include "vgui_controls/AnimationController.h"
 #include "vgui_controls/BitmapImagePanel.h"

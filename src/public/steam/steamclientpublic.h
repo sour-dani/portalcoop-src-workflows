@@ -844,7 +844,7 @@ inline bool CSteamID::IsValid() const
 }
 
 #if defined( INCLUDED_STEAM2_USERID_STRUCTS ) 
-#include "steamcommon.h" // TSteamGlobalUserID
+#include "SteamCommon.h" // TSteamGlobalUserID
 
 //-----------------------------------------------------------------------------
 // Purpose: Initializes a steam ID from a Steam2 ID structure

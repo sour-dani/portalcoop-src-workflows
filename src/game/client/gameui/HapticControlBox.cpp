@@ -3,7 +3,7 @@
 #include "HapticControlBox.h"
 #include <vgui_controls/Controls.h>
 #include <vgui_controls/Panel.h>
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 #include "mathlib/vmatrix.h"
 #include <vgui/ISurface.h>
 #include "KeyValues.h"

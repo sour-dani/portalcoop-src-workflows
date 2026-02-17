@@ -7,7 +7,7 @@
 #include "portal_shareddefs.h"
 #include "filesystem.h"
 #ifdef CLIENT_DLL
-#include "replay/IEngineReplay.h"
+#include "replay/ienginereplay.h"
 #include "c_playerresource.h"
 #else
 #include "player_resource.h"

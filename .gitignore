@@ -502,3 +502,13 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+*.a'
+
+# Linux 
+src/compile_commands.json
+src/.ninja_log
+src/.ninja_deps
+*.a
+.vscode/launch.json
+.vscode/settings.json
+game

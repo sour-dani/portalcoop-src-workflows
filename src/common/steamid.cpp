@@ -11,13 +11,13 @@
 #else
 #include <stdio.h>
 #include "dbg.h"
-#include "steamcommon.h"
+#include "SteamCommon.h"
 #include "steam/steamclientpublic.h"
 #include "strtools.h"
 #endif
 
 #ifdef HL1
-#include "steamcommon.h"
+#include "SteamCommon.h"
 #include "steam/steamclientpublic.h"
 #endif
 

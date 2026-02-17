@@ -16,10 +16,10 @@
 
 #include "vphysics_interface.h"
 #ifdef GAME_DLL
-#include "BaseEntity.h"
+#include "baseentity.h"
 #include "baseanimating.h"
 #else
-#include "c_BaseEntity.h"
+#include "c_baseentity.h"
 #include "c_baseanimating.h"
 #endif
 class CPhysicsShadowClone;

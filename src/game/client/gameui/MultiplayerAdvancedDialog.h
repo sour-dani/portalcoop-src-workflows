@@ -12,7 +12,7 @@
 #endif
 
 #include <vgui_controls/Frame.h>
-#include "..\common\GameUI\scriptobject.h"
+#include "GameUI/scriptobject.h"
 #include <vgui/KeyCode.h>
 
 class CPanelListPanel;

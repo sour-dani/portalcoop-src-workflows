@@ -14,7 +14,7 @@
 #include "iefx.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "point_bonusmaps_accessor.h"
-#include "gameui/bonusmapsdatabase.h"
+#include "gameui/BonusMapsDatabase.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

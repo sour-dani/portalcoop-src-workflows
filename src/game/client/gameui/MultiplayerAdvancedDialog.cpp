@@ -20,7 +20,7 @@
 #include <vgui_controls/CheckButton.h>
 #include <vgui_controls/ComboBox.h>
 #include <vgui_controls/TextEntry.h>
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 #include "PanelListPanel.h"
 #include <vgui/IInput.h>
 #include <steam/steam_api.h>

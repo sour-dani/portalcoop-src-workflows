@@ -413,7 +413,7 @@ class CEngineRecipientFilter : public IRecipientFilter
 public:	// IRecipientFilter interface:
 	
 					CEngineRecipientFilter();
-	virtual int		GetRecipientCount( void ) const {};
+	virtual int		GetRecipientCount( void ) const { };
 	virtual int		GetRecipientIndex( int slot ) const {};
 	virtual bool	IsReliable( void ) const { return m_bReliable; };
 	virtual bool	IsInitMessage( void )  const { return m_bInit; };

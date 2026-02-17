@@ -833,8 +833,9 @@ void __MsgFunc_SetMouseAngle( bf_read &msg )
 	float x = msg.ReadFloat();
 	float y = msg.ReadFloat();
 	float z = msg.ReadFloat();
+	QAngle viewangles = QAngle( x, y, z );
 
-	engine->SetViewAngles( QAngle( x, y, z ) );
+	engine->SetViewAngles( viewangles );
 }
 
 class CSetViewAnglesHook : public CAutoGameSystem

@@ -101,7 +101,7 @@ class INextBot;
 class IHasAttributes;
 #ifdef PORTAL
 class CProp_Portal;
-enum PortalEvent_t;
+#include "portal_shareddefs.h"
 #endif
 
 typedef CUtlVector< CBaseEntity* > EntityList_t;

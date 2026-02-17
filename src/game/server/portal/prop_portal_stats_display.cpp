@@ -14,7 +14,7 @@
 #include "portal_shareddefs.h"
 #include "portal_gamerules.h"
 #include "props.h"
-#include "gameui/bonusmapsdatabase.h"
+#include "gameui/BonusMapsDatabase.h"
 
 #define PORTAL_STATS_DISPLAY_MODEL_NAME "models/props/Round_elevator_body.mdl"
 

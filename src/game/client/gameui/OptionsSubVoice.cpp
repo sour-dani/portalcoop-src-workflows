@@ -7,7 +7,7 @@
 //=============================================================================//
 #include "cbase.h"
 #include "OptionsSubVoice.h"
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 #include <vgui/IVGui.h>
 #include <vgui_controls/ImagePanel.h>
 #include <vgui_controls/CheckButton.h>

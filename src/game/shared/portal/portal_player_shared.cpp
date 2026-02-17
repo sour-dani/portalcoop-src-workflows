@@ -6,7 +6,7 @@
 //
 //=============================================================================//
 #include "cbase.h"
-#include "portal\weapon_physcannon.h"
+#include "weapon_physcannon.h"
 
 #ifdef CLIENT_DLL
 #include "c_portal_player.h"

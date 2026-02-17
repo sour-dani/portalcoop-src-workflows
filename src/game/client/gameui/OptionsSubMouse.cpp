@@ -11,7 +11,7 @@
 #include "KeyToggleCheckButton.h"
 #include "CvarNegateCheckButton.h"
 #include "CvarToggleCheckButton.h"
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 
 #include "EngineInterface.h"
 

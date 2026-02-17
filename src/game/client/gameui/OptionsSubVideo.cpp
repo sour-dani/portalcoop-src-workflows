@@ -7,7 +7,7 @@
 
 #include "cbase.h"
 #include "OptionsSubVideo.h"
-#include "..\common\GameUI\cvarslider.h"
+#include "GameUI/cvarslider.h"
 #include "EngineInterface.h"
 #include "IGameUIFuncs.h"
 #include "modes.h"
