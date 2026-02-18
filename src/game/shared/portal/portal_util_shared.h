@@ -10,7 +10,7 @@
 #pragma once
 #endif
 
-#include "engine/ienginetrace.h"
+#include "engine/IEngineTrace.h"
 #include "portal_shareddefs.h"
 
 extern bool g_bBulletPortalTrace;
