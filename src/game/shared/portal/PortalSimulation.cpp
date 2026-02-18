@@ -2894,7 +2894,7 @@ void CPortalSimulator::PostPhysFrame( void )
 #ifdef GAME_DLL
                 ADD_DEBUG_HISTORY( HISTORY_PLAYER_DAMAGE, UTIL_VarArgs( "Player in PortalSimulator but not touching a portal, removing from sim at : %f\n",  gpGlobals->curtime ) );
 #else
-				Warning ( "Client: Player in PortalSimulator but not touching a portal, removing from sim at : %f\n" );
+				Warning ( "Client: Player in PortalSimulator but not touching a portal, removing from sim at : %s\n" );
 #endif
                 if ( pSim )
                 {

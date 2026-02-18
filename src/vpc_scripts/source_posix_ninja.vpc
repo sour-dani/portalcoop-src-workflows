@@ -19,17 +19,17 @@ $Macro NINJA_WARN_FLAGS_C \
     "-Wno-switch -Wno-parentheses " \
     "-Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-value " \
 	"-Wno-comment " \
-    "-Wno-float-equal -Werror=return-type " \
+    "-Wno-float-equal " \
     "-Wformat -Wformat-security"
 
-$Macro NINJA_WARN_FLAGS_CXX "-Wno-overloaded-virtual -Wno-placement-new -Wno-c++20-compat -Wno-mismatched-new-delete -Wno-class-memaccess -Wno-conversion-null -Wno-invalid-offsetof -Wno-reorder "
+$Macro NINJA_WARN_FLAGS_CXX "-Wno-overloaded-virtual -Wno-placement-new -Wno-c++20-compat -Wno-class-memaccess -Wno-conversion-null -Wno-invalid-offsetof -Wno-reorder "
 
 $Macro NINJA_C_DEV_FLAGS			"-fstack-protector -fcf-protection"	[$DEVELOPMENT_ONLY && $LINUX64]
 
 $Macro NINJA_C_FLAGS				"$NINJA_ARCH_FLAGS $NINJA_WARN_FLAGS_C $NINJA_C_DEV_FLAGS " \
                                     "-fpch-preprocess -fvar-tracking-assignments " \
                                     "-DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -D_FILE_OFFSET_BITS=64 -fPIC -pipe " \
-                                    "-fdiagnostics-color -fdiagnostics-show-option "
+                                    "-fdiagnostics-color -fdiagnostics-show-option -fpermissive --no-warnings"
 
 // TODO:
 // Consider -fno-plt?
